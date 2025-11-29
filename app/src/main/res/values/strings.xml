@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">BiCom</string>
+
+<!--    este se lo agrego para poder poner el "+" en el boton-->
+    <string name="add_image_button_text">+</string>
+
+    <string name="video_thumbnail">Media Thumbnail</string>
+    <string name="media_name">Media Name</string>
+    <string name="todo">TODO</string>
+    <string name="sonido">Sonido</string>
+    <string name="editar">Editar</string>
+    <string name="eliminar">Eliminar</string>
+    <string name="control_parental">Control parental</string>
+    <string name="editar_elemento">Editar elemento</string>
+    <string name="eliminar_elemento">Eliminar elemento</string>
+    <string name="proteger">Proteger</string>
+    <string name="default_web_client_id">679902676798-29k8b80ku6fko96tjh8s39hlain2m7da.apps.googleusercontent.com</string>
+    <string name="conectar_con_google_drive">Conectar con Google Drive</string>
+    <string name="contacto">Contacto</string>
+    <string name="Google_Drive">Google Drive</string>
+    <string name="cambiar_cuenta">Cambiar cuenta de Drive</string>
+    <string name="exportar_archivos">Exportar Archivos</string>
+    <string name="importar_archivos">Importar Archivos</string>
+    <string name="cerrar_cuadroimagen">Cerrar</string>
+    <string name="Compartir">Compartir</string>
+    <string name="inicio">Inicio</string>
+    <string name="recientes">Recientes</string>
+    <string name="Listas">Listas\n</string>
+    <string name="sugeridos">Sugeridos</string>
+    <string name="ordenar">Ordenar por</string>
+    <string name="Modos">Modos</string>
+
+</resources>

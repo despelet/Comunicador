@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+<!--     le agrego esto para tema-->
+    <!-- Base application theme -->
+    <style name="Theme.App" parent="Theme.AppCompat.Light">
+        <!-- Customize your theme here -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/color2</item>
+        <item name="colorAccent">@color/color3</item>
+        <item name="android:background">@color/color4</item>
+    </style>
+
+</resources>

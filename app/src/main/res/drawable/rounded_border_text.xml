@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Fondo del LinearLayout -->
+    <solid android:color="@color/color3" /> <!-- Color de fondo (puedes cambiarlo) -->
+
+    <!-- Bordes redondeados -->
+    <corners android:radius="5dp" /> <!-- Radio de las esquinas redondeadas -->
+
+    <stroke
+        android:width="3dp"
+        android:color="@color/color3" /> <!-- Color y grosor del borde (puedes cambiarlo) -->
+</shape>

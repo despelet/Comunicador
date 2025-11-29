@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/orden_reciente"
+        android:title="Más recientes primero" />
+    <item
+        android:id="@+id/orden_viejo"
+        android:title="Más antiguos primero" />
+    <item
+        android:id="@+id/az"
+        android:title="A-Z" />
+    <item
+        android:id="@+id/za"
+        android:title="Z-A" />
+</menu>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <files-path name="internal_files" path="." />
+    <files-path name="media" path="media/" />
+    <cache-path name="cache" path="." />
+
+    <external-path
+        name="external_files"
+        path="." />
+
+    <!-- Permite el acceso a archivos en la carpeta externa de imágenes de la aplicación -->
+    <external-path name="external_files" path="Pictures/Comunic/" />
+
+    <!-- Permite el acceso a archivos en la carpeta externa de videos de la aplicación -->
+    <external-path name="external_files_videos" path="Movies/Comunic/" />
+</paths>
+<!-- <cache-path name="exported_zip" path="archivos_exportados.zip" />-->

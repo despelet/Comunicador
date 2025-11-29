@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="imageView" type="id"/>
+    <item name="videoView" type="id"/>
+    <item name="addImageButton" type="id"/>
+    <item name="nav_drive" type="id"/>
+    <item name="nav_control_parental" type="id"/>
+    <item name="nav_editar" type="id"/>
+    <item name="nav_eliminar" type="id"/>
+    <item name="nav_proteger" type="id"/>
+    <item name="nav_nosotros" type="id"/>
+</resources>

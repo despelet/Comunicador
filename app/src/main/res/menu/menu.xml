@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/nav_nosotros"
+        android:icon="@drawable/info"
+        android:title="Sobre BiCom" />
+
+        <item android:title="@string/control_parental"
+            android:id="@+id/nav_control_parental"
+            android:icon="@drawable/control_parental">
+            <menu>
+                <group android:checkableBehavior="single">
+                    <item
+                        android:id="@+id/nav_proteger"
+                        android:icon="@drawable/proteger"
+                        android:title="@string/proteger" />
+                </group>
+                <group android:checkableBehavior="single">
+                    <item
+                        android:id="@+id/nav_editar"
+                        android:icon="@drawable/editar"
+                        android:title="@string/editar_elemento" />
+                    <item
+                        android:id="@+id/nav_eliminar"
+                        android:icon="@drawable/eliminar"
+                        android:title="@string/eliminar_elemento" />
+                </group>
+            </menu>
+        </item>
+<!--    <item-->
+<!--        android:id="@+id/drive"-->
+<!--        android:title="@string/Google_Drive">-->
+<!--        <menu>-->
+<!--            <group android:checkableBehavior="single">-->
+<!--                <item-->
+<!--                    android:id="@+id/nav_drive"-->
+<!--                    android:title="@string/conectar_con_google_drive"/>-->
+<!--                <item-->
+<!--                    android:id="@+id/nav_cambiar_cuenta"-->
+<!--                    android:title="@string/cambiar_cuenta"/>-->
+<!--            </group>-->
+<!--        </menu>-->
+<!--    </item>-->
+    <item android:title="@string/contacto">
+        <menu>
+
+        </menu>
+    </item>
+    <item
+        android:id="@+id/compartir"
+        android:title="@string/Compartir">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/exportar_archivos"
+                    android:title="@string/exportar_archivos"
+                    android:icon="@android:drawable/ic_menu_share"
+                    app:showAsAction="ifRoom" />
+                <item
+                    android:id="@+id/importar_archivos"
+                    android:title="@string/importar_archivos"
+                    android:icon="@android:drawable/ic_menu_upload"
+                    app:showAsAction="ifRoom" />
+            </group>
+        </menu>
+    </item>
+
+</menu>
+
+

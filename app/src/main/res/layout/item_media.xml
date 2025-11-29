@@ -1,0 +1,110 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/color5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:background="@drawable/item_border"
+        android:padding="1dp"
+        android:layout_marginHorizontal="5dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="1dp"
+            android:layout_margin="5dp">
+
+            <!-- Espacio vacío para empujar el botón de eliminar a la derecha -->
+            <Button
+                android:id="@+id/activarModoEdicion"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top"
+                android:layout_margin="5dp"
+                android:background="@color/color5"
+                android:drawableBottom="@android:drawable/ic_menu_edit"
+                android:elevation="0dp"
+                android:padding="5dp"
+                android:visibility="gone"
+                android:textColor="@android:color/white" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <Button
+                android:id="@+id/deleteButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="5dp"
+                android:background="@color/color5"
+                android:drawableBottom="@android:drawable/ic_menu_delete"
+                android:elevation="0dp"
+                android:padding="7dp"
+                android:visibility="gone"
+                android:textColor="@android:color/black" />
+
+        </LinearLayout>
+
+        <!-- Imagen o Video -->
+            <ImageView
+                android:id="@+id/mediaImageView"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:contentDescription="@string/media_name"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:layout_gravity="center"
+                android:layout_marginHorizontal="8dp"
+                android:padding="1dp"
+                android:background="@drawable/rounded_border_item"/>
+
+            <ImageView
+                android:id="@+id/videoThumbnail"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:contentDescription="@string/video_thumbnail"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:layout_gravity="center"
+                android:layout_marginHorizontal="8dp"
+                android:padding="1dp"
+                android:background="@drawable/rounded_border_item"/>
+
+            <!-- Nombre del archivo -->
+        <TextView
+            android:id="@+id/nameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_margin="5dp"
+            android:background="@color/color5"
+            android:ellipsize="end"
+            android:padding="10dp"
+            android:text="@string/media_name"
+            android:textAlignment="center"
+            android:textStyle="bold"
+
+
+            app:autoSizeMaxTextSize="12sp"
+            app:autoSizeMinTextSize="9sp"
+            app:autoSizeStepGranularity="1sp"
+            app:autoSizeTextType="uniform" />
+
+
+    </LinearLayout>
+</FrameLayout>
+

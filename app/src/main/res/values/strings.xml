@@ -29,5 +29,8 @@
     <string name="sugeridos">Sugeridos</string>
     <string name="ordenar">Ordenar por</string>
     <string name="Modos">Modos</string>
+    <string name="_0_elementos_seleccionados">0 elementos seleccionados</string>
+    <string name="eliminar_elementos">Eliminar elementos</string>
+    <string name="secci_n_en_desarrollo">Sección en desarrollo</string>
 
 </resources>

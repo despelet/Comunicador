@@ -18,7 +18,7 @@
         android:padding="8dp"
         android:gravity="center_vertical"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/constraintLayout"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -37,13 +37,13 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:textColor="@android:color/black"
-            android:text="0 elementos seleccionados" />
+            android:text="@string/_0_elementos_seleccionados" />
 
         <Button
             android:id="@+id/deleteSelectedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Eliminar elementos"
+            android:text="@string/eliminar_elementos"
             android:backgroundTint="@android:color/holo_red_dark"
             android:textColor="@android:color/white" />
     </LinearLayout>
@@ -61,8 +61,6 @@
         android:visibility="gone"/>
 
     <ScrollView
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
@@ -135,7 +133,7 @@
                         android:id="@+id/textoDesarrolloCategorias"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Sección en desarrollo"
+                        android:text="@string/secci_n_en_desarrollo"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:layout_gravity="center"
@@ -180,7 +178,7 @@
                     android:id="@+id/textoDesarrolloModos"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Sección en desarrollo"
+                    android:text="@string/secci_n_en_desarrollo"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:layout_gravity="center"
@@ -192,47 +190,3 @@
         </LinearLayout>
     </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
-
-
-<!--&lt;!&ndash; CONTENEDOR 2: CATEGORÍAS &ndash;&gt;-->
-<!--<LinearLayout-->
-<!--android:id="@+id/contenedor_categorias"-->
-<!--android:layout_width="match_parent"-->
-<!--android:layout_height="wrap_content"-->
-<!--android:orientation="vertical"-->
-<!--android:padding="8dp"-->
-<!--android:layout_marginTop="12dp"-->
-<!--android:background="@color/color5">-->
-
-<!--<TextView-->
-<!--    android:layout_width="wrap_content"-->
-<!--    android:layout_height="wrap_content"-->
-<!--    android:text="@string/Listas"-->
-<!--    android:textSize="18sp"-->
-<!--    android:textStyle="bold"-->
-<!--    android:paddingBottom="4dp"/>-->
-
-<!--<androidx.recyclerview.widget.RecyclerView-->
-<!--    android:id="@+id/recyclerCategorias"-->
-<!--    android:layout_width="match_parent"-->
-<!--    android:layout_height="wrap_content"-->
-<!--    android:nestedScrollingEnabled="false"-->
-<!--    android:overScrollMode="never"/>-->
-
-<!--<TextView-->
-<!--    android:id="@+id/textoDesarrolloCategorias"-->
-<!--    android:layout_width="wrap_content"-->
-<!--    android:layout_height="wrap_content"-->
-<!--    android:text="Sección en desarrollo"-->
-<!--    android:textSize="14sp"-->
-<!--    android:textColor="@color/color3"-->
-<!--    android:paddingTop="8dp"-->
-<!--    android:paddingBottom="8dp"/>-->
-<!--</LinearLayout>-->
-
-<!--<androidx.recyclerview.widget.RecyclerView-->
-<!--android:id="@+id/recyclerModos"-->
-<!--android:layout_width="match_parent"-->
-<!--android:layout_height="wrap_content"-->
-<!--android:nestedScrollingEnabled="false"-->
-<!--android:overScrollMode="never"/>-->

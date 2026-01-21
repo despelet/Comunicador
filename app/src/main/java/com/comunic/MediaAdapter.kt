@@ -111,13 +111,7 @@ open class MediaAdapter(
                     // Registramos el uso primero
                     RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.nombre)
                     palabraAudio(mediaItem.nombre)
-//                    val sugerencias =
-//                        obtenerSugerenciasSiguientes(mediaItem.uri) // obtener sugerencias basadas en el orden de uso reciente
-//                    val fragmento = CuadroImagen.nuevaInstancia(
-//                        mediaItem.uri, true, mediaItem.nombre,
-//                        sugerencias.map { it.uri },
-//                        sugerencias.map { it.nombre }
-//                    )
+
 
                     // Posición segura del item clickeado
                     val pos = holder.bindingAdapterPosition
@@ -171,11 +165,7 @@ open class MediaAdapter(
                     // Registramos el uso
                     RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.nombre)
                     palabraAudio(mediaItem.nombre)
-//                    val sugerencias = obtenerSugerenciasSiguientes(mediaItem.uri)
-//                    val fragmento = CuadroImagen.nuevaInstancia(
-//                        mediaItem.uri, false, mediaItem.nombre,
-//                        sugerencias.map { it.uri }, sugerencias.map { it.nombre }
-//                    )
+
                     // Posición segura del item clickeado
                     val pos = holder.bindingAdapterPosition
                     if (pos == RecyclerView.NO_POSITION) return@setOnClickListener

@@ -126,30 +126,51 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 
         // TOP 6
         lifecycleScope.launch {
-            val topItems: List<ItemUsado> = withContext(Dispatchers.IO) {
-                val dao = AppDatabase.getDatabase(requireContext()).itemUsadoDao()
-                dao.getTop6ItemsUsados() // los 6 más usados. los toma de la base de datos
+            val now = System.currentTimeMillis()
+            val bucketId = RankingManager.TimeBucket.bucketIdFromMillis(now)
+
+            val (topBucket, topGlobal) = withContext(Dispatchers.IO) {
+                val db = AppDatabase.getDatabase(requireContext())
+
+                // Traemos más de 6 para poder ordenar bien y tener margen
+                val bucket = db.itemUsadoBucketDao().getTopForBucket(bucketId, 30)
+
+                // Global para completar si el bucket no alcanza
+                val global = db.itemUsadoDao().obtenerMasUsados() // ya lo tenés en tu DAO
+
+                bucket to global
             }
-            Log.d("TOP6", "Items recuperados: ${topItems.size}")
-            topItems.forEach { Log.d("TOP6", "Item: ${it.nombreArchivo}") }
 
+            // Maps del BUCKET (frecuencia + recencia)
+            val bucketCount = topBucket.associate { it.nombreArchivo to it.cantidadDeUsos }
+            val bucketLastUsed = topBucket.associate { it.nombreArchivo to it.ultimaFechaUso }
 
-//            val carpeta = File(requireContext().filesDir, "media")
-//            val mediaItemsTop = topItems.mapNotNull { itemUsado ->
-//                val archivo = File(carpeta, itemUsado.nombreArchivo)
-//                Log.d("TOP6", "Archivo: ${archivo.absolutePath}, existe? ${archivo.exists()}")
-//                if (archivo.exists()) {
-//                    val uri = Uri.fromFile(archivo)
-//                    val esImagen = itemUsado.nombreArchivo.endsWith(".jpg", true) || itemUsado.nombreArchivo.endsWith(".png", true)
-//                    ItemLista(itemUsado.nombreArchivo, uri, esImagen, itemUsado.ultimaFechaUso)
-//                } else null
-//            }
+            // Maps GLOBAL (por si necesitamos completar)
+            val globalCount = topGlobal.associate { it.nombreArchivo to it.cantidadDeUsos }
+            val globalLastUsed = topGlobal.associate { it.nombreArchivo to it.ultimaFechaUso }
+
+            // Unión de candidatos: primero bucket, luego global (sin duplicar)
+            val candidatos = LinkedHashSet<String>().apply {
+                topBucket.forEach { add(it.nombreArchivo) }
+                topGlobal.forEach { add(it.nombreArchivo) }
+            }.toList()
+
+            // Orden: (1) bucketCount desc, (2) bucketLastUsed desc, (3) globalCount desc, (4) globalLastUsed desc
+            val topFinalNombres = candidatos
+                .sortedWith(
+                    compareByDescending<String> { bucketCount[it] ?: 0 }
+                        .thenByDescending { bucketLastUsed[it] ?: 0L }
+                        // Desempates extra para los que vienen de global o para estabilidad
+                        .thenByDescending { globalCount[it] ?: 0 }
+                        .thenByDescending { globalLastUsed[it] ?: 0L }
+                )
+                .take(6)
+
+            // Convertimos a ItemLista (timestamp = ultima fecha real: bucket si existe, si no global)
             val carpeta = File(requireContext().filesDir, "media")
-            val mediaItemsTop = topItems.mapNotNull { itemUsado ->
-
-                // Intentamos con extensión .jpg y .mp4 porque guardás con extensión
-                val archivoJpg = File(carpeta, "${itemUsado.nombreArchivo}.jpg")
-                val archivoMp4 = File(carpeta, "${itemUsado.nombreArchivo}.mp4")
+            val mediaItemsTop = topFinalNombres.mapNotNull { nombre ->
+                val archivoJpg = File(carpeta, "$nombre.jpg")
+                val archivoMp4 = File(carpeta, "$nombre.mp4")
 
                 val archivoExistente = when {
                     archivoJpg.exists() -> archivoJpg
@@ -157,20 +178,29 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
                     else -> null
                 }
 
-                Log.d("TOP6", "Archivo: ${archivoExistente?.absolutePath}, existe? ${archivoExistente?.exists() ?: false}")
                 archivoExistente?.let { archivo ->
                     val uri = Uri.fromFile(archivo)
                     val esImagen = archivo.name.endsWith(".jpg", ignoreCase = true)
-                    ItemLista(itemUsado.nombreArchivo, uri, esImagen, itemUsado.ultimaFechaUso)
+
+                    val lastUsed = bucketLastUsed[nombre] ?: globalLastUsed[nombre] ?: now
+
+                    ItemLista(
+                        nombre = nombre,
+                        uri = uri,
+                        esImagen = esImagen,
+                        timestamp = lastUsed
+                    )
                 }
             }
 
-
-            val adapterRecientes = MediaAdapter(mediaItemsTop.toMutableList(), ::eliminar) { nombre -> audio(nombre) }
-            binding.recyclerTop6.layoutManager = GridLayoutManager(requireContext(), 3) // 2 filas x 3 columnas, por ejemplo
-            binding.recyclerTop6.adapter = adapterRecientes
+            val adapter = MediaAdapter(mediaItemsTop.toMutableList(), ::eliminar) { nombre -> audio(nombre) }
+            binding.recyclerTop6.layoutManager = GridLayoutManager(requireContext(), 3)
+            binding.recyclerTop6.adapter = adapter
             binding.recyclerTop6.visibility = View.VISIBLE
         }
+
+
+
 
         loadImageData() // Cargar los datos (imágenes/videos)
 

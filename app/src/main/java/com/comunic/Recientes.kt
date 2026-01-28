@@ -137,6 +137,7 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             popup.show()
         }
 
+        // Eliminacion de elementos
         setupSelectionPanel() // seleccion y eliminacion
         selectionPanel = binding.selectionPanel
         selectionCountText = binding.selectionCountText
@@ -145,11 +146,9 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             val seleccionados = mediaAdapter.obtenerSeleccionados()
             onEliminarSeleccionSolicitada(seleccionados)
         }
-
         mediaAdapter.onSeleccionCambio = { count ->
             actualizarPanelSeleccion(count)
         }
-
         cancelSelectionButton = binding.cancelSelectionButton
         binding.cancelSelectionButton.setOnClickListener {
             mediaAdapter.cancelarModoEliminacion()
@@ -260,11 +259,6 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
 
             setToolbarTitle("Editar imagen") // título personalizado
         }
-
-//        UCrop.of(uri, destinationUri)
-//            .withOptions(options)
-//            .withAspectRatio(1f, 1f)
-//            .start(requireActivity(), UCROP_REQUEST_CODE)
 
         UCrop.of(uri, destinationUri)
             .withOptions(options)
@@ -546,6 +540,7 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         super.onDestroy()
     }
 
+    // ELIMINACION INDIVIDUAL DESDE ITEM_MEDIA.KT
     private fun eliminar(nombre: String) {
         //val index = listaDeArchivos.indexOfFirst { it.first == nombre }
         val index = listaDeArchivos.indexOfFirst { it.nombre == nombre }
@@ -595,6 +590,8 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         editor.remove("$nombreArchivo|type")
         editor.apply()
     }
+    // ELIMINACION INDIVIDUAL DESDE ITEM_MEDIA.KT
+
 
     // si uso una carpeta del almacenamiento interno para imagenes y videos
     private fun loadImageData() {
@@ -774,6 +771,40 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
         Toast.makeText(requireContext(), "Modo eliminación cancelado", Toast.LENGTH_SHORT).show()
     }
 
+
+
+    private fun setupSelectionPanel() {
+        binding.deleteSelectedButton.setOnClickListener {
+            val seleccionados = mediaAdapter.obtenerSeleccionados()
+            if (seleccionados.isNotEmpty()) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Confirmar eliminación")
+                    .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
+                    .setPositiveButton("Eliminar") { dialog, _ ->
+                        mediaAdapter.eliminarSeleccionados()
+                        actualizarPanelSeleccion(0)
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
+            }
+        }
+
+        binding.cancelSelectionButton.setOnClickListener {
+            mediaAdapter.cancelarModoEliminacion()
+            actualizarPanelSeleccion(0)
+        }
+    }
+    fun actualizarPanelSeleccion(cantidad: Int) {
+        if (cantidad > 0) {
+            selectionPanel.visibility = android.view.View.VISIBLE
+            selectionCountText.text = "$cantidad elemento${if (cantidad > 1) "s" else ""} seleccionad${if (cantidad > 1) "os" else "o"}"
+        } else {
+            selectionPanel.visibility = android.view.View.GONE
+        }
+    }
+
+    // EXPORTAR ELEMENTOS
     fun mostrarDialogoSeleccionarElementos() {
         val nombres = listaDeArchivos.map { it.nombre }
         val seleccionados = BooleanArray(nombres.size)
@@ -817,37 +848,6 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
             }
             .setNegativeButton("Cancelar", null)
             .show()
-    }
-
-    private fun setupSelectionPanel() {
-        binding.deleteSelectedButton.setOnClickListener {
-            val seleccionados = mediaAdapter.obtenerSeleccionados()
-            if (seleccionados.isNotEmpty()) {
-                AlertDialog.Builder(requireContext())
-                    .setTitle("Confirmar eliminación")
-                    .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
-                    .setPositiveButton("Eliminar") { dialog, _ ->
-                        mediaAdapter.eliminarSeleccionados()
-                        actualizarPanelSeleccion(0)
-                        dialog.dismiss()
-                    }
-                    .setNegativeButton("Cancelar", null)
-                    .show()
-            }
-        }
-
-        binding.cancelSelectionButton.setOnClickListener {
-            mediaAdapter.cancelarModoEliminacion()
-            actualizarPanelSeleccion(0)
-        }
-    }
-    fun actualizarPanelSeleccion(cantidad: Int) {
-        if (cantidad > 0) {
-            selectionPanel.visibility = android.view.View.VISIBLE
-            selectionCountText.text = "$cantidad elemento${if (cantidad > 1) "s" else ""} seleccionad${if (cantidad > 1) "os" else "o"}"
-        } else {
-            selectionPanel.visibility = android.view.View.GONE
-        }
     }
 
     private fun mostrarResumenSeleccion(elementosSeleccionados: List<ItemLista>) {
@@ -959,6 +959,9 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
         }
     }
 
+    // EXPORTAR ELEMENTOS - hasta aca
+
+
     // IMPORTAR PAQUETES
     fun importarArchivos() {
         val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
@@ -980,7 +983,7 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
             }
 
             var entry: ZipEntry?
-            while (zipInputStream.nextEntry.also { entry = it } != null) {
+            /*while (zipInputStream.nextEntry.also { entry = it } != null) {
                 val extension = entry!!.name.substringAfterLast(".", "").lowercase(Locale.ROOT) // valido extension de archivo
                 val esImagen = when (extension) {
                     in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> true
@@ -1016,7 +1019,54 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
 
                 listaDeArchivos.add(item) // agrego archivos a la lista actual
                 saveMediaData(nombreSinExtension, uriGuardado, esImagen) // guardo en el almacenamiento persistente (sharedPreferences)
+            }*/
+
+            while (zipInputStream.nextEntry.also { entry = it } != null) {
+
+                val entryName = entry!!.name
+
+                // Si el ZIP trae carpetas, entryName puede incluir "carpeta/archivo.png" Nos quedamos solo con el nombre del archivo.
+                val baseName = entryName.substringAfterLast("/").substringAfterLast("\\")
+
+                val nombreSinExtension = baseName.substringBeforeLast(".")
+                val extension = baseName.substringAfterLast(".", "").lowercase(Locale.ROOT)
+
+                val esImagen = extension in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp")
+                val esVideo  = extension in listOf("mp4", "mkv", "avi", "mov", "webm")
+
+                if (!esImagen && !esVideo) {
+                    Toast.makeText(requireContext(), "Archivo no soportado: .$extension", Toast.LENGTH_SHORT).show()
+                    zipInputStream.closeEntry()
+                    continue
+                }
+
+                val nombreFinal = "$nombreSinExtension.$extension"
+                val archivoDestino = File(mediaDir, nombreFinal)
+
+                if (archivoDestino.exists()) {
+                    Toast.makeText(requireContext(), "Ya existe un archivo llamado $nombreSinExtension", Toast.LENGTH_SHORT).show()
+                    zipInputStream.closeEntry()
+                    continue
+                }
+
+                // Extraigo ZIP y guardo en /files/media/
+                FileOutputStream(archivoDestino).use { outputStream ->
+                    zipInputStream.copyTo(outputStream)
+                }
+                zipInputStream.closeEntry()
+
+                val uriGuardado = Uri.fromFile(archivoDestino)
+                val item = ItemLista(
+                    nombre = nombreSinExtension,
+                    uri = uriGuardado,
+                    esImagen = esImagen,
+                    timestamp = System.currentTimeMillis()
+                )
+
+                listaDeArchivos.add(item)
+                saveMediaData(nombreSinExtension, uriGuardado, esImagen)
             }
+
 
             zipInputStream.close() // cierro zip y aviso que se importo bien
             Toast.makeText(requireContext(), "Importación exitosa", Toast.LENGTH_SHORT).show()

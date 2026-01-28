@@ -56,7 +56,7 @@
                 android:background="@drawable/rounded_border_agregar"
                 android:text="@string/add_image_button_text"
                 android:textSize="40sp"
-                android:textColor="#000000"
+                android:textColor="@color/color1"
                 android:layout_gravity="center"
                 android:padding="0dp"
                 app:layout_constraintBottom_toBottomOf="parent"

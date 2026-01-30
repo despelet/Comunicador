@@ -32,5 +32,7 @@
     <string name="_0_elementos_seleccionados">0 elementos seleccionados</string>
     <string name="eliminar_elementos">Eliminar elementos</string>
     <string name="secci_n_en_desarrollo">Sección en desarrollo</string>
+    <string name="eliminar_seleccion">Eliminar selección</string>
+    <string name="seleccionar_todos">Seleccionar todos</string>
 
 </resources>

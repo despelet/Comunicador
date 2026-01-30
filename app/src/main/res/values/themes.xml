@@ -1,8 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+
+<!--    THEME PRINCIPAL DE LA APP -->
+
     <style name="Theme.Comunic" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/color5</item>
         <item name="android:statusBarColor">@color/color5</item>
+
+        <!-- AlertDialogs Material -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Comunic.AlertDialog</item>
     </style>
+
+    <!-- THEME OVERLAY PARA ALERTDIALOG GLOBAL -->
+    <style name="ThemeOverlay.Comunic.AlertDialog"
+        parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+
+        <item name="buttonBarPositiveButtonStyle">@style/Comunic.AlertDialog.Button</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Comunic.AlertDialog.Button</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Comunic.AlertDialog.Button</item>
+
+    </style>
+
+    <!-- ESTILO BOTONES DE ALERTDIALOG    -->
+    <style name="Comunic.AlertDialog.Button"
+        parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+
+        <item name="android:textColor">@color/color1</item>
+
+    </style>
+
 </resources>

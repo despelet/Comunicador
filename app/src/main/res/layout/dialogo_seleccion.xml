@@ -20,10 +20,13 @@
             android:layout_weight="1"
             android:layout_height="50dp"
             android:background="@drawable/rounded_border_agregar"
-            android:text="Seleccionar todos"
+            android:text="@string/seleccionar_todos"
             android:textSize="16sp"
+            android:textColor="@color/color1"
             android:textStyle="bold"
-            android:layout_marginEnd="8dp"/>
+            android:layout_marginEnd="8dp"
+            android:paddingVertical="6dp"
+            />
 
         <Button
             android:id="@+id/btnDeseleccionarTodos"
@@ -31,8 +34,10 @@
             android:layout_weight="1"
             android:layout_height="50dp"
             android:background="@drawable/rounded_border_agregar"
-            android:text="Eliminar selección"
+            android:text="@string/eliminar_seleccion"
             android:textSize="16sp"
+            android:textColor="@color/color1"
+            android:paddingVertical="6dp"
             android:textStyle="bold"/>
     </LinearLayout>
 
@@ -48,39 +53,3 @@
         android:padding="4dp"/>
 </LinearLayout>
 
-    <!--<?xml version="1.0" encoding="utf-8"?>-->
-    <!--<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"-->
-    <!--    android:orientation="vertical"-->
-    <!--    android:padding="24dp"-->
-    <!--    android:layout_width="match_parent"-->
-    <!--    android:layout_height="wrap_content">-->
-
-    <!--    &lt;!&ndash; Botones arriba del todo &ndash;&gt;-->
-    <!--    <LinearLayout-->
-    <!--        android:layout_width="match_parent"-->
-    <!--        android:layout_height="wrap_content"-->
-    <!--        android:orientation="horizontal"-->
-    <!--        android:gravity="center"-->
-    <!--        android:layout_marginBottom="16dp">-->
-
-    <!--        <Button-->
-    <!--            android:id="@+id/btnSeleccionarTodos"-->
-    <!--            android:layout_width="wrap_content"-->
-    <!--            android:layout_height="wrap_content"-->
-    <!--            android:text="Seleccionar todos"-->
-    <!--            android:layout_marginEnd="8dp"/>-->
-
-    <!--        <Button-->
-    <!--            android:id="@+id/btnDeseleccionarTodos"-->
-    <!--            android:layout_width="wrap_content"-->
-    <!--            android:layout_height="wrap_content"-->
-    <!--            android:text="Eliminar selección" />-->
-    <!--    </LinearLayout>-->
-
-    <!--    &lt;!&ndash; Lista &ndash;&gt;-->
-    <!--    <ListView-->
-    <!--        android:id="@+id/listaItems"-->
-    <!--        android:layout_width="match_parent"-->
-    <!--        android:layout_height="300dp"-->
-    <!--        android:choiceMode="multipleChoice" />-->
-    <!--</LinearLayout>-->

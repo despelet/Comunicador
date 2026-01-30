@@ -411,16 +411,16 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             setCompressionQuality(90)
             setFreeStyleCropEnabled(true) // Permite mover y redimensionar libremente
 
-            setToolbarColor(ContextCompat.getColor(requireContext(), R.color.color3))      // barra superior
-            setStatusBarColor(ContextCompat.getColor(requireContext(), R.color.color3))     // barra de estado
-            setToolbarWidgetColor(ContextCompat.getColor(requireContext(), R.color.color5)) // texto/iconos
-            setActiveControlsWidgetColor(ContextCompat.getColor(requireContext(), R.color.color3)) // botones activos
-            setRootViewBackgroundColor(ContextCompat.getColor(requireContext(), R.color.color4))   // fondo general
+            setToolbarColor(ContextCompat.getColor(requireContext(), R.color.color5))      // barra superior
+            setStatusBarColor(ContextCompat.getColor(requireContext(), R.color.color5))     // barra de estado
+            setToolbarWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // texto/iconos
+            setActiveControlsWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // botones activos
+            setRootViewBackgroundColor(ContextCompat.getColor(requireContext(), R.color.color5))   // fondo general
 
             setToolbarTitle("Editar imagen") // título personalizado
         }
 
-//        UCrop.of(uri, destinationUri)
+//        UCrop.of(uri, destinationUri)|
 //            .withOptions(options)
 //            .withAspectRatio(1f, 1f)
 //            .start(requireActivity(), UCROP_REQUEST_CODE)
@@ -606,6 +606,43 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             .setNegativeButton("Cancelar", null)
             .show()
     }
+
+//    private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
+//        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
+//        val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
+//
+//        val dialog = AlertDialog.Builder(requireContext())
+//            .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
+//            .setView(dialogView)
+//            .setPositiveButton("OK", null)        // listener se setea luego
+//            .setNegativeButton("Cancelar", null)
+//            .create()
+//
+//        dialog.show()
+//
+//        // 🎨 COLORES (excepción por código)
+//        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+//            .setTextColor(ContextCompat.getColor(requireContext(), R.color.color1))
+//
+//        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+//            .setTextColor(ContextCompat.getColor(requireContext(), R.color.color1))
+//
+//        // ✅ Mantenemos funcionalidad (no cerrar si está vacío)
+//        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+//            val nombreArchivo = nameEditText.text.toString()
+//            if (mediaUri != null && nombreArchivo.isNotBlank()) {
+//                guardarArchivo(mediaUri, nombreArchivo, isImage)
+//                dialog.dismiss()
+//            } else {
+//                Toast.makeText(
+//                    requireContext(),
+//                    "El nombre no puede estar vacío",
+//                    Toast.LENGTH_SHORT
+//                ).show()
+//            }
+//        }
+//    }
+
 
     private fun guardarArchivo(mediaUri: Uri, nombre: String, esImagen: Boolean) {
         /* si quiero que el nombre contecta el timestamp
@@ -934,6 +971,37 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             }
             .setNegativeButton("Cancelar", null)
             .show()
+//        val dialog = AlertDialog.Builder(requireContext())
+//            .setTitle("Selecciona elementos para exportar")
+//            .setView(dialogView)
+//            .setPositiveButton("Continuar", null)   // listener después
+//            .setNegativeButton("Cancelar", null)
+//            .create()
+//
+//        dialog.show()
+//
+//        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+//            .setTextColor(ContextCompat.getColor(requireContext(), R.color.color1))
+//
+//        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+//            .setTextColor(ContextCompat.getColor(requireContext(), R.color.color1))
+//
+//        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+//            val elementosSeleccionados =
+//                listaDeArchivos.filterIndexed { index, _ -> seleccionados[index] }
+//
+//            if (elementosSeleccionados.isEmpty()) {
+//                Toast.makeText(
+//                    requireContext(),
+//                    "No seleccionaste ningún elemento",
+//                    Toast.LENGTH_SHORT
+//                ).show()
+//            } else {
+//                mostrarResumenSeleccion(elementosSeleccionados)
+//                dialog.dismiss()
+//            }
+//        }
+
     }
 
 
@@ -949,6 +1017,26 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             }
             .setNegativeButton("Cancelar", null)
             .show()
+//        val dialog = AlertDialog.Builder(requireContext())
+//            .setTitle("Resumen de selección")
+//            .setMessage("Seleccionaste $cantidad elementos:\n\n$nombres")
+//            .setPositiveButton("Exportar", null)   // listener después
+//            .setNegativeButton("Cancelar", null)
+//            .create()
+//
+//        dialog.show()
+//
+//        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+//            .setTextColor(ContextCompat.getColor(requireContext(), R.color.color1))
+//
+//        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+//            .setTextColor(ContextCompat.getColor(requireContext(), R.color.color1))
+//
+//        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+//            mostrarDialogoTipoExportacion(elementosSeleccionados)
+//            dialog.dismiss()
+//        }
+
     }
 
 

@@ -155,8 +155,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         // Cargar fragment por defecto (Home)
         if (savedInstanceState == null) {
-            bottomNav.selectedItemId = R.id.menu_home
+            bottomNav.selectedItemId = R.id.menu_recientes
         }
+
     }
 
     private fun openFragment(fragment: Fragment) {

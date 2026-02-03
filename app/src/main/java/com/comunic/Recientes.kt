@@ -99,43 +99,61 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         recyclerView.adapter = mediaAdapter
 
         loadImageData() // Cargar los datos (imágenes/videos)
+        val ordenGuardado = getOrdenSeleccionado()
+        aplicarOrden(ordenGuardado, orderButton)
+
 
         // Ordenar la lista por el timestamp más reciente
         //listaDeArchivos.sortByDescending { it.timestamp }
-        mediaAdapter.notifyDataSetChanged()
+        //mediaAdapter.notifyDataSetChanged()
 
         checkReadPermissionIfNeeded() // permisos
 
         // Configurar el botón de ordenamiento
-        orderButton.setOnClickListener {
-            val popup = PopupMenu(requireContext(), it)
+
+//        orderButton.setOnClickListener {
+//            val popup = PopupMenu(requireContext(), it)
+//            popup.menuInflater.inflate(R.menu.menu_filtro_recientes, popup.menu)
+//
+//            popup.setOnMenuItemClickListener { item ->
+//                // 1. Obtén el título del menú que se presionó (ej: "A-Z")
+//                val selectedTitle = item.title.toString()
+//                // 2. Actualiza el texto del botón con ese título
+//                orderButton.text = "Ordenar por: $selectedTitle"
+//                when (item.itemId) {
+//                    R.id.orden_reciente -> {
+//                        listaDeArchivos.sortByDescending { it.timestamp }
+//                    }
+//                    R.id.orden_viejo -> {
+//                        listaDeArchivos.sortBy { it.timestamp }
+//                    }
+//                    R.id.az -> {
+//                        listaDeArchivos.sortBy { it.nombre.lowercase() }
+//                    }
+//                    R.id.za -> {
+//                        listaDeArchivos.sortByDescending { it.nombre.lowercase() }
+//                    }
+//                }
+//                mediaAdapter.notifyDataSetChanged()
+//                true
+//            }
+//
+//            popup.show()
+//        }
+
+        orderButton.setOnClickListener { view ->
+            val popup = PopupMenu(requireContext(), view)
             popup.menuInflater.inflate(R.menu.menu_filtro_recientes, popup.menu)
 
             popup.setOnMenuItemClickListener { item ->
-                // 1. Obtén el título del menú que se presionó (ej: "A-Z")
-                val selectedTitle = item.title.toString()
-                // 2. Actualiza el texto del botón con ese título
-                orderButton.text = "Ordenar por: $selectedTitle"
-                when (item.itemId) {
-                    R.id.orden_reciente -> {
-                        listaDeArchivos.sortByDescending { it.timestamp }
-                    }
-                    R.id.orden_viejo -> {
-                        listaDeArchivos.sortBy { it.timestamp }
-                    }
-                    R.id.az -> {
-                        listaDeArchivos.sortBy { it.nombre.lowercase() }
-                    }
-                    R.id.za -> {
-                        listaDeArchivos.sortByDescending { it.nombre.lowercase() }
-                    }
-                }
-                mediaAdapter.notifyDataSetChanged()
+                saveOrdenSeleccionado(item.itemId)
+                aplicarOrden(item.itemId, orderButton)
                 true
             }
 
             popup.show()
         }
+
 
         // Eliminacion de elementos
         setupSelectionPanel() // seleccion y eliminacion
@@ -425,7 +443,8 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
     private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
         val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
-        AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
             .setView(dialogView)
             .setPositiveButton("OK") { _, _ ->
@@ -614,12 +633,13 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         }
 
         //listaDeArchivos.sortByDescending { it.timestamp } // Ordenar por timestamp (más reciente primero)
-        listaDeArchivos.sortBy { it.timestamp }
+     //   listaDeArchivos.sortBy { it.timestamp }
         mediaAdapter.notifyDataSetChanged() // Notificar al adaptador
     }
 
     fun solicitarContrasena() {
-        val builder = AlertDialog.Builder(requireContext())
+        val builder = AlertDialog.Builder(requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog)
         builder.setTitle("Ingrese la contraseña")
 
         val input = EditText(requireContext())
@@ -655,7 +675,8 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
     }
 
     override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
-        AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle("¿Eliminar elementos seleccionados?")
             .setMessage("Se eliminarán ${seleccionados.size} elementos. ¿Desea continuar?")
             .setPositiveButton("Eliminar") { _, _ ->
@@ -777,7 +798,8 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
         binding.deleteSelectedButton.setOnClickListener {
             val seleccionados = mediaAdapter.obtenerSeleccionados()
             if (seleccionados.isNotEmpty()) {
-                AlertDialog.Builder(requireContext())
+                AlertDialog.Builder(requireContext(),
+                    R.style.ThemeOverlay_Comunic_AlertDialog)
                     .setTitle("Confirmar eliminación")
                     .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
                     .setPositiveButton("Eliminar") { dialog, _ ->
@@ -835,7 +857,8 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
             }
         }
 
-        AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle("Selecciona elementos para exportar")
             .setView(dialogView)
             .setPositiveButton("Continuar") { _, _ ->
@@ -854,7 +877,8 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
         val cantidad = elementosSeleccionados.size
         val nombres = elementosSeleccionados.joinToString("\n") { "- ${it.nombre}" }
 
-        AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle("Resumen de selección")
             .setMessage("Seleccionaste $cantidad elementos:\n\n$nombres")
             .setPositiveButton("Exportar") { _, _ ->
@@ -866,7 +890,8 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
 
 
     private fun mostrarDialogoTipoExportacion(elementosSeleccionados: List<ItemLista>) {
-        AlertDialog.Builder(requireContext())
+        AlertDialog.Builder(requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle("¿Cómo querés exportarlos?")
             .setItems(arrayOf("Compartir archivos sueltos", "Exportar como ZIP")) { _, which ->
                 when (which) {
@@ -1075,6 +1100,46 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
             e.printStackTrace()
             Toast.makeText(requireContext(), "Error al importar ZIP", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun saveOrdenSeleccionado(itemId: Int) {
+        requireContext()
+            .getSharedPreferences(Companion.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putInt(Companion.KEY_ORDEN_RECENTES, itemId)
+            .apply()
+    }
+
+    private fun getOrdenSeleccionado(): Int {
+        val prefs = requireContext().getSharedPreferences(Companion.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        return prefs.getInt(Companion.KEY_ORDEN_RECENTES, R.id.orden_reciente) // default: reciente
+    }
+
+    private fun aplicarOrden(itemId: Int, orderButton: Button) {
+        when (itemId) {
+            R.id.orden_reciente -> {
+                orderButton.text = "Ordenar por: Más recientes"
+                listaDeArchivos.sortByDescending { it.timestamp }
+            }
+            R.id.orden_viejo -> {
+                orderButton.text = "Ordenar por: Más viejos"
+                listaDeArchivos.sortBy { it.timestamp }
+            }
+            R.id.az -> {
+                orderButton.text = "Ordenar por: A-Z"
+                listaDeArchivos.sortBy { it.nombre.lowercase() }
+            }
+            R.id.za -> {
+                orderButton.text = "Ordenar por: Z-A"
+                listaDeArchivos.sortByDescending { it.nombre.lowercase() }
+            }
+        }
+        mediaAdapter.notifyDataSetChanged()
+    }
+
+    companion object {
+        private const val PREFS_NAME = "recientes_prefs"
+        private const val KEY_ORDEN_RECENTES = "orden_recientes"
     }
 
 

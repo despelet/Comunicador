@@ -17,28 +17,39 @@
         <Button
             android:id="@+id/btnSeleccionarTodos"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_height="70dp"
+            android:minHeight="48dp"
             android:background="@drawable/rounded_border_agregar"
             android:text="@string/seleccionar_todos"
             android:textSize="16sp"
             android:textColor="@color/color1"
             android:textStyle="bold"
             android:layout_marginEnd="8dp"
-            android:paddingVertical="6dp"
-            />
+            android:paddingVertical="10dp"
+            android:paddingHorizontal="12dp"
+            android:gravity="center"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:includeFontPadding="false" />
 
         <Button
             android:id="@+id/btnDeseleccionarTodos"
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_height="70dp"
+            android:minHeight="48dp"
             android:background="@drawable/rounded_border_agregar"
             android:text="@string/eliminar_seleccion"
             android:textSize="16sp"
             android:textColor="@color/color1"
-            android:paddingVertical="6dp"
-            android:textStyle="bold"/>
+            android:textStyle="bold"
+            android:paddingVertical="10dp"
+            android:paddingHorizontal="12dp"
+            android:gravity="center"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:includeFontPadding="false" />
     </LinearLayout>
 
     <!-- Lista de selección -->

@@ -153,7 +153,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             }
         }
 
-        // Cargar fragment por defecto (Home)
+        // Cargar fragment por defecto
         if (savedInstanceState == null) {
             bottomNav.selectedItemId = R.id.menu_recientes
         }

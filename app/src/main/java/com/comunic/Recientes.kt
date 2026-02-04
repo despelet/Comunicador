@@ -269,11 +269,11 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             setCompressionQuality(90)
             setFreeStyleCropEnabled(true) // Permite mover y redimensionar libremente
 
-            setToolbarColor(ContextCompat.getColor(requireContext(), R.color.color3))      // barra superior
-            setStatusBarColor(ContextCompat.getColor(requireContext(), R.color.color3))     // barra de estado
-            setToolbarWidgetColor(ContextCompat.getColor(requireContext(), R.color.color5)) // texto/iconos
-            setActiveControlsWidgetColor(ContextCompat.getColor(requireContext(), R.color.color3)) // botones activos
-            setRootViewBackgroundColor(ContextCompat.getColor(requireContext(), R.color.color4))   // fondo general
+            setToolbarColor(ContextCompat.getColor(requireContext(), R.color.color5))      // barra superior
+            setStatusBarColor(ContextCompat.getColor(requireContext(), R.color.color5))     // barra de estado
+            setToolbarWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // texto/iconos
+            setActiveControlsWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // botones activos
+            setRootViewBackgroundColor(ContextCompat.getColor(requireContext(), R.color.color5))   // fondo general
 
             setToolbarTitle("Editar imagen") // título personalizado
         }

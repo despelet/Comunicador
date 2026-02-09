@@ -6,21 +6,28 @@
     android:layout_height="match_parent"
     android:background="@color/color5">
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerCategorias"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="12dp"/>
 
 
-    <!-- Contenido central: solo el cartel de sección no disponible -->
-    <TextView
-        android:id="@+id/textoSeccionNoDisponible"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="Sección en desarrollo"
-        android:textSize="18sp"
 
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+ <!-- Contenido central: solo el cartel de sección no disponible -->
+<!--<TextView-->
+<!--android:id="@+id/textoSeccionNoDisponible"-->
+<!--android:layout_width="wrap_content"-->
+<!--android:layout_height="wrap_content"-->
+<!--android:padding="16dp"-->
+<!--android:text="Sección en desarrollo"-->
+<!--android:textSize="18sp"-->
+
+<!--android:textStyle="bold"-->
+<!--app:layout_constraintBottom_toBottomOf="parent"-->
+<!--app:layout_constraintEnd_toEndOf="parent"-->
+<!--app:layout_constraintStart_toStartOf="parent"-->
+<!--app:layout_constraintTop_toTopOf="parent" />-->

@@ -1,6 +1,11 @@
 package com.comunic.data
 
 import android.content.Context
+import com.comunic.data.dao.ItemUsadoBucketDao
+import com.comunic.data.dao.ItemUsadoDao
+import com.comunic.data.db.AppDatabase
+import com.comunic.data.entity.ItemUsado
+import com.comunic.data.entity.ItemUsadoBucket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

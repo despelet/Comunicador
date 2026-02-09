@@ -1,6 +1,7 @@
-package com.comunic.data
+package com.comunic.data.dao
 
 import androidx.room.*
+import com.comunic.data.entity.ItemUsado
 
 @Dao
 interface ItemUsadoDao {

@@ -36,10 +36,10 @@ class CarruselAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CarruselViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_carrusel, parent, false)
-//        view.layoutParams = ViewGroup.LayoutParams(
-//            ViewGroup.LayoutParams.MATCH_PARENT,
-//            ViewGroup.LayoutParams.MATCH_PARENT
-//        )
+        view.layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
         return CarruselViewHolder(view)
     }
 
@@ -67,8 +67,16 @@ class CarruselAdapter(
             holder.imageView.visibility = View.GONE
             holder.videoView.visibility = View.VISIBLE
             holder.videoView.setVideoURI(uri)
+//            holder.videoView.setOnPreparedListener { mp ->
+//                mp.setVolume(0f, 0f)
+//                holder.videoView.start()
+//            }
             holder.videoView.setOnPreparedListener { mp ->
+                mp.isLooping = true
                 mp.setVolume(0f, 0f)
+                mp.setVideoScalingMode(
+                    android.media.MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+                )
                 holder.videoView.start()
             }
         }

@@ -1,4 +1,4 @@
-package com.comunic.data
+package com.comunic.data.entity
 
 import androidx.room.Entity
 

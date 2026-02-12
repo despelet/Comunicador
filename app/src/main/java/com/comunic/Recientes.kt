@@ -32,6 +32,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.comunic.databinding.FragmentRecientesBinding
 import com.comunic.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
@@ -39,7 +40,11 @@ import com.comunic.HomeFragment.Companion.CAPTURE_VIDEO_REQUEST
 import com.comunic.HomeFragment.Companion.PERMISSION_REQUEST_CODE
 import com.comunic.HomeFragment.Companion.PICK_MEDIA_REQUEST
 import com.comunic.HomeFragment.Companion.UCROP_REQUEST_CODE
+import com.comunic.data.db.AppDatabase
+import com.comunic.data.db.PackRepository
+import com.comunic.data.mappers.toItemLista
 import com.yalantis.ucrop.UCrop
+import kotlinx.coroutines.launch
 //import io.opencensus.stats.View
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -71,6 +76,10 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
     private lateinit var deleteSelectedButton: Button
     private lateinit var cancelSelectionButton: Button
 
+    // para integrar pack
+    private lateinit var db: AppDatabase
+
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -79,9 +88,12 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
     ): android.view.View? {
         _binding = FragmentRecientesBinding.inflate(inflater, container, false)
 
-        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { nombre ->
-            audio(nombre)
-        }
+
+        db = AppDatabase.getDatabase(requireContext())
+
+//        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { nombre ->
+//            audio(nombre)
+//        }
         escucharPalabra = TextToSpeech(requireContext(), this)
 
 
@@ -90,8 +102,8 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
 
         //recyclerView.layoutManager = LinearLayoutManager(this)  // 1 columna
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)  // 4 columnas
-        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { nombre ->
-            audio(nombre)
+        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { id ->
+            audio(id)
         }
         recyclerView.adapter = mediaAdapter
 
@@ -100,43 +112,9 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         aplicarOrden(ordenGuardado, orderButton)
 
 
-        // Ordenar la lista por el timestamp más reciente
-        //listaDeArchivos.sortByDescending { it.timestamp }
-        //mediaAdapter.notifyDataSetChanged()
-
         checkReadPermissionIfNeeded() // permisos
 
-        // Configurar el botón de ordenamiento
 
-//        orderButton.setOnClickListener {
-//            val popup = PopupMenu(requireContext(), it)
-//            popup.menuInflater.inflate(R.menu.menu_filtro_recientes, popup.menu)
-//
-//            popup.setOnMenuItemClickListener { item ->
-//                // 1. Obtén el título del menú que se presionó (ej: "A-Z")
-//                val selectedTitle = item.title.toString()
-//                // 2. Actualiza el texto del botón con ese título
-//                orderButton.text = "Ordenar por: $selectedTitle"
-//                when (item.itemId) {
-//                    R.id.orden_reciente -> {
-//                        listaDeArchivos.sortByDescending { it.timestamp }
-//                    }
-//                    R.id.orden_viejo -> {
-//                        listaDeArchivos.sortBy { it.timestamp }
-//                    }
-//                    R.id.az -> {
-//                        listaDeArchivos.sortBy { it.nombre.lowercase() }
-//                    }
-//                    R.id.za -> {
-//                        listaDeArchivos.sortByDescending { it.nombre.lowercase() }
-//                    }
-//                }
-//                mediaAdapter.notifyDataSetChanged()
-//                true
-//            }
-//
-//            popup.show()
-//        }
 
         orderButton.setOnClickListener { view ->
             val popup = PopupMenu(requireContext(), view)
@@ -474,7 +452,17 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             }
             // Agregar la imagen o video a la lista y guardarla
             //listaDeArchivos.add(Triple(nombre, savedUri, esImagen))
-            listaDeArchivos.add(ItemLista(nombre, savedUri, esImagen, System.currentTimeMillis()))
+            //listaDeArchivos.add(ItemLista(nombre, savedUri, esImagen, System.currentTimeMillis()))
+            listaDeArchivos.add(
+                ItemLista(
+                    id = nombre,
+                    nombre = nombre,
+                    uri = savedUri,
+                    esImagen = esImagen,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+
             saveMediaData(nombre, savedUri, esImagen)
             mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
             Toast.makeText( requireContext(),
@@ -542,11 +530,25 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         } else { Log.e("TextToSpeech", "Error al inicializar") }
     }
 
-    private fun audio(text: String) {
-        if (::escucharPalabra.isInitialized) {
-            escucharPalabra.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+//    private fun audio(text: String) {
+//        if (::escucharPalabra.isInitialized) {
+//            escucharPalabra.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+//        }
+//    }
+
+    // esta nueva funcion reproduce palabra dependiendo de si es picto o imagen de usuario
+    private fun audio(nombre: String) {
+        if (!::escucharPalabra.isInitialized) return
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            // si coincide con un pictograma, hablar el label
+            val picto = db.pictogramDao().getPictoById(nombre)
+            val texto = picto?.label ?: nombre
+
+            escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
         }
     }
+
 
     override fun onDestroy() {
         if (::escucharPalabra.isInitialized) {
@@ -561,7 +563,9 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         //val index = listaDeArchivos.indexOfFirst { it.first == nombre }
         val index = listaDeArchivos.indexOfFirst { it.nombre == nombre }
         if (index != -1) {
-            val (_, uri, _) = listaDeArchivos[index]
+            //val (_, uri, _) = listaDeArchivos[index]
+            val item = listaDeArchivos[index]
+            val uri = item.uri
             try {
                 when (uri.scheme) {
                     "content" -> {
@@ -609,29 +613,84 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
     // ELIMINACION INDIVIDUAL DESDE ITEM_MEDIA.KT
 
 
-    // si uso una carpeta del almacenamiento interno para imagenes y videos
+//    // si uso una carpeta del almacenamiento interno para imagenes y videos
+//    private fun loadImageData() {
+//        listaDeArchivos.clear() // Limpia la lista antes de cargar nuevos datos
+//
+//        val mediaDir = File(requireContext().filesDir, "media")         // Directorio único para imágenes y videos
+//
+//        if (mediaDir.exists()) { // Cargar archivos desde la carpeta "media"
+//            mediaDir.listFiles()?.forEach { file ->
+//                val esImagen = file.extension.equals("jpg", ignoreCase = true) // Verifica si es imagen
+//                listaDeArchivos.add(
+//                    ItemLista(
+//                        nombre = file.nameWithoutExtension,
+//                        uri = Uri.fromFile(file),
+//                        esImagen = esImagen,
+//                        timestamp = file.lastModified()
+//                    )
+//                )
+//            }
+//        }
+//
+//        //listaDeArchivos.sortByDescending { it.timestamp } // Ordenar por timestamp (más reciente primero)
+//     //   listaDeArchivos.sortBy { it.timestamp }
+//        mediaAdapter.notifyDataSetChanged() // Notificar al adaptador
+//    }
+
     private fun loadImageData() {
-        listaDeArchivos.clear() // Limpia la lista antes de cargar nuevos datos
+        viewLifecycleOwner.lifecycleScope.launch {
 
-        val mediaDir = File(requireContext().filesDir, "media")         // Directorio único para imágenes y videos
+            // 0) Asegurar que el pack básico exista (idempotente)
+            val db = AppDatabase.getDatabase(requireContext())
+            PackRepository(requireContext(), db).ensureBasicPackInstalled()
 
-        if (mediaDir.exists()) { // Cargar archivos desde la carpeta "media"
-            mediaDir.listFiles()?.forEach { file ->
-                val esImagen = file.extension.equals("jpg", ignoreCase = true) // Verifica si es imagen
-                listaDeArchivos.add(
-                    ItemLista(
-                        nombre = file.nameWithoutExtension,
-                        uri = Uri.fromFile(file),
-                        esImagen = esImagen,
-                        timestamp = file.lastModified()
+            // 1) Limpiar lista
+            listaDeArchivos.clear()
+
+            // 2) Cargar USER media desde /files/media (tu lógica original)
+            val mediaDir = File(requireContext().filesDir, "media")
+
+            if (mediaDir.exists()) {
+                mediaDir.listFiles()?.forEach { file ->
+                    val esImagen = file.extension.equals("jpg", ignoreCase = true)
+                    val esVideo  = file.extension.equals("mp4", ignoreCase = true)
+
+                    if (!esImagen && !esVideo) return@forEach
+                    val base = file.nameWithoutExtension
+                    listaDeArchivos.add(
+//                        ItemLista(
+//                            nombre = file.nameWithoutExtension,
+//                            uri = Uri.fromFile(file),
+//                            esImagen = esImagen, // si esVideo => false
+//                            timestamp = file.lastModified()
+//                        )
+
+                            ItemLista(
+                                id = base,
+                                nombre = base,
+                                uri = Uri.fromFile(file),
+                                esImagen = esImagen,
+                                timestamp = file.lastModified()
+                            )
+
                     )
-                )
+                }
             }
-        }
 
-        //listaDeArchivos.sortByDescending { it.timestamp } // Ordenar por timestamp (más reciente primero)
-     //   listaDeArchivos.sortBy { it.timestamp }
-        mediaAdapter.notifyDataSetChanged() // Notificar al adaptador
+            // 3) Cargar pictos del pack básico (categoría "basic_core") desde Room
+            val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
+
+            // Convertir a ItemLista para que funcionen con MediaAdapter + CuadroImagen
+            val pictosAsItems = pictosBasic.map { row ->
+                row.toItemLista(timestamp = 0L) // packs: timestamp fijo (luego lo mejoramos)
+            }
+
+            listaDeArchivos.addAll(pictosAsItems)
+
+            // 4) Notificar
+            mediaAdapter.notifyDataSetChanged()
+        }
     }
 
     fun solicitarContrasena() {
@@ -1078,12 +1137,20 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                 zipInputStream.closeEntry()
 
                 val uriGuardado = Uri.fromFile(archivoDestino)
+//                val item = ItemLista(
+//                    nombre = nombreSinExtension,
+//                    uri = uriGuardado,
+//                    esImagen = esImagen,
+//                    timestamp = System.currentTimeMillis()
+//                )
                 val item = ItemLista(
+                    id = nombreSinExtension,
                     nombre = nombreSinExtension,
                     uri = uriGuardado,
                     esImagen = esImagen,
                     timestamp = System.currentTimeMillis()
                 )
+
 
                 listaDeArchivos.add(item)
                 saveMediaData(nombreSinExtension, uriGuardado, esImagen)

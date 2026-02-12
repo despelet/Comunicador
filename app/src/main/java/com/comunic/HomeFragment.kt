@@ -45,6 +45,8 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import com.comunic.data.db.AppDatabase
 import com.comunic.data.RankingManager
+import com.comunic.data.db.PackRepository
+import com.comunic.data.mappers.toItemLista
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -74,10 +76,14 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 //    private lateinit var adapterTop6: MediaAdapter
     //private lateinit var adapterCategorias: CategoriaAdapter
 
+    // para integrar pack
+    private lateinit var db: AppDatabase
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
+        db = AppDatabase.getDatabase(requireContext())
 
         escucharPalabra = TextToSpeech(requireContext(), this)
 
@@ -85,8 +91,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         //recyclerView.layoutManager = LinearLayoutManager(this)  // 1 columna
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 4)  // 4 columnas
         // DESCOMENTAR SI QUIERO QUE SE VEA EL RECYCLER
-        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { nombre ->
-            audio(nombre)
+        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { id ->
+            audio(id)
         }
         recyclerView.adapter = mediaAdapter
         //binding.recyclerView.visibility = View.GONE
@@ -151,7 +157,14 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 
                     val lastUsed = bucketLastUsed[nombre] ?: globalLastUsed[nombre] ?: now
 
+//                    ItemLista(
+//                        nombre = nombre,
+//                        uri = uri,
+//                        esImagen = esImagen,
+//                        timestamp = lastUsed
+//                    )
                     ItemLista(
+                        id = nombre,
                         nombre = nombre,
                         uri = uri,
                         esImagen = esImagen,
@@ -160,7 +173,7 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
                 }
             }
 
-            val adapter = MediaAdapter(mediaItemsTop.toMutableList(), ::eliminar) { nombre -> audio(nombre) }
+            val adapter = MediaAdapter(mediaItemsTop.toMutableList(), ::eliminar) { id -> audio(id) }
             binding.recyclerTop6.layoutManager = GridLayoutManager(requireContext(), 3)
             binding.recyclerTop6.adapter = adapter
             binding.recyclerTop6.visibility = View.VISIBLE
@@ -631,7 +644,17 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             }
             // Agregar la imagen o video a la lista y guardarla
             //listaDeArchivos.add(Triple(nombre, savedUri, esImagen))
-            listaDeArchivos.add(ItemLista(nombre, savedUri, esImagen, System.currentTimeMillis()))
+          //  listaDeArchivos.add(ItemLista(nombre, savedUri, esImagen, System.currentTimeMillis()))
+            listaDeArchivos.add(
+                ItemLista(
+                    id = nombre,
+                    nombre = nombre,
+                    uri = savedUri,
+                    esImagen = esImagen,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+
             saveMediaData(nombre, savedUri, esImagen)
             mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
             Toast.makeText( requireContext(),
@@ -699,11 +722,22 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         } else { Log.e("TextToSpeech", "Error al inicializar") }
     }
 
-    private fun audio(text: String) {
-        if (::escucharPalabra.isInitialized) {
-            escucharPalabra.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-        }
+//    private fun audio(text: String) {
+//        if (::escucharPalabra.isInitialized) {
+//            escucharPalabra.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+//        }
+//    }
+private fun audio(nombre: String) {
+    if (!::escucharPalabra.isInitialized) return
+
+    viewLifecycleOwner.lifecycleScope.launch {
+        // si coincide con un pictograma, hablar el label
+        val picto = db.pictogramDao().getPictoById(nombre)
+        val texto = picto?.label ?: nombre
+
+        escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
     }
+}
 
     override fun onDestroy() {
         if (::escucharPalabra.isInitialized) {
@@ -717,7 +751,9 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         //val index = listaDeArchivos.indexOfFirst { it.first == nombre }
         val index = listaDeArchivos.indexOfFirst { it.nombre == nombre }
         if (index != -1) {
-            val (_, uri, _) = listaDeArchivos[index]
+            //val (_, uri, _) = listaDeArchivos[index]
+            val item = listaDeArchivos[index]
+            val uri = item.uri
             try {
                 when (uri.scheme) {
                     "content" -> {
@@ -764,28 +800,82 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
     }
 
     // si uso una carpeta del almacenamiento interno para imagenes y videos
+//    private fun loadImageData() {
+//        listaDeArchivos.clear() // Limpia la lista antes de cargar nuevos datos
+//
+//        val mediaDir = File(requireContext().filesDir, "media")         // Directorio único para imágenes y videos
+//
+//        if (mediaDir.exists()) { // Cargar archivos desde la carpeta "media"
+//            mediaDir.listFiles()?.forEach { file ->
+//                val esImagen = file.extension.equals("jpg", ignoreCase = true) // Verifica si es imagen
+//                listaDeArchivos.add(
+//                    ItemLista(
+//                        nombre = file.nameWithoutExtension,
+//                        uri = Uri.fromFile(file),
+//                        esImagen = esImagen,
+//                        timestamp = file.lastModified()
+//                    )
+//                )
+//            }
+//        }
+//
+//        //listaDeArchivos.sortByDescending { it.timestamp } // Ordenar por timestamp (más reciente primero)
+//
+//        mediaAdapter.notifyDataSetChanged() // Notificar al adaptador
+//    }
     private fun loadImageData() {
-        listaDeArchivos.clear() // Limpia la lista antes de cargar nuevos datos
+        viewLifecycleOwner.lifecycleScope.launch {
 
-        val mediaDir = File(requireContext().filesDir, "media")         // Directorio único para imágenes y videos
+            // 0) Asegurar que el pack básico exista (idempotente)
+            val db = AppDatabase.getDatabase(requireContext())
+            PackRepository(requireContext(), db).ensureBasicPackInstalled()
 
-        if (mediaDir.exists()) { // Cargar archivos desde la carpeta "media"
-            mediaDir.listFiles()?.forEach { file ->
-                val esImagen = file.extension.equals("jpg", ignoreCase = true) // Verifica si es imagen
-                listaDeArchivos.add(
-                    ItemLista(
-                        nombre = file.nameWithoutExtension,
-                        uri = Uri.fromFile(file),
-                        esImagen = esImagen,
-                        timestamp = file.lastModified()
+            // 1) Limpiar lista
+            listaDeArchivos.clear()
+
+            // 2) Cargar USER media desde /files/media (tu lógica original)
+            val mediaDir = File(requireContext().filesDir, "media")
+
+            if (mediaDir.exists()) {
+                mediaDir.listFiles()?.forEach { file ->
+                    val esImagen = file.extension.equals("jpg", ignoreCase = true)
+                    val esVideo  = file.extension.equals("mp4", ignoreCase = true)
+
+                    if (!esImagen && !esVideo) return@forEach
+                    val base = file.nameWithoutExtension
+                    listaDeArchivos.add(
+//                        ItemLista(
+//                            nombre = file.nameWithoutExtension,
+//                            uri = Uri.fromFile(file),
+//                            esImagen = esImagen, // si esVideo => false
+//                            timestamp = file.lastModified()
+//                        )
+
+                        ItemLista(
+                            id = base,
+                            nombre = base,
+                            uri = Uri.fromFile(file),
+                            esImagen = esImagen,
+                            timestamp = file.lastModified()
+                        )
+
                     )
-                )
+                }
             }
+
+            // 3) Cargar pictos del pack básico (categoría "basic_core") desde Room
+            val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
+
+            // Convertir a ItemLista para que funcionen con MediaAdapter + CuadroImagen
+            val pictosAsItems = pictosBasic.map { row ->
+                row.toItemLista(timestamp = 0L) // packs: timestamp fijo (luego lo mejoramos)
+            }
+
+            listaDeArchivos.addAll(pictosAsItems)
+
+            // 4) Notificar
+            mediaAdapter.notifyDataSetChanged()
         }
-
-        //listaDeArchivos.sortByDescending { it.timestamp } // Ordenar por timestamp (más reciente primero)
-
-        mediaAdapter.notifyDataSetChanged() // Notificar al adaptador
     }
 
     fun solicitarContrasena() {
@@ -1158,7 +1248,14 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
                 outputStream.close()
 
                 val uriGuardado = Uri.fromFile(archivoDestino)
+//                val item = ItemLista(
+//                    nombre = nombreSinExtension,
+//                    uri = uriGuardado,
+//                    esImagen = esImagen,
+//                    timestamp = System.currentTimeMillis()
+//                )
                 val item = ItemLista(
+                    id = nombreSinExtension,
                     nombre = nombreSinExtension,
                     uri = uriGuardado,
                     esImagen = esImagen,

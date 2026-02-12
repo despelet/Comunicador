@@ -21,11 +21,19 @@ import com.bumptech.glide.request.transition.Transition
 import com.comunic.R
 
 class CarruselAdapter(
+//    private val uris: List<Uri>,
+//    private val nombres: List<String>,
+//    private val esImagenLista: List<Boolean>,
+//    private val onClick: (Uri, String) -> Unit
+//) : RecyclerView.Adapter<CarruselAdapter.CarruselViewHolder>() {
+
     private val uris: List<Uri>,
-    private val nombres: List<String>,
+    private val labels: List<String>,     // lo que se muestra
+    private val ids: List<String>,        // lo que se devuelve al click
     private val esImagenLista: List<Boolean>,
-    private val onClick: (Uri, String) -> Unit
-) : RecyclerView.Adapter<CarruselAdapter.CarruselViewHolder>() {
+    private val onClick: (Uri, String) -> Unit // (uri, id)
+    ) : RecyclerView.Adapter<CarruselAdapter.CarruselViewHolder>() {
+
 
     inner class CarruselViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val imageView: ImageView = itemView.findViewById(R.id.carruselImageView)
@@ -47,15 +55,20 @@ class CarruselAdapter(
         val realPos = holder.bindingAdapterPosition
         if (realPos == RecyclerView.NO_POSITION ||
             realPos !in uris.indices ||
-            realPos !in nombres.indices ||
+           // realPos !in nombres.indices ||
+            realPos !in ids.indices ||
             realPos !in esImagenLista.indices
         ) return
 
         val uri = uris[realPos]
-        val nombre = nombres[realPos]
+        val label = labels[realPos]
+        holder.nameText.text = label
+        //val nombre = nombres[realPos]
         val esImagen = esImagenLista[realPos]
 
-        holder.nameText.text = nombre
+      //  holder.nameText.text = nombre
+        holder.nameText.text = label
+
 
         if (esImagen) {
             holder.videoView.visibility = View.GONE
@@ -67,10 +80,7 @@ class CarruselAdapter(
             holder.imageView.visibility = View.GONE
             holder.videoView.visibility = View.VISIBLE
             holder.videoView.setVideoURI(uri)
-//            holder.videoView.setOnPreparedListener { mp ->
-//                mp.setVolume(0f, 0f)
-//                holder.videoView.start()
-//            }
+
             holder.videoView.setOnPreparedListener { mp ->
                 mp.isLooping = true
                 mp.setVolume(0f, 0f)
@@ -85,14 +95,18 @@ class CarruselAdapter(
             val clickPos = holder.bindingAdapterPosition
             if (clickPos != RecyclerView.NO_POSITION &&
                 clickPos in uris.indices &&
-                clickPos in nombres.indices
+               // clickPos in nombres.indices
+                clickPos in ids.indices
             ) {
-                onClick(uris[clickPos], nombres[clickPos])
+                //onClick(uris[clickPos], nombres[clickPos])
+                onClick(uris[clickPos], ids[clickPos])
             }
         }
     }
 
     override fun getItemCount(): Int =
-        minOf(uris.size, nombres.size, esImagenLista.size)
+       // minOf(uris.size, nombres.size, esImagenLista.size)
+    minOf(uris.size, labels.size, esImagenLista.size)
+
 }
 

@@ -40,4 +40,32 @@ interface PictogramDao {
     ORDER BY ci.orderIndex ASC
 """)
     suspend fun getPictosForCategory(categoryId: String): List<PictogramUiRow>
+
+
+    // traer pictos por lista de ids
+    @Query("""
+    SELECT 
+      p.pictogramId AS pictogramId,
+      COALESCE(o.customLabel, p.baseLabel) AS label,
+      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+    FROM pictograms p
+    LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+    WHERE p.pictogramId IN (:ids)
+""")
+    suspend fun getPictosByIds(ids: List<String>): List<PictogramUiRow>
+
+    // label para palabraaudio
+    @Query("""
+    SELECT 
+      p.pictogramId AS pictogramId,
+      COALESCE(o.customLabel, p.baseLabel) AS label,
+      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+    FROM pictograms p
+    LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+    WHERE p.pictogramId = :id
+    LIMIT 1
+""")
+    suspend fun getPictoById(id: String): PictogramUiRow?
+
 }
+

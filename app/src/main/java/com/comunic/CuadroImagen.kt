@@ -72,7 +72,9 @@ class CuadroImagen : DialogFragment() {
 
         Log.d("CuadroImagenDBG", "lista size=${listaCompleta.size}, posInicial=$posicionInicial")
         listaCompleta.forEachIndexed { i, it ->
-            Log.d("CuadroImagenDBG", "[$i] ${it.nombre}, esImagen=${it.esImagen}, uri=${it.uri}")
+            //Log.d("CuadroImagenDBG", "[$i] ${it.nombre}, esImagen=${it.esImagen}, uri=${it.uri}")
+            Log.d("CuadroImagenDBG", "[$i] id=${it.id}, nombre=${it.nombre}, esImagen=${it.esImagen}, uri=${it.uri}")
+
         }
 
 // Debug visual: ver si el pager principal está en pantalla
@@ -94,55 +96,23 @@ class CuadroImagen : DialogFragment() {
     }
 
 
-    /*rivate fun configurarCarruselPrincipal() {
-        val adapter = CarruselAdapter(
-            listaCompleta.map { it.uri },
-            listaCompleta.map { it.nombre },
-            listaCompleta.map { it.esImagen }
-        ) { uriClick, nombreClick ->
-            listener.reproducirPalabra(nombreClick)
-        }
-
-//        binding.mainCarousel.adapter = adapter
-//        binding.mainCarousel.orientation = ViewPager2.ORIENTATION_HORIZONTAL
-//        binding.mainCarousel.post {
-//            val pos = posicionInicial.coerceIn(0, (listaCompleta.size - 1).coerceAtLeast(0))
-//            binding.mainCarousel.setCurrentItem(pos, false)
-//            listaCompleta.getOrNull(pos)?.let { actualizarSugerencias(it) }
-//        }
-        // Cargar sugerencias del item inicial:
-       // listaCompleta.getOrNull(posicionInicial)?.let { actualizarSugerencias(it) }
-        binding.suggestionsCarousel.adapter = adapter
-        binding.suggestionsCarousel.orientation = ViewPager2.ORIENTATION_HORIZONTAL
-        binding.suggestionsCarousel.post {
-            val pos = posicionInicial.coerceIn(0, (listaCompleta.size - 1).coerceAtLeast(0))
-            binding.suggestionsCarousel.setCurrentItem(pos, false)
-            listaCompleta.getOrNull(pos)?.let { actualizarSugerencias(it) }
-        }
-        // Cuando cambie de item en el carrusel, actualizar las sugerencias
-        binding.suggestionsCarousel.registerOnPageChangeCallback(object :
-            ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                super.onPageSelected(position)
-                if (position in 0 until listaCompleta.size) {
-                    val item = listaCompleta[position]
-                    actualizarSugerencias(item)
-                } else {
-                    // NO_POSITION (-1) u otro valor fuera de rango: ignorar
-                    Log.w("CuadroImagen", "onPageSelected fuera de rango: $position")
-                }
-            }
-        })
-    } */
-
     private fun configurarCarruselPrincipal() {
+//        val adapter = CarruselAdapter(
+//            listaCompleta.map { it.uri },
+//            listaCompleta.map { it.nombre },
+//            listaCompleta.map { it.esImagen }
+//        ) { _, nombreClick ->
+//            listener?.reproducirPalabra(nombreClick)
+//        }
         val adapter = CarruselAdapter(
-            listaCompleta.map { it.uri },
-            listaCompleta.map { it.nombre },
-            listaCompleta.map { it.esImagen }
-        ) { _, nombreClick ->
-            listener?.reproducirPalabra(nombreClick)
+            uris = listaCompleta.map { it.uri },
+            labels = listaCompleta.map { it.nombre },  // visible
+            ids = listaCompleta.map { it.id },         // id estable
+            esImagenLista = listaCompleta.map { it.esImagen }
+        ) { _, idClick ->
+            listener?.reproducirPalabra(idClick)       // ahora devuelve ID
         }
+
 
         // 👉 Carrusel principal ARRIBA
         binding.mainCarousel.adapter = adapter
@@ -185,19 +155,33 @@ class CuadroImagen : DialogFragment() {
             ?.obtenerSugerenciasSiguientes(item.uri)
             ?: emptyList()
 
+//        val sugerenciasAdapter = CarruselAdapter(
+//            sugerencias.map { it.uri },
+//            sugerencias.map { it.nombre },
+//            sugerencias.map { it.esImagen }
+//        ) { uriClick, nombreClick ->
+//            //listener.reproducirPalabra(nombreClick)
+//            listener?.reproducirPalabra(nombreClick)
+//            // Abrir nuevo cuadro en la posición de la sugerencia
+//            val pos = listaCompleta.indexOfFirst { it.uri == uriClick }
+//            val nuevoCuadro = nuevaInstancia(listaCompleta, if (pos != -1) pos else 0)
+//            nuevoCuadro.listener = listener
+//            nuevoCuadro.show(parentFragmentManager, "CuadroImagen")
+//        }
         val sugerenciasAdapter = CarruselAdapter(
-            sugerencias.map { it.uri },
-            sugerencias.map { it.nombre },
-            sugerencias.map { it.esImagen }
-        ) { uriClick, nombreClick ->
-            //listener.reproducirPalabra(nombreClick)
-            listener?.reproducirPalabra(nombreClick)
-            // Abrir nuevo cuadro en la posición de la sugerencia
+            uris = sugerencias.map { it.uri },
+            labels = sugerencias.map { it.nombre },
+            ids = sugerencias.map { it.id },
+            esImagenLista = sugerencias.map { it.esImagen }
+        ) { uriClick, idClick ->
+            listener?.reproducirPalabra(idClick)
+
             val pos = listaCompleta.indexOfFirst { it.uri == uriClick }
             val nuevoCuadro = nuevaInstancia(listaCompleta, if (pos != -1) pos else 0)
             nuevoCuadro.listener = listener
             nuevoCuadro.show(parentFragmentManager, "CuadroImagen")
         }
+
 
         //binding.suggestionsCarousel.adapter = sugerenciasAdapter
     }

@@ -25,6 +25,9 @@ import androidx.appcompat.app.AlertDialog
 import com.bumptech.glide.Glide
 import android.graphics.Color
 import com.comunic.data.RankingManager
+import com.comunic.data.dao.PictogramDao
+import java.io.File
+
 
 open class MediaAdapter(
     private val mediaList: MutableList<ItemLista>,
@@ -85,7 +88,6 @@ open class MediaAdapter(
         if (mediaItem.esImagen) {
             holder.imageView.visibility = View.VISIBLE
             holder.videoThumbnail.visibility = View.GONE
-            //Picasso.get().load(mediaItem.uri).into(holder.imageView)
             Picasso.get().load(mediaItem.uri)
                 .into(holder.imageView, object : com.squareup.picasso.Callback {
                     override fun onSuccess() {}
@@ -97,21 +99,21 @@ open class MediaAdapter(
             holder.itemView.setOnClickListener {
 
                 if (modoEliminacion) {
-                    if (seleccionados.contains(mediaItem.nombre)) {
-                        seleccionados.remove(mediaItem.nombre)
+                    if (seleccionados.contains(mediaItem.id)) {
+                        seleccionados.remove(mediaItem.id)
                         holder.itemView.setBackgroundColor(Color.TRANSPARENT)
                         onSeleccionCambio?.invoke(seleccionados.size)
                     } else {
-                        seleccionados.add(mediaItem.nombre)     // agrego a la lista de seleccionados
+                        seleccionados.add(mediaItem.id)     // agrego a la lista de seleccionados
                         holder.itemView.setBackgroundColor(Color.LTGRAY)
                         onSeleccionCambio?.invoke(seleccionados.size)
 
                     }
                 } else {
                     // Registramos el uso primero
-                    RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.nombre)
-                    palabraAudio(mediaItem.nombre)
-
+                    RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.id)
+                    //palabraAudio(mediaItem.nombre)
+                    palabraAudio(mediaItem.id)
 
                     // Posición segura del item clickeado
                     val pos = holder.bindingAdapterPosition
@@ -149,13 +151,13 @@ open class MediaAdapter(
             holder.itemView.setOnClickListener {
 
                 if (modoEliminacion) {
-                    if (seleccionados.contains(mediaItem.nombre)) {
-                        seleccionados.remove(mediaItem.nombre)
+                    if (seleccionados.contains(mediaItem.id)) {
+                        seleccionados.remove(mediaItem.id)
                         holder.itemView.setBackgroundColor(Color.TRANSPARENT)
                         onSeleccionCambio?.invoke(seleccionados.size)
 
                     } else {
-                        seleccionados.add(mediaItem.nombre)     // agrego a la lista de seleccionados
+                        seleccionados.add(mediaItem.id)     // agrego a la lista de seleccionados
                         holder.itemView.setBackgroundColor(Color.LTGRAY)
                         onSeleccionCambio?.invoke(seleccionados.size)
 
@@ -163,8 +165,9 @@ open class MediaAdapter(
 
                 } else {
                     // Registramos el uso
-                    RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.nombre)
-                    palabraAudio(mediaItem.nombre)
+                    RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.id)
+                    //palabraAudio(mediaItem.nombre)
+                    palabraAudio(mediaItem.id)
 
                     // Posición segura del item clickeado
                     val pos = holder.bindingAdapterPosition
@@ -203,7 +206,7 @@ open class MediaAdapter(
         }
 
         // Colorear si está seleccionado en modo eliminación
-        if (modoEliminacion && seleccionados.contains(mediaItem.nombre)) {
+        if (modoEliminacion && seleccionados.contains(mediaItem.id)) {
             holder.itemView.setBackgroundColor(Color.LTGRAY)
         } else {
             holder.itemView.setBackgroundColor(Color.TRANSPARENT)
@@ -230,7 +233,7 @@ open class MediaAdapter(
                     .setTitle("Confirmar eliminación")
                     .setMessage("¿Deseas eliminar \"${mediaItem.nombre}\"?")
                     .setPositiveButton("Eliminar") { dialog, _ ->
-                        eliminar(mediaItem.nombre)
+                        eliminar(mediaItem.id)
                         dialog.dismiss()
                     }
                     .setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
@@ -243,7 +246,7 @@ open class MediaAdapter(
 
     //fun obtenerSeleccionados(): Set<String> = seleccionados.toSet()
     fun obtenerSeleccionados(): List<ItemLista> {
-        return mediaList.filter { seleccionados.contains(it.nombre) }
+        return mediaList.filter { seleccionados.contains(it.id) }
     }
 
     private fun limpiarSeleccion() {
@@ -252,7 +255,7 @@ open class MediaAdapter(
     }
 
     fun eliminarSeleccionados() {
-        mediaList.removeAll { seleccionados.contains(it.nombre) }
+        mediaList.removeAll { seleccionados.contains(it.id) }
         seleccionados.clear()
         notifyDataSetChanged()
     }
@@ -264,7 +267,7 @@ open class MediaAdapter(
     }
 
     fun eliminarItem(item: ItemLista) {
-        val index = mediaList.indexOfFirst { it.nombre == item.nombre }
+        val index = mediaList.indexOfFirst { it.id == item.id }
         if (index != -1) {
             mediaList.removeAt(index)
             notifyItemRemoved(index)
@@ -272,7 +275,8 @@ open class MediaAdapter(
     }
 
     fun eliminarItems(items: List<ItemLista>) {
-        mediaList.removeAll { item -> items.any { it.nombre == item.nombre } }
+        //mediaList.removeAll { item -> items.any { it.nombre == item.nombre } }
+        mediaList.removeAll { x -> items.any { it.id == x.id } }
         notifyDataSetChanged()
     }
 
@@ -338,6 +342,8 @@ open class MediaAdapter(
         builder.setNegativeButton("Cancelar") { dialog, _ -> dialog.cancel() }
         builder.show()
     }
+
+
 
 
     class MediaViewHolder(view: View) : RecyclerView.ViewHolder(view) {

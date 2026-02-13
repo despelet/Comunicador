@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
 
         // Listener para la barra inferior
-        bottomNav.setOnItemSelectedListener { item ->
+        /*bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.menu_home -> {
                     openFragment(HomeFragment())
@@ -97,7 +97,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 }
                 else -> false
             }
-        }
+        }*/
+        setupBottomNav()
 
         // Cargar fragment por defecto
         if (savedInstanceState == null) {
@@ -110,6 +111,18 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
+    }
+
+    private fun navigateTo(menuId: Int, fragment: Fragment) {
+        // 1) abrir fragment
+        openFragment(fragment)
+
+        // 2) marcar bottom nav SIN disparar la navegación de nuevo
+        bottomNav.setOnItemSelectedListener(null)
+        bottomNav.selectedItemId = menuId
+
+        // 3) volver a conectar el listener
+        setupBottomNav()
     }
 
     // Manejo de los ítems del menú lateral
@@ -215,6 +228,44 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
     }
 
+    private fun setupBottomNav() {
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.menu_home -> {
+                    openFragment(HomeFragment())
+                    true
+                }
+                R.id.menu_recientes -> {
+                    openFragment(Recientes())
+                    true
+                }
+                R.id.menu_listas -> {
+                    openFragment(Listas())
+                    true
+                }
+                R.id.menu_sugeridos -> {
+                    openFragment(Sugeridos())
+                    true
+                }
+                else -> false
+            }
+        }
+    }
 
+    fun irARecientesDesdeHome() {
+        navigateTo(R.id.menu_recientes, Recientes())
+    }
+
+    fun irAListasDesdeHome() {
+        navigateTo(R.id.menu_listas, Listas())
+    }
+
+    fun irASugeridosDesdeHome() {
+        navigateTo(R.id.menu_sugeridos, Sugeridos())
+    }
+
+    fun irAHomeDesdeHome() {
+        navigateTo(R.id.menu_home, HomeFragment())
+    }
 
 }

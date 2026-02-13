@@ -117,15 +117,14 @@
                     android:textStyle="bold"
                     android:paddingBottom="4dp"/>
 
-                <!-- 🔵 REEMPLAZA SOLO ESTA PARTE (Recycler + texto) -->
                 <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="100dp">
+                    android:layout_height="wrap_content">
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recyclerCategorias"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false"
                         android:overScrollMode="never"/>
 
@@ -140,8 +139,6 @@
                         android:padding="16dp"/>
 
                 </FrameLayout>
-                <!-- 🔵 HASTA ACÁ -->
-
             </LinearLayout>
 
             <!-- CONTENEDOR 3:  -->
@@ -162,7 +159,6 @@
                     android:textStyle="bold"
                     android:paddingBottom="4dp"/>
 
-                <!-- 🔵 REEMPLAZA SOLO ESTA PARTE (Recycler + texto) -->
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="100dp">

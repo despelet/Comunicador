@@ -32,6 +32,7 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.comunic.databinding.FragmentHomeBinding
 import com.yalantis.ucrop.UCrop
 import java.io.File
@@ -79,11 +80,36 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
     // para integrar pack
     private lateinit var db: AppDatabase
 
+    // resumen de listas + adaptador cuadricula
+    //private lateinit var categoriasQuickAdapter: CategoriasQuickAdapter
+    private lateinit var categoriasAdapter: CategoriasCuadriculaAdapter
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         db = AppDatabase.getDatabase(requireContext())
+
+        ///// INICIALIZAR CUADRICULA CATEGROIA
+        categoriasAdapter = CategoriasCuadriculaAdapter(emptyList()) { cat ->
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(cat.categoryId, cat.name))
+                .addToBackStack(null)
+                .commit()
+        }
+
+        binding.recyclerCategorias.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.recyclerCategorias.adapter = categoriasAdapter
+
+        binding.recyclerCategorias.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+
+        //binding.recyclerCategorias.adapter = categoriasQuickAdapter
+        binding.recyclerCategorias.visibility = View.VISIBLE
+
+        cargarPreviewCategorias()
+        ///// FIN INICIALIZAR CUADRICULA CATEGROIA
 
         escucharPalabra = TextToSpeech(requireContext(), this)
 
@@ -179,9 +205,6 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             binding.recyclerTop6.visibility = View.VISIBLE
         }
 
-
-
-
         loadImageData() // Cargar los datos (imágenes/videos)
 
         mediaAdapter.notifyDataSetChanged()
@@ -191,45 +214,22 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         checkReadPermissionIfNeeded() // permisos
 
 //        val addImageButton = findViewById<Button>(R.id.addImageButton)
-      /*
+
+        // ACCESO RAPIDO A RESUMEN DESDE HOME
+        setupResumenClicks()
+
+        // --- PREVIEW CATEGORIAS EN HOME ---
+//        categoriasQuickAdapter = CategoriasQuickAdapter(emptyList()) { categoria ->
+//            // Opción A (mejor UX): ir DIRECTO al detalle de la categoría
+//            parentFragmentManager.beginTransaction()
+//                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoria.categoryId, categoria.name))
+//                .addToBackStack(null)
+//                .commit()
+//
+//        }
 
 
 
-        //panel de seleccion
-        selectionPanel = findViewById(R.id.selectionPanel)
-        selectionCountText = findViewById(R.id.selectionCountText)
-        deleteSelectedButton = findViewById(R.id.deleteSelectedButton)
-
-        // Esto conecta el contador del panel con el adapter
-        mediaAdapter.onSeleccionCambio = { cantidad ->
-            actualizarPanelSeleccion(cantidad)
-        }
-
-        recyclerView.adapter = mediaAdapter
-
-        deleteSelectedButton.setOnClickListener {
-            val seleccionados = mediaAdapter.obtenerSeleccionados() // Necesitás esta función en el adapter
-
-            if (seleccionados.isNotEmpty()) {
-                AlertDialog.Builder(this)
-                    .setTitle("Confirmar eliminación")
-                    .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
-                    .setPositiveButton("Eliminar") { dialog, _ ->
-                        mediaAdapter.eliminarSeleccionados()
-                        actualizarPanelSeleccion(0)
-                        dialog.dismiss()
-                    }
-                    .setNegativeButton("Cancelar", null)
-                    .show()
-            }
-        }
-
-        val cancelSelectionButton = findViewById<Button>(R.id.cancelSelectionButton)
-
-        cancelSelectionButton.setOnClickListener {
-            mediaAdapter.cancelarModoEliminacion() // esta función la tenés que definir en el adapter
-            actualizarPanelSeleccion(0)
-        } */
         return binding.root
     }
 
@@ -906,13 +906,13 @@ private fun audio(nombre: String) {
         Toast.makeText(requireContext(), "Modo eliminación activado", Toast.LENGTH_SHORT).show()
     }
 
-    fun eliminarSeleccionadosDesdeAdapter(nombres: List<String>) {
-        for (nombre in nombres) {
-            eliminar(nombre) // asumimos que tenés una función que elimina el archivo por nombre
-        }
-        Toast.makeText(requireContext(), "Elementos eliminados", Toast.LENGTH_SHORT).show()
-        mediaAdapter.notifyDataSetChanged()
-    }
+//    fun eliminarSeleccionadosDesdeAdapter(nombres: List<String>) {
+//        for (nombre in nombres) {
+//            eliminar(nombre) // asumimos que tenés una función que elimina el archivo por nombre
+//        }
+//        Toast.makeText(requireContext(), "Elementos eliminados", Toast.LENGTH_SHORT).show()
+//        mediaAdapter.notifyDataSetChanged()
+//    }
 
     override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
         AlertDialog.Builder(requireContext(),
@@ -1275,8 +1275,70 @@ private fun audio(nombre: String) {
         }
     }
 
+    // ACCESOS DIRECTOS DESDE HOME
+    private fun setupResumenClicks() {
 
+        // 1) Recientes (Top 6)
+        binding.contenedorTop6.setOnClickListener {
+            (activity as? MainActivity)?.irARecientesDesdeHome()
+        }
 
+        // 2) Listas / Categorías
+        binding.contenedorCategorias.setOnClickListener {
+            (activity as? MainActivity)?.irAListasDesdeHome()
+        }
+
+        // 3) Modos (si ya tenés un fragment real; si no, dejalo en toast)
+        binding.contenedor3.setOnClickListener {
+            // Si tenés fragment "Sugeridos()" o "Modos()", llamalo acá:
+            (activity as? MainActivity)?.irASugeridosDesdeHome()
+
+            //Toast.makeText(requireContext(), "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // RESUMEN DE CATEGORÍAS EN HOME
+//    private fun cargarPreviewCategorias() {
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            withContext(Dispatchers.IO) {
+//                PackRepository(requireContext(), db).ensureBasicPackInstalled() // cargo pack basico
+//            }
+//
+//            val categorias = withContext(Dispatchers.IO) {
+//                db.categoryDao().getAll()
+//            }
+//
+//            val preview = categorias.take(5) // cant a mostrar
+//            categoriasQuickAdapter.submitList(preview)
+//
+//            binding.textoDesarrolloCategorias.visibility =
+//                if (preview.isEmpty()) View.VISIBLE else View.GONE
+//        }
+//    }
+    private fun cargarPreviewCategorias() {
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            // Asegurar pack básico (si inserta categorías)
+            withContext(Dispatchers.IO) {
+                PackRepository(requireContext(), db).ensureBasicPackInstalled()
+            }
+
+            // 🔵 1) Traer filas crudas desde Room
+            val rows = withContext(Dispatchers.IO) {
+                db.categoryDao().getAllCategoryPreviewRows()
+            }
+
+            // 🔵 2) Transformarlas a CategoryPreview
+            val previews = CategoryPreviewMapper.build(rows)
+
+            // 🔵 3) Mostrar máximo 10 en Home
+            categoriasAdapter.submitList(previews.take(10))
+
+            // 🔵 4) Ocultar texto "en desarrollo"
+            binding.textoDesarrolloCategorias.visibility =
+                if (previews.isEmpty()) View.VISIBLE else View.GONE
+        }
+    }
 
     companion object {
         const val PERMISSION_REQUEST_CODE = 123

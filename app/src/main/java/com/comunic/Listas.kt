@@ -14,6 +14,9 @@ import com.comunic.data.db.AppDatabase
 import com.comunic.data.db.PackRepository
 import com.comunic.databinding.FragmentListasBinding // <-- ajustá el paquete
 import kotlinx.coroutines.launch
+import androidx.recyclerview.widget.GridLayoutManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // importá tu interfaz MenuHandler
 // import com.tu.paquete.MenuHandler
@@ -22,6 +25,9 @@ class Listas : Fragment(), MenuHandler {
 
     private var _binding: FragmentListasBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var categoriasAdapter: CategoriasCuadriculaAdapter
+    private lateinit var db: AppDatabase
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,26 +41,39 @@ class Listas : Fragment(), MenuHandler {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val db = AppDatabase.getDatabase(requireContext())
+        db = AppDatabase.getDatabase(requireContext())
 
+        // 1) Adapter (mismo que Home)
+        categoriasAdapter = CategoriasCuadriculaAdapter(emptyList()) { cat ->
+            abrirCategoriaDetalle(cat.categoryId, cat.name)
+        }
+
+        // 2) Layout: grilla 2 columnas tipo Spotify
+        binding.recyclerCategorias.layoutManager = GridLayoutManager(requireContext(), 2)
+        binding.recyclerCategorias.adapter = categoriasAdapter
+
+        // 3) Cargar datos
+        cargarCategorias()
+    }
+
+    private fun cargarCategorias() {
         viewLifecycleOwner.lifecycleScope.launch {
-            // 1) instala Pack Básico si no está
-            PackRepository(requireContext(), db).ensureBasicPackInstalled()
 
-            // 2) trae categorías
-            val categorias = db.categoryDao().getAll()
-
-            // 3) setea RecyclerView
-            binding.recyclerCategorias.layoutManager = LinearLayoutManager(requireContext())
-            binding.recyclerCategorias.adapter = CategoriasAdapter(categorias) { categoria ->
-                // navegar a detalle
-                abrirCategoriaDetalle(categoria.categoryId, categoria.name)
+            withContext(Dispatchers.IO) {
+                PackRepository(requireContext(), db).ensureBasicPackInstalled()
             }
+
+            val rows = withContext(Dispatchers.IO) {
+                db.categoryDao().getAllCategoryPreviewRows()
+            }
+
+            val previews = CategoryPreviewMapper.build(rows)
+
+            categoriasAdapter.submitList(previews)
         }
     }
 
     private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
-        // MVP sin Navigation Component: FragmentTransaction
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoryId, categoryName))
             .addToBackStack(null)

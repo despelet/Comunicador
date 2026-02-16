@@ -260,101 +260,6 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
 
     }
 
-    /* para ver si esta inicializada la variable lastcaptureduri
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (resultCode == RESULT_OK) {
-            val mediaUri = when (requestCode) {
-                PICK_MEDIA_REQUEST -> data?.data
-                CAPTURE_IMAGE_REQUEST -> lastCapturedUri
-                CAPTURE_VIDEO_REQUEST -> lastCapturedUri
-                else -> null
-            }
-            if (mediaUri != null) {
-                val mimeType = contentResolver.getType(mediaUri)
-                if (mimeType != null) {
-
-//                    if (mimeType.startsWith("image/")) {
-//                        Log.d("CapturedMedia", "Imagen capturada. URI: $mediaUri")
-//                        ingresarNombreArchivo(mediaUri, true)
-
-                    if (mimeType.startsWith("image/")) {
-                        if (requestCode == CAPTURE_IMAGE_REQUEST) {
-                            startCrop(mediaUri) // 👉 Editamos antes de continuar
-                        } else {
-                            ingresarNombreArchivo(mediaUri, true)
-                        }
-                    } else if (mimeType.startsWith("video/")) {
-                        Log.d("CapturedMedia", "Video capturado URI: $mediaUri")
-                        ingresarNombreArchivo(mediaUri, false)
-                    }
-                }
-            } else {
-                Log.e("CaptureError", "Media URI is null")
-            }
-
-            if (requestCode == UCROP_REQUEST_CODE && resultCode == RESULT_OK) {
-                val resultUri = UCrop.getOutput(data!!)
-                if (resultUri != null) {
-                    ingresarNombreArchivo(resultUri, true) // Usamos imagen recortada
-                } else {
-                    Toast.makeText(this, "Error al recortar la imagen", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-
-
-
-        /*
-        if (requestCode == REQUEST_CODE_SIGN_IN && resultCode == RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                if (account != null) {
-                    val email = account.email ?: "Correo no disponible"
-                    // Inicializa el servicio de Google Drive después de la autenticación en un hilo en segundo plano
-                    val executorService = Executors.newSingleThreadExecutor()
-                    executorService.execute {
-                        driveServiceHelper = DriveServiceHelper(this, getGoogleDriveService(account))
-
-                        // Ahora que tienes el helper, puedes cargar las imágenes
-                        loadImageData()
-
-                        // Mostrar mensaje de éxito en el hilo principal
-                        runOnUiThread {
-                            Toast.makeText(this, "Conectado a Google Drive.\n Email: $email", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                } else {
-                    Log.e("GoogleDrive", "Cuenta de Google es nula después del inicio de sesión")
-                }
-            } catch (e: ApiException) {
-                Log.e("GoogleDrive", "Error en la autenticación de Google Drive: ${e.statusCode}")
-                Toast.makeText(this, "Error en la autenticación", Toast.LENGTH_SHORT).show()
-            }
-        }*/
-
-        if (requestCode == SELECT_FILES_REQUEST_CODE && resultCode == RESULT_OK) {
-            val archivosSeleccionados = mutableListOf<Uri>()
-            data?.data?.let { archivosSeleccionados.add(it) }
-            data?.clipData?.let {
-                for (i in 0 until it.itemCount) {
-                    archivosSeleccionados.add(it.getItemAt(i).uri)
-                }
-            }
-
-            val archivoComprimido = File(getExternalFilesDir(null), "exported_files.zip") // Comprimir los archivos seleccionados
-            comprimirArchivos(archivosSeleccionados, archivoComprimido.absolutePath)
-
-            compartirArchivo(archivoComprimido) // Compartir el archivo comprimido
-        }
-        if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_IMPORTAR_ZIP) {
-            val uri = data?.data
-            uri?.let { importarElementosDesdeZip(it) }
-        }
-    }*/
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -679,8 +584,8 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             }
 
             // 3) Cargar pictos del pack básico (categoría "basic_core") desde Room
-            val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
-
+           // val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
+            val pictosBasic = db.pictogramDao().getPictosUiForPack("basic")
             // Convertir a ItemLista para que funcionen con MediaAdapter + CuadroImagen
             val pictosAsItems = pictosBasic.map { row ->
                 row.toItemLista(timestamp = 0L) // packs: timestamp fijo (luego lo mejoramos)
@@ -793,62 +698,11 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
     }
 
 
-    /* private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
-         val carpeta = File(requireContext().filesDir, "media") // 👈 si tu carpeta es "media"
-         for (item in lista) {
-             val archivo = File(carpeta, item.nombre)  // 👈 elimina desde la carpeta correcta
-             if (archivo.exists()) {
-                 val eliminado = archivo.delete()
-                 if (eliminado) {
-                     Log.d("Eliminar", "Archivo ${item.nombre} eliminado correctamente")
-                 } else {
-                     Log.e("Eliminar", "No se pudo eliminar ${item.nombre}")
-                 }
-             }
-         }
-         mediaAdapter.eliminarItems(lista)
-
-         selectionPanel.visibility = View.GONE
-         cancelarModoEliminacion()
-     }*/
-
-    /*
-    private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
-        for (item in lista) {
-            val archivo = File(requireContext().filesDir, item.nombre)
-            if (archivo.exists()) {
-                archivo.delete()
-            }
-        }
-        mediaAdapter.eliminarItems(lista)
-        selectionPanel.visibility = View.GONE
-        cancelarModoEliminacion()
-    }
-*/
-    /*
-private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
-    val iterator = lista.iterator()
-    while (iterator.hasNext()) {
-        val item = iterator.next()
-        val archivo = File(requireContext().filesDir, item.nombre)
-        if (archivo.exists()) {
-            archivo.delete()
-        }
-        // 🔹 Eliminar el item también de la lista del adaptador
-        mediaAdapter.eliminarItems(item)
-    }
-
-    cancelarModoEliminacion()
-}
-*/
-
     private fun cancelarModoEliminacion() {
         modoEliminacionActivo = false
         mediaAdapter.setModoEliminacion(false)
         Toast.makeText(requireContext(), "Modo eliminación cancelado", Toast.LENGTH_SHORT).show()
     }
-
-
 
     private fun setupSelectionPanel() {
         binding.deleteSelectedButton.setOnClickListener {
@@ -873,6 +727,7 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
             actualizarPanelSeleccion(0)
         }
     }
+
     fun actualizarPanelSeleccion(cantidad: Int) {
         if (cantidad > 0) {
             selectionPanel.visibility = android.view.View.VISIBLE

@@ -67,5 +67,23 @@ interface PictogramDao {
 """)
     suspend fun getPictoById(id: String): PictogramUiRow?
 
+    @Query("""
+    SELECT * FROM pictograms
+    WHERE packId = :packId
+    ORDER BY createdAt ASC
+""")
+    suspend fun getPictosForPack(packId: String): List<PictogramEntity>
+
+    @Query("""
+SELECT 
+  p.pictogramId AS pictogramId,
+  COALESCE(o.customLabel, p.baseLabel) AS label,
+  COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+FROM pictograms p
+LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+WHERE p.packId = :packId
+ORDER BY p.createdAt ASC
+""")
+    suspend fun getPictosUiForPack(packId: String): List<PictogramUiRow>
 }
 

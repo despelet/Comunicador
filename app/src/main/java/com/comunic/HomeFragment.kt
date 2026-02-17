@@ -52,6 +52,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.comunic.ItemKey
+import com.comunic.data.mappers.resolveItemKeyToItemLista
 
 
 class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEliminarSeleccionListener,
@@ -102,14 +103,12 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         binding.recyclerCategorias.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         binding.recyclerCategorias.adapter = categoriasAdapter
-
-        binding.recyclerCategorias.layoutManager =
-            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-
-        //binding.recyclerCategorias.adapter = categoriasQuickAdapter
         binding.recyclerCategorias.visibility = View.VISIBLE
 
-        cargarPreviewCategorias()
+        //binding.recyclerCategorias.adapter = categoriasQuickAdapter
+
+
+        //cargarPreviewCategorias()
         ///// FIN INICIALIZAR CUADRICULA CATEGROIA
 
         escucharPalabra = TextToSpeech(requireContext(), this)
@@ -232,6 +231,25 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 
 
         return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        db = AppDatabase.getDatabase(requireContext())
+
+        categoriasAdapter = CategoriasCuadriculaAdapter(emptyList()) { cat ->
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(cat.categoryId, cat.name))
+                .addToBackStack(null)
+                .commit()
+        }
+
+        binding.recyclerCategorias.layoutManager =
+            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.recyclerCategorias.adapter = categoriasAdapter
+
+        cargarPreviewCategorias()
     }
 
 //    private fun setupAddButton() {
@@ -1320,7 +1338,7 @@ private fun audio(nombre: String) {
 //                if (preview.isEmpty()) View.VISIBLE else View.GONE
 //        }
 //    }
-    private fun cargarPreviewCategorias() {
+   /* private fun cargarPreviewCategorias() {
         viewLifecycleOwner.lifecycleScope.launch {
 
             // Asegurar pack básico (si inserta categorías)
@@ -1343,6 +1361,90 @@ private fun audio(nombre: String) {
             binding.textoDesarrolloCategorias.visibility =
                 if (previews.isEmpty()) View.VISIBLE else View.GONE
         }
+    }
+    private fun cargarPreviewCategorias() {
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            // 0) Asegurar pack básico
+            withContext(Dispatchers.IO) {
+                PackRepository(requireContext(), db).ensureBasicPackInstalled()
+            }
+
+            // 1) Traer filas (incluye categorías vacías + suficiente info para armar 4 previews)
+            val rows = withContext(Dispatchers.IO) {
+                db.categoryDao().getAllCategoryPreviewRowsIncludingEmpty()
+            }
+
+            // 2) Mapear a CategoryPreview (con previewUris: List<String> de hasta 4)
+            val previews = CategoryPreviewMapper.build(rows)
+
+            // 3) Mostrar máximo 10
+            categoriasAdapter.submitList(previews.take(10))
+
+            // 4) Texto placeholder
+            binding.textoDesarrolloCategorias.visibility =
+                if (previews.isEmpty()) View.VISIBLE else View.GONE
+        }
+    }*/
+
+    private fun cargarPreviewCategorias() {
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            withContext(Dispatchers.IO) {
+                PackRepository(requireContext(), db).ensureBasicPackInstalled()
+            }
+
+            // 1) Traer itemKey 0..3 por categoría (igual que Listas)
+            val rows0 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(0) }
+            val rows1 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(1) }
+            val rows2 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(2) }
+            val rows3 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(3) }
+
+            // 2) Agrupar por categoría
+            val byCat = LinkedHashMap<String, Pair<String, MutableList<String>>>()
+
+            fun addRows(rows: List<CategoryPreviewKeyRow>) {
+                rows.forEach { r ->
+                    val entry = byCat.getOrPut(r.categoryId) { r.name to mutableListOf() }
+                    val key = r.itemKey
+                    if (!key.isNullOrBlank()) entry.second.add(key)
+                }
+            }
+
+            addRows(rows0); addRows(rows1); addRows(rows2); addRows(rows3)
+
+            // 3) Resolver keys -> ItemLista -> string para el adapter
+            val previews = withContext(Dispatchers.IO) {
+                byCat.map { (categoryId, pair) ->
+                    val (name, keys) = pair
+
+                    val uris = keys.mapNotNull { key ->
+                        val item = resolveItemKeyToItemLista(requireContext(), key)
+
+                        // 👇 IMPORTANTE: si es video, devolvé placeholder (como en Recientes)
+                        if (item == null) null
+                        else if (item.esImagen) item.uri.toString()
+                        else "video_placeholder" // nombre de drawable (sin @drawable/)
+                    }.take(4)
+
+                    CategoryPreview(
+                        categoryId = categoryId,
+                        name = name,
+                        previewUris = uris
+                    )
+                }
+            }
+
+            categoriasAdapter.submitList(previews.take(10))
+
+            binding.textoDesarrolloCategorias.visibility =
+                if (previews.isEmpty()) View.VISIBLE else View.GONE
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        cargarPreviewCategorias()
     }
 
     companion object {

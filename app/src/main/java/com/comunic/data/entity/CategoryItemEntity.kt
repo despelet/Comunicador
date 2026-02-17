@@ -8,13 +8,15 @@ import androidx.room.PrimaryKey
     tableName = "category_items",
     indices = [
         Index(value = ["categoryId", "orderIndex"]),
-        Index(value = ["pictogramId"])
+       // Index(value = ["pictogramId"])
+        Index(value = ["itemKey"])
+
     ]
 )
 data class CategoryItemEntity(
     @PrimaryKey val placementId: String,
     val categoryId: String,
-    val pictogramId: String,
+    val itemKey: String, // pictos o imagenes
     val orderIndex: Int
 )
 

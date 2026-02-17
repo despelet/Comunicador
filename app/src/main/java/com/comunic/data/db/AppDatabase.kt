@@ -30,7 +30,7 @@ import com.comunic.data.entity.PictogramOverrideEntity
         CategoryItemEntity::class,
         PictogramOverrideEntity::class
     ],
-    version = 3
+    version = 4
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -51,7 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "items_usados_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance
@@ -138,55 +138,38 @@ abstract class AppDatabase : RoomDatabase() {
                 """.trimIndent())
             }
         }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1) Crear tabla nueva
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS category_items_new (
+                placementId TEXT NOT NULL,
+                categoryId TEXT NOT NULL,
+                itemKey TEXT NOT NULL,
+                orderIndex INTEGER NOT NULL,
+                PRIMARY KEY(placementId)
+            )
+        """.trimIndent())
+
+                // 2) Copiar datos viejos: pictogramId -> itemKey
+                db.execSQL("""
+            INSERT INTO category_items_new (placementId, categoryId, itemKey, orderIndex)
+            SELECT placementId, categoryId, 'PIC:' || pictogramId, orderIndex
+            FROM category_items
+        """.trimIndent())
+
+                // 3) Borrar vieja y renombrar
+                db.execSQL("DROP TABLE category_items")
+                db.execSQL("ALTER TABLE category_items_new RENAME TO category_items")
+
+                // 4) Re-crear índices
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_category_items_categoryId_orderIndex ON category_items(categoryId, orderIndex)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_category_items_itemKey ON category_items(itemKey)")
+            }
+        }
     }
 }
 
 
-//
-//import android.content.Context
-//import androidx.room.Database
-//import androidx.room.Room
-//import androidx.room.RoomDatabase
-//import com.comunic.data.dao.ItemUsadoBucketDao
-//import com.comunic.data.dao.ItemUsadoDao
-//import com.comunic.data.entity.ItemUsado
-//import com.comunic.data.entity.ItemUsadoBucket
-//
-//@Database(entities = [ItemUsado::class, ItemUsadoBucket::class], version = 2)
-//abstract class AppDatabase : RoomDatabase() {
-//
-//    abstract fun itemUsadoDao(): ItemUsadoDao
-//    abstract fun itemUsadoBucketDao(): ItemUsadoBucketDao
-//
-//    companion object {
-//        @Volatile private var INSTANCE: AppDatabase? = null
-//
-//        fun getDatabase(context: Context): AppDatabase {
-//            return INSTANCE ?: synchronized(this) {
-//                val instance = Room.databaseBuilder(
-//                    context.applicationContext,
-//                    AppDatabase::class.java,
-//                    "items_usados_db"
-//                )
-//                    .addMigrations(MIGRATION_1_2) // migra de la base de datos anterior a la nueva
-//                    .build()
-//                INSTANCE = instance
-//                instance
-//            }
-//        }
-//
-//        val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
-//            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-//                db.execSQL("""
-//                    CREATE TABLE IF NOT EXISTS items_usados_bucket (
-//                        nombreArchivo TEXT NOT NULL,
-//                        bucketId INTEGER NOT NULL,
-//                        cantidadDeUsos INTEGER NOT NULL,
-//                        ultimaFechaUso INTEGER NOT NULL,
-//                        PRIMARY KEY(nombreArchivo, bucketId)
-//                    )
-//                """.trimIndent())
-//            }
-//        }
-//    }
-//}
+

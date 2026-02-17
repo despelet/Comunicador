@@ -51,6 +51,7 @@ import com.comunic.data.mappers.toItemLista
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.comunic.ItemKey
 
 
 class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEliminarSeleccionListener,
@@ -851,8 +852,10 @@ private fun audio(nombre: String) {
 //                            timestamp = file.lastModified()
 //                        )
 
+                        //ItemLista(
+                            //id = base,
                         ItemLista(
-                            id = base,
+                            id = ItemKey.media(base),
                             nombre = base,
                             uri = Uri.fromFile(file),
                             esImagen = esImagen,
@@ -864,7 +867,9 @@ private fun audio(nombre: String) {
             }
 
             // 3) Cargar pictos del pack básico (categoría "basic_core") desde Room
-            val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
+            //val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
+            // 3) Cargar pictos del pack básico desde Room (por packId)
+            val pictosBasic = db.pictogramDao().getPictosUiForPack("basic")
 
             // Convertir a ItemLista para que funcionen con MediaAdapter + CuadroImagen
             val pictosAsItems = pictosBasic.map { row ->

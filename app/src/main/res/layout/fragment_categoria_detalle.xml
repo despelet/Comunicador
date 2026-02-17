@@ -21,6 +21,14 @@
         android:layout_marginBottom="12dp"/>
 
     <!-- LISTA / GRILLA DE PICTOGRAMAS -->
+
+    <Button
+        android:id="@+id/btnAgregarElemento"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:text="Agregar" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerPictos"
         android:layout_width="match_parent"
@@ -28,4 +36,6 @@
         android:layout_weight="1"
         android:background="@color/color5"
         android:clipToPadding="false"/>
+
+
 </LinearLayout>

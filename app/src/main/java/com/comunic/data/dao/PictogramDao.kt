@@ -28,18 +28,18 @@ interface PictogramDao {
         val imageUri: String
     )
 
-    @Query("""
-    SELECT 
-      p.pictogramId AS pictogramId,
-      COALESCE(o.customLabel, p.baseLabel) AS label,
-      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
-    FROM category_items ci
-    JOIN pictograms p ON p.pictogramId = ci.pictogramId
-    LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
-    WHERE ci.categoryId = :categoryId
-    ORDER BY ci.orderIndex ASC
-""")
-    suspend fun getPictosForCategory(categoryId: String): List<PictogramUiRow>
+//    @Query("""
+//    SELECT
+//      p.pictogramId AS pictogramId,
+//      COALESCE(o.customLabel, p.baseLabel) AS label,
+//      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+//    FROM category_items ci
+//    JOIN pictograms p ON p.pictogramId = ci.pictogramId
+//    LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+//    WHERE ci.categoryId = :categoryId
+//    ORDER BY ci.orderIndex ASC
+//""")
+//    suspend fun getPictosForCategory(categoryId: String): List<PictogramUiRow>
 
 
     // traer pictos por lista de ids
@@ -85,5 +85,20 @@ WHERE p.packId = :packId
 ORDER BY p.createdAt ASC
 """)
     suspend fun getPictosUiForPack(packId: String): List<PictogramUiRow>
+
+    @Query("""
+SELECT
+    p.pictogramId AS pictogramId,
+    COALESCE(o.customLabel, p.baseLabel) AS label,
+    COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+FROM pictograms p
+LEFT JOIN pictogram_overrides o
+    ON o.pictogramId = p.pictogramId
+WHERE p.pictogramId = :id
+LIMIT 1
+""")
+    suspend fun getPictoUiById(id: String): PictogramUiRow?
 }
+
+
 

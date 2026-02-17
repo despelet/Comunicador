@@ -7,6 +7,7 @@ import com.comunic.data.entity.InstalledPackEntity
 import com.comunic.data.entity.PictogramEntity
 import java.io.File
 import java.util.UUID
+import com.comunic.ItemKey
 
 class PackRepository(
     private val context: Context,
@@ -92,7 +93,8 @@ class PackRepository(
             CategoryItemEntity(
                 placementId = "basic_core__$id",   // ✅ estable
                 categoryId = "basic_core",
-                pictogramId = id,
+//                pictogramId = id,
+                itemKey = ItemKey.picto(id),
                 orderIndex = index
             )
         }
@@ -123,14 +125,15 @@ class PackRepository(
             CategoryItemEntity(
                 placementId = "basic_food__$id",   // ✅ estable
                 categoryId = "basic_food",
-                pictogramId = id,
+                //pictogramId = id,
+                itemKey = ItemKey.picto(id),
                 orderIndex = index
             )
         }
         db.pictogramDao().insertPlacements(foodPlacements)
 
         db.installedPackDao().upsert(
-            InstalledPackEntity(packId = "basic", version = 2, installedAt = now)
+            InstalledPackEntity(packId = "basic", version = 3, installedAt = now)
         )
     }
 }

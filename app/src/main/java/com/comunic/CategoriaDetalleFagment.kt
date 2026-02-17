@@ -2,10 +2,12 @@ package com.comunic
 
 
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -13,11 +15,22 @@ import com.comunic.data.RankingManager
 import com.comunic.data.db.AppDatabase
 import com.comunic.databinding.FragmentCategoriaDetalleBinding
 import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
+import com.comunic.data.entity.CategoryItemEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.comunic.data.mappers.resolveItemKeyToItemLista
+import java.util.UUID
 
 class CategoriaDetalleFragment : Fragment() {
 
     private var _binding: FragmentCategoriaDetalleBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var db: AppDatabase
+    private lateinit var mediaAdapter: MediaAdapter
+    private val listaDeArchivos: MutableList<ItemLista> = mutableListOf()
 
     companion object {
         fun newInstance(categoryId: String, categoryName: String) =
@@ -38,7 +51,7 @@ class CategoriaDetalleFragment : Fragment() {
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    /*override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val categoryId = requireArguments().getString("categoryId")!!
@@ -71,6 +84,236 @@ class CategoriaDetalleFragment : Fragment() {
                 }
             )
 
+        }
+    } */
+
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val categoryId = requireArguments().getString("categoryId")!!
+        val categoryName = requireArguments().getString("categoryName")!!
+        binding.txtTitulo.text = categoryName
+
+//        binding.btnAgregarElemento.setOnClickListener {
+//            mostrarDialogoAgregarItem(categoryId)
+//        }
+        binding.btnAgregarElemento.setOnClickListener {
+            abrirSelectorParaAgregar(categoryId)
+        }
+
+        db = AppDatabase.getDatabase(requireContext())
+
+        // 1) Recycler en grilla (como querías)
+        binding.recyclerPictos.layoutManager = GridLayoutManager(requireContext(), 3)
+
+        // 2) Adapter reutilizado (como Recientes/Home)
+        mediaAdapter = MediaAdapter(
+            mediaList = listaDeArchivos,
+            eliminar = { itemKey ->
+                eliminarDeCategoria(categoryId, itemKey)
+            },
+            palabraAudio = { itemKey ->
+                reproducirAudioPorItemKey(itemKey)
+            }
+        )
+
+        // 3) Si querés soportar eliminación múltiple desde el adapter
+        mediaAdapter.eliminarSeleccionListener = object : MediaAdapter.OnEliminarSeleccionListener {
+            override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
+                eliminarSeleccionDeCategoria(categoryId, seleccionados)
+            }
+        }
+
+        binding.recyclerPictos.adapter = mediaAdapter
+
+        // 4) Cargar items reales de la categoría (pictos + media)
+        loadCategory(categoryId)
+    }
+
+    private fun loadCategory(categoryId: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val keys = withContext(Dispatchers.IO) {
+                db.categoryDao().getItemKeysForCategory(categoryId)
+            }
+
+            val items = withContext(Dispatchers.IO) {
+                keys.mapNotNull { key ->
+                    resolveItemKeyToItemLista(requireContext(), key)
+                }
+            }
+
+            listaDeArchivos.clear()
+            listaDeArchivos.addAll(items)
+            mediaAdapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun eliminarDeCategoria(categoryId: String, itemKey: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                val placementId = db.categoryDao().findPlacementId(categoryId, itemKey)
+                if (placementId != null) {
+                    db.categoryDao().deletePlacement(placementId)
+                }
+            }
+            loadCategory(categoryId)
+        }
+    }
+
+    private fun eliminarSeleccionDeCategoria(categoryId: String, seleccionados: List<ItemLista>) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                // cada ItemLista.id == itemKey (porque ya ajustamos el resolver)
+                seleccionados.forEach { item ->
+                    val placementId = db.categoryDao().findPlacementId(categoryId, item.id)
+                    if (placementId != null) {
+                        db.categoryDao().deletePlacement(placementId)
+                    }
+                }
+            }
+            loadCategory(categoryId)
+        }
+    }
+
+    private fun reproducirAudioPorItemKey(itemKey: String) {
+        // Si ya manejás TextToSpeech en otro lugar, llamalo acá.
+        // Por ahora dejo la resolución del texto:
+        viewLifecycleOwner.lifecycleScope.launch {
+            val texto = withContext(Dispatchers.IO) {
+                when {
+                    ItemKey.isPicto(itemKey) -> {
+                        val id = ItemKey.pictoId(itemKey)
+                        val row = db.pictogramDao().getPictoUiById(id)
+                        row?.label ?: id
+                    }
+                    ItemKey.isMedia(itemKey) -> ItemKey.mediaBase(itemKey)
+                    else -> itemKey
+                }
+            }
+
+            // acá llamás a tu TTS real:
+            // escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
+        }
+    }
+
+/*    private fun mostrarDialogoAgregarItem(categoryId: String) {
+        val opciones = arrayOf("Agregar pictograma (ID)", "Agregar foto/video (nombre)")
+
+        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+            .setTitle("Agregar a la lista")
+            .setItems(opciones) { _, which ->
+                when (which) {
+                    0 -> pedirIdPicto(categoryId)
+                    1 -> pedirNombreMedia(categoryId)
+                }
+            }
+            .show()
+    }
+
+    private fun pedirIdPicto(categoryId: String) {
+        val input = EditText(requireContext())
+        input.hint = "Ej: basic_yes"
+
+        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+            .setTitle("ID de pictograma")
+            .setView(input)
+            .setPositiveButton("Agregar") { _, _ ->
+                val id = input.text.toString().trim()
+                if (id.isNotBlank()) {
+                    agregarItemKey(categoryId, ItemKey.picto(id))
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun pedirNombreMedia(categoryId: String) {
+        val input = EditText(requireContext())
+        input.hint = "Ej: foto_mama"
+
+        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+            .setTitle("Nombre del archivo")
+            .setView(input)
+            .setPositiveButton("Agregar") { _, _ ->
+                val base = input.text.toString().trim()
+                if (base.isNotBlank()) {
+                    agregarItemKey(categoryId, ItemKey.media(base))
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun agregarItemKey(categoryId: String, itemKey: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val nextIndex = withContext(Dispatchers.IO) {
+                db.categoryDao().getMaxOrderIndex(categoryId) + 1
+            }
+
+            withContext(Dispatchers.IO) {
+                db.categoryDao().insertCategoryItem(
+                    CategoryItemEntity(
+                        placementId = UUID.randomUUID().toString(),
+                        categoryId = categoryId,
+                        itemKey = itemKey,
+                        orderIndex = nextIndex
+                    )
+                )
+            }
+
+            loadCategory(categoryId)
+        }
+    }*/
+
+    private fun abrirSelectorParaAgregar(categoryId: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            // 1) cargar items disponibles (pictos + media)
+            val disponibles = withContext(Dispatchers.IO) {
+                com.comunic.data.mappers.loadAllAvailableItems(requireContext(), db)
+            }
+
+            // 2) abrir dialog multi-select
+            PickItemsDialogFragment(disponibles) { selected ->
+                viewLifecycleOwner.lifecycleScope.launch {
+
+                    // 3) insertar seleccionados en category_items
+//                    withContext(Dispatchers.IO) {
+//                        var next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
+//
+//                        selected.forEach { item ->
+//                            db.categoryDao().insertCategoryItem(
+//                                CategoryItemEntity(
+//                                    placementId = UUID.randomUUID().toString(),
+//                                    categoryId = categoryId,
+//                                    itemKey = item.id,    // ✅ id == itemKey
+//                                    orderIndex = next++
+//                                )
+//                            )
+//                        }
+//                    }
+                    withContext(Dispatchers.IO) {
+                        val existentes = db.categoryDao().getItemKeysForCategory(categoryId).toSet()
+                        val nuevos = selected.filter { it.id !in existentes }
+
+                        var next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
+                        nuevos.forEach { item ->
+                            db.categoryDao().insertCategoryItem(
+                                CategoryItemEntity(
+                                    placementId = UUID.randomUUID().toString(),
+                                    categoryId = categoryId,
+                                    itemKey = item.id,
+                                    orderIndex = next++
+                                )
+                            )
+                        }
+                    }
+
+                    // 4) refrescar UI
+                    loadCategory(categoryId)
+                }
+            }.show(parentFragmentManager, "PickItemsAdd")
         }
     }
 

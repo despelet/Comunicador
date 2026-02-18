@@ -42,9 +42,13 @@ import com.comunic.HomeFragment.Companion.PICK_MEDIA_REQUEST
 import com.comunic.HomeFragment.Companion.UCROP_REQUEST_CODE
 import com.comunic.data.db.AppDatabase
 import com.comunic.data.db.PackRepository
+import com.comunic.data.entity.CategoryEntity
+import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.mappers.toItemLista
 import com.yalantis.ucrop.UCrop
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 //import io.opencensus.stats.View
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -52,6 +56,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.Locale
+import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -102,10 +107,19 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
 
         //recyclerView.layoutManager = LinearLayoutManager(this)  // 1 columna
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)  // 4 columnas
-        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { id ->
-            audio(id)
-        }
-        recyclerView.adapter = mediaAdapter
+//        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { id ->
+//            audio(id)
+//        }
+//        recyclerView.adapter = mediaAdapter
+        mediaAdapter = MediaAdapter(
+            listaDeArchivos,
+            ::eliminar,
+            { id -> audio(id) },
+            onLongClick = { item ->
+                mostrarDialogoAgregarAListas(item)   // ✅ tu función (la que armamos)
+            }
+        )
+        binding.recyclerView.adapter = mediaAdapter
 
         loadImageData() // Cargar los datos (imágenes/videos)
         val ordenGuardado = getOrdenSeleccionado()
@@ -360,8 +374,8 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             //listaDeArchivos.add(ItemLista(nombre, savedUri, esImagen, System.currentTimeMillis()))
             listaDeArchivos.add(
                 ItemLista(
-                    id = nombre,
-                    nombre = nombre,
+                    id = ItemKey.media(nombre.trim()),
+                    nombre = nombre.trim(),
                     uri = savedUri,
                     esImagen = esImagen,
                     timestamp = System.currentTimeMillis()
@@ -375,19 +389,7 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
                 Toast.LENGTH_SHORT
             ).show()
 
-            /*// 📤 **Subir a Google Drive**
-            val mimeType = if (esImagen) "image/jpeg" else "video/mp4"
-            driveServiceHelper.uploadFile(savedUri, nombre, mimeType)
-                .addOnSuccessListener { fileId ->
-                    Log.d("GoogleDrive", "Archivo subido con éxito. ID: $fileId")
-                }
-                .addOnFailureListener { e ->
-                    Log.e("GoogleDrive", "Error al subir archivo: ${e.message}")
-                }
 
-        } else {
-            Toast.makeText(this, "Error al guardar", Toast.LENGTH_SHORT).show()
-        } */
         }
     }
 
@@ -442,13 +444,40 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
 //    }
 
     // esta nueva funcion reproduce palabra dependiendo de si es picto o imagen de usuario
-    private fun audio(nombre: String) {
+//    private fun audio(nombre: String) {
+//        if (!::escucharPalabra.isInitialized) return
+//
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            // si coincide con un pictograma, hablar el label
+//            val picto = db.pictogramDao().getPictoById(nombre)
+//            val texto = picto?.label ?: nombre
+//
+//            escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
+//        }
+//    }
+    private fun audio(itemKeyOrId: String) {
         if (!::escucharPalabra.isInitialized) return
 
         viewLifecycleOwner.lifecycleScope.launch {
-            // si coincide con un pictograma, hablar el label
-            val picto = db.pictogramDao().getPictoById(nombre)
-            val texto = picto?.label ?: nombre
+            val raw = itemKeyOrId.trim()
+
+            val texto = when {
+                raw.startsWith("MED:") -> {
+                    raw.removePrefix("MED:").trim()
+                }
+
+                raw.startsWith("PIC:") -> {
+                    val pictoId = raw.removePrefix("PIC:").trim()
+                    val picto = db.pictogramDao().getPictoById(pictoId)
+                    (picto?.label ?: pictoId).trim()
+                }
+
+                else -> {
+                    // ✅ Caso clave: pictos que llegan como "basic_yes" o "food_ensalada"
+                    val picto = db.pictogramDao().getPictoById(raw)
+                    (picto?.label ?: raw).trim()
+                }
+            }
 
             escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
         }
@@ -562,17 +591,11 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
                     val esVideo  = file.extension.equals("mp4", ignoreCase = true)
 
                     if (!esImagen && !esVideo) return@forEach
-                    val base = file.nameWithoutExtension
+                    val base = file.nameWithoutExtension.trim()
                     listaDeArchivos.add(
-//                        ItemLista(
-//                            nombre = file.nameWithoutExtension,
-//                            uri = Uri.fromFile(file),
-//                            esImagen = esImagen, // si esVideo => false
-//                            timestamp = file.lastModified()
-//                        )
 
                             ItemLista(
-                                id = base,
+                                id = ItemKey.media(base),
                                 nombre = base,
                                 uri = Uri.fromFile(file),
                                 esImagen = esImagen,
@@ -919,43 +942,6 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             }
 
             var entry: ZipEntry?
-            /*while (zipInputStream.nextEntry.also { entry = it } != null) {
-                val extension = entry!!.name.substringAfterLast(".", "").lowercase(Locale.ROOT) // valido extension de archivo
-                val esImagen = when (extension) {
-                    in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> true
-                    in listOf("mp4", "mkv", "avi", "mov", "webm") -> false
-                    else -> {
-                        Toast.makeText(requireContext(), "Archivo no soportado: $extension", Toast.LENGTH_SHORT).show()
-                        continue
-                    }
-                }
-
-                val nombreSinExtension = entry!!.name.substringBeforeLast(".")
-                val nombreFinal = "$nombreSinExtension.${if (esImagen) "jpg" else "mp4"}" // le doy la extension final, el nombre es el q levanta sin la extension
-
-                val archivoDestino = File(mediaDir, nombreFinal)
-
-                if (archivoDestino.exists()) { // para evitar sobreescribir archivos
-                    Toast.makeText(requireContext(), "Ya existe un archivo llamado $nombreSinExtension", Toast.LENGTH_SHORT).show()
-                    continue
-                }
-                // extraigo zip y lo guardo en la carpeta media (archivoDestino me lleva a mediaDir)
-                val outputStream = FileOutputStream(archivoDestino)
-                zipInputStream.copyTo(outputStream)
-                zipInputStream.closeEntry()
-                outputStream.close()
-
-                val uriGuardado = Uri.fromFile(archivoDestino)
-                val item = ItemLista(
-                    nombre = nombreSinExtension,
-                    uri = uriGuardado,
-                    esImagen = esImagen,
-                    timestamp = System.currentTimeMillis()
-                )
-
-                listaDeArchivos.add(item) // agrego archivos a la lista actual
-                saveMediaData(nombreSinExtension, uriGuardado, esImagen) // guardo en el almacenamiento persistente (sharedPreferences)
-            }*/
 
             while (zipInputStream.nextEntry.also { entry = it } != null) {
 
@@ -992,15 +978,10 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
                 zipInputStream.closeEntry()
 
                 val uriGuardado = Uri.fromFile(archivoDestino)
-//                val item = ItemLista(
-//                    nombre = nombreSinExtension,
-//                    uri = uriGuardado,
-//                    esImagen = esImagen,
-//                    timestamp = System.currentTimeMillis()
-//                )
+                val base = nombreSinExtension.trim()
                 val item = ItemLista(
-                    id = nombreSinExtension,
-                    nombre = nombreSinExtension,
+                    id = ItemKey.media(base),
+                    nombre = base,
                     uri = uriGuardado,
                     esImagen = esImagen,
                     timestamp = System.currentTimeMillis()
@@ -1054,6 +1035,123 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             }
         }
         mediaAdapter.notifyDataSetChanged()
+    }
+
+    private fun mostrarDialogoAgregarAListas(item: ItemLista) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val categorias = withContext(Dispatchers.IO) { db.categoryDao().getAll() }
+
+            if (categorias.isEmpty()) {
+                Toast.makeText(requireContext(), "No hay listas. Creá una primero.", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val nombres = categorias.map { it.name }.toTypedArray()
+            val checked = BooleanArray(categorias.size)
+
+            AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+                .setTitle("Agregar a listas")
+                .setMultiChoiceItems(nombres, checked) { _, which, isChecked ->
+                    checked[which] = isChecked
+                }
+                .setNeutralButton("Nueva lista") { _, _ ->
+                    mostrarDialogoCrearListaYAgregar(item)
+                }
+                .setPositiveButton("Agregar") { _, _ ->
+                    val seleccionadas = categorias.filterIndexed { index, _ -> checked[index] }
+                    if (seleccionadas.isEmpty()) {
+                        Toast.makeText(requireContext(), "No seleccionaste ninguna lista", Toast.LENGTH_SHORT).show()
+                    } else {
+                        agregarItemAListas(item, seleccionadas.map { it.categoryId })
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        }
+    }
+
+    private fun mostrarDialogoCrearListaYAgregar(item: ItemLista) {
+        val input = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
+            hint = "Nombre de la lista"
+        }
+
+        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+            .setTitle("Nueva lista")
+            .setView(input)
+            .setPositiveButton("Crear") { _, _ ->
+                val nombre = input.text?.toString()?.trim().orEmpty()
+                if (nombre.isBlank()) {
+                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                crearListaYAgregarItem(nombre, item)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun crearListaYAgregarItem(nombre: String, item: ItemLista) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val now = System.currentTimeMillis()
+            val newId = "user_" + UUID.randomUUID().toString()
+
+            val order = withContext(Dispatchers.IO) { db.categoryDao().getMaxCategoryOrderIndex() + 1 }
+
+            withContext(Dispatchers.IO) {
+                db.categoryDao().upsert(
+                    CategoryEntity(
+                        categoryId = newId,
+                        name = nombre,
+                        orderIndex = order,
+                        createdAt = now
+                    )
+                )
+            }
+
+            // Agregar a esa lista recién creada
+            agregarItemAListas(item, listOf(newId))
+
+            // Opcional: ir directo al detalle
+            // abrirCategoriaDetalle(newId, nombre)
+        }
+    }
+
+    private fun agregarItemAListas(item: ItemLista, categoryIds: List<String>) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                for (catId in categoryIds) {
+
+                    // 1) evitar duplicado
+                    val exists = db.categoryDao().existsItemInCategory(catId, item.id)
+                    if (exists) continue
+
+                    // 2) siguiente orden
+                    val next = db.categoryDao().getMaxOrderIndex(catId) + 1
+
+                    // 3) insertar placement
+//                    db.categoryDao().insertCategoryItem(
+//                        CategoryItemEntity(
+//                            placementId = UUID.randomUUID().toString(),
+//                            categoryId = catId,
+//                            itemKey = item.id,   // ✅ item.id = itemKey (PIC:... o MED:...)
+//                            orderIndex = next
+//                        )
+//                    )
+                    val itemKey = item.id.trim()     // ✅ id = MED:... o PIC:...
+                    Log.d("ADD_DEBUG", "guardando itemKey='${item.id}' nombre='${item.nombre}'")
+                    db.categoryDao().insertCategoryItem(
+                        CategoryItemEntity(
+                            placementId = UUID.randomUUID().toString(),
+                            categoryId = catId,
+                            itemKey = itemKey,
+                            orderIndex = next
+                        )
+                    )
+                }
+            }
+
+            Toast.makeText(requireContext(), "Agregado a listas", Toast.LENGTH_SHORT).show()
+        }
     }
 
     companion object {

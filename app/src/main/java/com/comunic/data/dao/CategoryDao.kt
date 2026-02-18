@@ -120,4 +120,13 @@ ORDER BY c.orderIndex ASC
 """)
     suspend fun getCategoryPreviewKeyRows(offset: Int): List<CategoryPreviewKeyRow>
 
+    @Query("""
+    SELECT EXISTS(
+        SELECT 1 FROM category_items
+        WHERE categoryId = :categoryId AND itemKey = :itemKey
+        LIMIT 1
+    )
+""")
+    suspend fun existsItemInCategory(categoryId: String, itemKey: String): Boolean
+
 }

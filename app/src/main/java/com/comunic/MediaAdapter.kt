@@ -32,7 +32,8 @@ import java.io.File
 open class MediaAdapter(
     private val mediaList: MutableList<ItemLista>,
     private val eliminar: (String) -> Unit,
-    private val palabraAudio: (String) -> Unit
+    private val palabraAudio: (String) -> Unit,
+    private val onLongClick: ((ItemLista) -> Unit)? = null
 ) : RecyclerView.Adapter<MediaAdapter.MediaViewHolder>() {
 
     private var edicion = false // estado del modo edicion
@@ -63,6 +64,17 @@ open class MediaAdapter(
 
     override fun onBindViewHolder(holder: MediaViewHolder, position: Int) {
         val mediaItem = mediaList[position]
+        holder.itemView.setOnLongClickListener {
+            // Si estás en modo eliminación o edición, no abrimos “Agregar a lista”
+            if (modoEliminacion || edicion) return@setOnLongClickListener true
+
+            holder.itemView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+
+
+            onLongClick?.invoke(mediaItem)
+            true
+        }
+
         holder.nameTextView.text = mediaItem.nombre
 
         // Cambiar visibilidad de los botones según el modo edición

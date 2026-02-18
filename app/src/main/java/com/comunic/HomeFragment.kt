@@ -117,9 +117,14 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         //recyclerView.layoutManager = LinearLayoutManager(this)  // 1 columna
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 4)  // 4 columnas
         // DESCOMENTAR SI QUIERO QUE SE VEA EL RECYCLER
-        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { id ->
-            audio(id)
-        }
+//        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { id ->
+//            audio(id)
+//        }
+        mediaAdapter = MediaAdapter(
+            mediaList = listaDeArchivos,
+            eliminar = { itemKey: String -> eliminar(itemKey) },
+            palabraAudio = { itemKey: String -> audio(itemKey) }
+        )
         recyclerView.adapter = mediaAdapter
         //binding.recyclerView.visibility = View.GONE
 
@@ -199,7 +204,12 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
                 }
             }
 
-            val adapter = MediaAdapter(mediaItemsTop.toMutableList(), ::eliminar) { id -> audio(id) }
+           // val adapter = MediaAdapter(mediaItemsTop.toMutableList(), ::eliminar) { id -> audio(id) }
+            val adapter = MediaAdapter(
+                mediaList = mediaItemsTop.toMutableList(),
+                eliminar = { itemKey -> eliminar(itemKey) },
+                palabraAudio = { itemKey -> audio(itemKey) }
+            )
             binding.recyclerTop6.layoutManager = GridLayoutManager(requireContext(), 3)
             binding.recyclerTop6.adapter = adapter
             binding.recyclerTop6.visibility = View.VISIBLE

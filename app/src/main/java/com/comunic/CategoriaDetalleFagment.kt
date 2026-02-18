@@ -4,6 +4,7 @@ package com.comunic
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -136,6 +137,7 @@ class CategoriaDetalleFragment : Fragment() {
             val keys = withContext(Dispatchers.IO) {
                 db.categoryDao().getItemKeysForCategory(categoryId)
             }
+            Log.d("CAT_DEBUG", "keys=${keys.joinToString()}")
 
             val items = withContext(Dispatchers.IO) {
                 keys.mapNotNull { key ->
@@ -197,74 +199,7 @@ class CategoriaDetalleFragment : Fragment() {
         }
     }
 
-/*    private fun mostrarDialogoAgregarItem(categoryId: String) {
-        val opciones = arrayOf("Agregar pictograma (ID)", "Agregar foto/video (nombre)")
 
-        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-            .setTitle("Agregar a la lista")
-            .setItems(opciones) { _, which ->
-                when (which) {
-                    0 -> pedirIdPicto(categoryId)
-                    1 -> pedirNombreMedia(categoryId)
-                }
-            }
-            .show()
-    }
-
-    private fun pedirIdPicto(categoryId: String) {
-        val input = EditText(requireContext())
-        input.hint = "Ej: basic_yes"
-
-        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-            .setTitle("ID de pictograma")
-            .setView(input)
-            .setPositiveButton("Agregar") { _, _ ->
-                val id = input.text.toString().trim()
-                if (id.isNotBlank()) {
-                    agregarItemKey(categoryId, ItemKey.picto(id))
-                }
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
-    private fun pedirNombreMedia(categoryId: String) {
-        val input = EditText(requireContext())
-        input.hint = "Ej: foto_mama"
-
-        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-            .setTitle("Nombre del archivo")
-            .setView(input)
-            .setPositiveButton("Agregar") { _, _ ->
-                val base = input.text.toString().trim()
-                if (base.isNotBlank()) {
-                    agregarItemKey(categoryId, ItemKey.media(base))
-                }
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
-    private fun agregarItemKey(categoryId: String, itemKey: String) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val nextIndex = withContext(Dispatchers.IO) {
-                db.categoryDao().getMaxOrderIndex(categoryId) + 1
-            }
-
-            withContext(Dispatchers.IO) {
-                db.categoryDao().insertCategoryItem(
-                    CategoryItemEntity(
-                        placementId = UUID.randomUUID().toString(),
-                        categoryId = categoryId,
-                        itemKey = itemKey,
-                        orderIndex = nextIndex
-                    )
-                )
-            }
-
-            loadCategory(categoryId)
-        }
-    }*/
 
     private fun abrirSelectorParaAgregar(categoryId: String) {
         viewLifecycleOwner.lifecycleScope.launch {

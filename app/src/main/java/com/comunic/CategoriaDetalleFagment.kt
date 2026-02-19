@@ -4,6 +4,7 @@ package com.comunic
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -22,12 +23,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.comunic.data.mappers.resolveItemKeyToItemLista
+import java.util.Locale
 import java.util.UUID
 
-class CategoriaDetalleFragment : Fragment() {
+class CategoriaDetalleFragment :
+    Fragment(),
+    TextToSpeech.OnInitListener {
 
     private var _binding: FragmentCategoriaDetalleBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var tts: TextToSpeech
+    private var ttsReady = false
 
     private lateinit var db: AppDatabase
     private lateinit var mediaAdapter: MediaAdapter
@@ -92,6 +99,8 @@ class CategoriaDetalleFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        tts = TextToSpeech(requireContext(), this)
+
         val categoryId = requireArguments().getString("categoryId")!!
         val categoryName = requireArguments().getString("categoryName")!!
         binding.txtTitulo.text = categoryName
@@ -130,6 +139,22 @@ class CategoriaDetalleFragment : Fragment() {
 
         // 4) Cargar items reales de la categoría (pictos + media)
         loadCategory(categoryId)
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val res = tts.setLanguage(Locale("es","AR"))
+            ttsReady = (res != TextToSpeech.LANG_MISSING_DATA && res != TextToSpeech.LANG_NOT_SUPPORTED)
+        }
+    }
+
+    override fun onDestroyView() {
+        if (::tts.isInitialized) {
+            tts.stop()
+            tts.shutdown()
+        }
+        super.onDestroyView()
+        _binding = null
     }
 
     private fun loadCategory(categoryId: String) {
@@ -178,24 +203,29 @@ class CategoriaDetalleFragment : Fragment() {
         }
     }
 
-    private fun reproducirAudioPorItemKey(itemKey: String) {
-        // Si ya manejás TextToSpeech en otro lugar, llamalo acá.
-        // Por ahora dejo la resolución del texto:
+    private fun reproducirAudioPorItemKey(itemKeyOrId: String) {
+        if (!ttsReady) return
+
         viewLifecycleOwner.lifecycleScope.launch {
-            val texto = withContext(Dispatchers.IO) {
-                when {
-                    ItemKey.isPicto(itemKey) -> {
-                        val id = ItemKey.pictoId(itemKey)
-                        val row = db.pictogramDao().getPictoUiById(id)
-                        row?.label ?: id
-                    }
-                    ItemKey.isMedia(itemKey) -> ItemKey.mediaBase(itemKey)
-                    else -> itemKey
+            val raw = itemKeyOrId.trim()
+
+            val texto = when {
+                raw.startsWith("MED:") -> raw.removePrefix("MED:").trim()
+
+                raw.startsWith("PIC:") -> {
+                    val pictoId = raw.removePrefix("PIC:").trim()
+                    val picto = withContext(Dispatchers.IO) { db.pictogramDao().getPictoById(pictoId) }
+                    (picto?.label ?: pictoId).trim()
+                }
+
+                else -> {
+                    // por si llega "basic_yes" / "food_ensalada" sin prefijo
+                    val picto = withContext(Dispatchers.IO) { db.pictogramDao().getPictoById(raw) }
+                    (picto?.label ?: raw).trim()
                 }
             }
 
-            // acá llamás a tu TTS real:
-            // escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
+            tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
         }
     }
 
@@ -252,10 +282,7 @@ class CategoriaDetalleFragment : Fragment() {
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
+
 }
 
 

@@ -66,6 +66,7 @@
             app:iconPadding="10dp"
             android:text="Cámara"
             app:iconTint="@color/color1"
+            app:strokeColor="@color/color5"
             app:icon="@drawable/ic_camera" />
 
         <Space
@@ -81,6 +82,7 @@
             app:iconPadding="10dp"
             android:text="Galería"
             app:icon="@drawable/ic_gallery"
+            app:strokeColor="@color/color5"
             app:iconTint="@color/color1" />
 
         <!-- Empuja el botón ordenar a la derecha -->

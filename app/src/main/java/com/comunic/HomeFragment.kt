@@ -228,18 +228,6 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         // ACCESO RAPIDO A RESUMEN DESDE HOME
         setupResumenClicks()
 
-        // --- PREVIEW CATEGORIAS EN HOME ---
-//        categoriasQuickAdapter = CategoriasQuickAdapter(emptyList()) { categoria ->
-//            // Opción A (mejor UX): ir DIRECTO al detalle de la categoría
-//            parentFragmentManager.beginTransaction()
-//                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoria.categoryId, categoria.name))
-//                .addToBackStack(null)
-//                .commit()
-//
-//        }
-
-
-
         return binding.root
     }
 

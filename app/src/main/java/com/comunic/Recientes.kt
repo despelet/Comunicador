@@ -15,6 +15,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.speech.tts.TextToSpeech
 import android.text.InputType
+import android.transition.TransitionManager
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -68,7 +69,7 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
 
     // Esta función se llama desde MainActivity cuando se presiona el botón de agregar imagen
     override fun abrirSelectorDeImagen() {
-        opcionesDeImagen() // Tu función existente que muestra el diálogo de imagen/cámara
+//        opcionesDeImagen() // Tu función existente que muestra el diálogo de imagen/cámara
     }
 
     private lateinit var mediaAdapter: MediaAdapter
@@ -163,6 +164,14 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
             //selectionPanel.visibility = View.GONE
         }
 
+        binding.btnCamera.setOnClickListener {
+            openCamera()
+        }
+
+        binding.btnGallery.setOnClickListener {
+            openGallery()
+        }
+
         return binding.root
     }
 
@@ -178,18 +187,18 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         }
     }
 
-    fun opcionesDeImagen() {
-        val opciones = arrayOf("Abrir Galeria", "Abrir Camara")
-        val builder = AlertDialog.Builder(requireContext())
-        builder.setTitle("Seleccione una opción")
-        builder.setItems(opciones) { _, which ->
-            when (which) {
-                0 -> openGallery()
-                1 -> openCamera()
-            }
-        }
-        builder.show()
-    }
+//    fun opcionesDeImagen() {
+//        val opciones = arrayOf("Abrir Galeria", "Abrir Camara")
+//        val builder = AlertDialog.Builder(requireContext())
+//        builder.setTitle("Seleccione una opción")
+//        builder.setItems(opciones) { _, which ->
+//            when (which) {
+//                0 -> openGallery()
+//                1 -> openCamera()
+//            }
+//        }
+//        builder.show()
+//    }
 
     //para subir un archivo solo
     private fun openGallery() {
@@ -751,14 +760,37 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         }
     }
 
-    fun actualizarPanelSeleccion(cantidad: Int) {
-        if (cantidad > 0) {
-            selectionPanel.visibility = android.view.View.VISIBLE
-            selectionCountText.text = "$cantidad elemento${if (cantidad > 1) "s" else ""} seleccionad${if (cantidad > 1) "os" else "o"}"
-        } else {
-            selectionPanel.visibility = android.view.View.GONE
-        }
-    }
+//    fun actualizarPanelSeleccion(cantidad: Int) {
+//        if (cantidad > 0) {
+//            selectionPanel.visibility = android.view.View.VISIBLE
+//            selectionCountText.text = "$cantidad elemento${if (cantidad > 1) "s" else ""} seleccionad${if (cantidad > 1) "os" else "o"}"
+//        } else {
+//            selectionPanel.visibility = android.view.View.GONE
+//        }
+//    }
+fun actualizarPanelSeleccion(cantidad: Int) {
+    TransitionManager.beginDelayedTransition(binding.root)
+    val enModoSeleccion = cantidad > 0
+
+    // Panel superior de selección
+    selectionPanel.visibility =
+        if (enModoSeleccion) View.VISIBLE else View.GONE
+
+    // Texto contador
+    selectionCountText.text =
+        "$cantidad elemento${if (cantidad > 1) "s" else ""} seleccionad${if (cantidad > 1) "os" else "o"}"
+
+    // ✅ Ocultar acciones de agregar mientras se selecciona
+    binding.btnCamera.visibility =
+        if (enModoSeleccion) View.GONE else View.VISIBLE
+
+    binding.btnGallery.visibility =
+        if (enModoSeleccion) View.GONE else View.VISIBLE
+
+    // ✅ Desactivar ordenar para evitar estados inconsistentes
+    binding.orderButton.isEnabled = !enModoSeleccion
+    binding.orderButton.alpha = if (enModoSeleccion) 0.4f else 1f
+}
 
     // EXPORTAR ELEMENTOS
     fun mostrarDialogoSeleccionarElementos() {

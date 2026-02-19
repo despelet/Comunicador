@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // BARRA INFERIOR
         bottomNav = findViewById(R.id.bottom_nav)
 
-        val addImageButton = findViewById<Button>(R.id.addImageButton)
+        /*val addImageButton = findViewById<Button>(R.id.addImageButton)
         addImageButton?.setOnClickListener {
             val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 Manifest.permission.READ_MEDIA_IMAGES
@@ -59,16 +59,13 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 )
             } else {
                 val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-//                if (fragment is HomeFragment) {
-//                    fragment.opcionesDeImagen()
-//                }
                 if (fragment is MenuHandler) {
                     fragment.abrirSelectorDeImagen()
                 } else {
                     Toast.makeText(this, "Función no disponible en esta sección", Toast.LENGTH_SHORT).show()
                 }
             }
-        }
+        }*/
 
 
         val menuButton: ImageButton = findViewById(R.id.menu)

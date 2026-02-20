@@ -141,48 +141,50 @@
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- CONTENEDOR 3:  -->
-            <LinearLayout
-                android:id="@+id/contenedor_3"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="8dp"
-                android:layout_marginTop="12dp"
-                android:background="@color/color5">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/Modos"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:paddingBottom="4dp"/>
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="100dp">
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/recyclerModos"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:nestedScrollingEnabled="false"
-                    android:overScrollMode="never"/>
-
-                <TextView
-                    android:id="@+id/textoDesarrolloModos"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/secci_n_en_desarrollo"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:layout_gravity="center"
-                    android:padding="16dp"/>
-                </FrameLayout>
-
-            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- CONTENEDOR 3:  -->
+<!--<LinearLayout-->
+<!--android:id="@+id/contenedor_3"-->
+<!--android:layout_width="match_parent"-->
+<!--android:layout_height="wrap_content"-->
+<!--android:orientation="vertical"-->
+<!--android:padding="8dp"-->
+<!--android:layout_marginTop="12dp"-->
+<!--android:background="@color/color5">-->
+
+<!--<TextView-->
+<!--    android:layout_width="wrap_content"-->
+<!--    android:layout_height="wrap_content"-->
+<!--    android:text="@string/Modos"-->
+<!--    android:textSize="18sp"-->
+<!--    android:textStyle="bold"-->
+<!--    android:paddingBottom="4dp"/>-->
+
+<!--<FrameLayout-->
+<!--    android:layout_width="match_parent"-->
+<!--    android:layout_height="100dp">-->
+
+<!--    <androidx.recyclerview.widget.RecyclerView-->
+<!--        android:id="@+id/recyclerModos"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:nestedScrollingEnabled="false"-->
+<!--        android:overScrollMode="never"/>-->
+
+<!--    <TextView-->
+<!--        android:id="@+id/textoDesarrolloModos"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="@string/secci_n_en_desarrollo"-->
+<!--        android:textSize="12sp"-->
+<!--        android:textStyle="bold"-->
+<!--        android:layout_gravity="center"-->
+<!--        android:padding="16dp"/>-->
+<!--</FrameLayout>-->
+
+<!--</LinearLayout>-->

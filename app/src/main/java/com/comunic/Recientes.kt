@@ -165,7 +165,11 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         }
 
         binding.btnCamera.setOnClickListener {
-            openCamera()
+            launchImageCapture()
+        }
+
+        binding.btnVideo.setOnClickListener {
+            launchVideoCapture()
         }
 
         binding.btnGallery.setOnClickListener {
@@ -215,31 +219,38 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
     private var lastCapturedUri: Uri? = null
 
     private fun openCamera() {
+
         val options = arrayOf("Capturar Imagen", "Grabar Video")
 
-        val builder = AlertDialog.Builder(requireContext())
-        builder.setTitle("Seleccionar Opción")
-        builder.setItems(options) { _, which ->
-            when (which) {
-                0 -> {
-                    // Capturar Imagen
-                    val photoUri: Uri = createImageUri() // Crea un URI utilizando FileProvider
-                    lastCapturedUri = photoUri
-                    val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                    intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
-                    startActivityForResult(intent, CAPTURE_IMAGE_REQUEST)
-                }
-                1 -> {
-                    val videoUri: Uri = createVideoUri() // Crea un URI utilizando FileProvider
-                    lastCapturedUri = videoUri
-                    // Grabar Video
-                    val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
-                    intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri)
-                    startActivityForResult(intent, CAPTURE_VIDEO_REQUEST)
+        AlertDialog.Builder(requireContext())
+            .setTitle("Seleccionar Opción")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> launchImageCapture()
+                    1 -> launchVideoCapture()
                 }
             }
-        }
-        builder.show()
+            .show()
+    }
+
+    private fun launchImageCapture() {
+        val photoUri: Uri = createImageUri()
+        lastCapturedUri = photoUri
+
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+
+        startActivityForResult(intent, CAPTURE_IMAGE_REQUEST)
+    }
+
+    private fun launchVideoCapture() {
+        val videoUri: Uri = createVideoUri()
+        lastCapturedUri = videoUri
+
+        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri)
+
+        startActivityForResult(intent, CAPTURE_VIDEO_REQUEST)
     }
 
     private fun createImageUri(): Uri {

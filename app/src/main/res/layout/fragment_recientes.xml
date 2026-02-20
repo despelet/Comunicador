@@ -70,7 +70,24 @@
             app:icon="@drawable/ic_camera" />
 
         <Space
-            android:layout_width="10dp"
+            android:layout_width="5dp"
+            android:layout_height="1dp" />
+
+        <!-- VIDEO (NUEVO) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVideo"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:text=""
+            app:icon="@drawable/ic_videocam"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:iconTint="@color/color1"
+            app:strokeColor="@color/color5" />
+
+        <Space
+            android:layout_width="5dp"
             android:layout_height="1dp" />
 
         <com.google.android.material.button.MaterialButton

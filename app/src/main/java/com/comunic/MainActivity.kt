@@ -29,6 +29,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     private lateinit var navigationView: NavigationView
     private lateinit var bottomNav: BottomNavigationView
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -101,6 +103,18 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         if (savedInstanceState == null) {
             bottomNav.selectedItemId = R.id.menu_recientes
         }
+
+        // -------- BOTTOM BAR --------
+        bottomNav.menu.findItem(R.id.menu_sugeridos)?.isVisible = false
+        bottomNav.labelVisibilityMode =
+            com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_SELECTED
+
+        // -------- MENU LATERAL --------
+        val drawerMenu = navigationView.menu
+
+        drawerMenu.findItem(R.id.nav_proteger)?.isVisible = false
+        drawerMenu.findItem(R.id.nav_editar)?.isVisible = false
+        drawerMenu.findItem(R.id.nav_nosotros)?.isVisible = false
 
     }
 
@@ -211,6 +225,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             }
 
         }
+
+
         drawerLayout.closeDrawers() // Cierra el menú después de seleccionar un ítem
         return true
     }

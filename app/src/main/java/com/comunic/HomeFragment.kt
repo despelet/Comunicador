@@ -432,101 +432,7 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 
     }
 
-    /* para ver si esta inicializada la variable lastcaptureduri
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
 
-        if (resultCode == RESULT_OK) {
-            val mediaUri = when (requestCode) {
-                PICK_MEDIA_REQUEST -> data?.data
-                CAPTURE_IMAGE_REQUEST -> lastCapturedUri
-                CAPTURE_VIDEO_REQUEST -> lastCapturedUri
-                else -> null
-            }
-            if (mediaUri != null) {
-                val mimeType = contentResolver.getType(mediaUri)
-                if (mimeType != null) {
-
-//                    if (mimeType.startsWith("image/")) {
-//                        Log.d("CapturedMedia", "Imagen capturada. URI: $mediaUri")
-//                        ingresarNombreArchivo(mediaUri, true)
-
-                    if (mimeType.startsWith("image/")) {
-                        if (requestCode == CAPTURE_IMAGE_REQUEST) {
-                            startCrop(mediaUri) // 👉 Editamos antes de continuar
-                        } else {
-                            ingresarNombreArchivo(mediaUri, true)
-                        }
-                    } else if (mimeType.startsWith("video/")) {
-                        Log.d("CapturedMedia", "Video capturado URI: $mediaUri")
-                        ingresarNombreArchivo(mediaUri, false)
-                    }
-                }
-            } else {
-                Log.e("CaptureError", "Media URI is null")
-            }
-
-            if (requestCode == UCROP_REQUEST_CODE && resultCode == RESULT_OK) {
-                val resultUri = UCrop.getOutput(data!!)
-                if (resultUri != null) {
-                    ingresarNombreArchivo(resultUri, true) // Usamos imagen recortada
-                } else {
-                    Toast.makeText(this, "Error al recortar la imagen", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
-
-
-
-        /*
-        if (requestCode == REQUEST_CODE_SIGN_IN && resultCode == RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                if (account != null) {
-                    val email = account.email ?: "Correo no disponible"
-                    // Inicializa el servicio de Google Drive después de la autenticación en un hilo en segundo plano
-                    val executorService = Executors.newSingleThreadExecutor()
-                    executorService.execute {
-                        driveServiceHelper = DriveServiceHelper(this, getGoogleDriveService(account))
-
-                        // Ahora que tienes el helper, puedes cargar las imágenes
-                        loadImageData()
-
-                        // Mostrar mensaje de éxito en el hilo principal
-                        runOnUiThread {
-                            Toast.makeText(this, "Conectado a Google Drive.\n Email: $email", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                } else {
-                    Log.e("GoogleDrive", "Cuenta de Google es nula después del inicio de sesión")
-                }
-            } catch (e: ApiException) {
-                Log.e("GoogleDrive", "Error en la autenticación de Google Drive: ${e.statusCode}")
-                Toast.makeText(this, "Error en la autenticación", Toast.LENGTH_SHORT).show()
-            }
-        }*/
-
-        if (requestCode == SELECT_FILES_REQUEST_CODE && resultCode == RESULT_OK) {
-            val archivosSeleccionados = mutableListOf<Uri>()
-            data?.data?.let { archivosSeleccionados.add(it) }
-            data?.clipData?.let {
-                for (i in 0 until it.itemCount) {
-                    archivosSeleccionados.add(it.getItemAt(i).uri)
-                }
-            }
-
-            val archivoComprimido = File(getExternalFilesDir(null), "exported_files.zip") // Comprimir los archivos seleccionados
-            comprimirArchivos(archivosSeleccionados, archivoComprimido.absolutePath)
-
-            compartirArchivo(archivoComprimido) // Compartir el archivo comprimido
-        }
-        if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_IMPORTAR_ZIP) {
-            val uri = data?.data
-            uri?.let { importarElementosDesdeZip(it) }
-        }
-    }*/
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -1310,80 +1216,15 @@ private fun audio(nombre: String) {
         }
 
         // 3) Modos (si ya tenés un fragment real; si no, dejalo en toast)
-        binding.contenedor3.setOnClickListener {
+        //binding.contenedor3.setOnClickListener {
             // Si tenés fragment "Sugeridos()" o "Modos()", llamalo acá:
-            (activity as? MainActivity)?.irASugeridosDesdeHome()
+          //  (activity as? MainActivity)?.irASugeridosDesdeHome()
 
             //Toast.makeText(requireContext(), "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
-        }
+       // }
     }
 
-    // RESUMEN DE CATEGORÍAS EN HOME
-//    private fun cargarPreviewCategorias() {
-//        viewLifecycleOwner.lifecycleScope.launch {
-//            withContext(Dispatchers.IO) {
-//                PackRepository(requireContext(), db).ensureBasicPackInstalled() // cargo pack basico
-//            }
-//
-//            val categorias = withContext(Dispatchers.IO) {
-//                db.categoryDao().getAll()
-//            }
-//
-//            val preview = categorias.take(5) // cant a mostrar
-//            categoriasQuickAdapter.submitList(preview)
-//
-//            binding.textoDesarrolloCategorias.visibility =
-//                if (preview.isEmpty()) View.VISIBLE else View.GONE
-//        }
-//    }
-   /* private fun cargarPreviewCategorias() {
-        viewLifecycleOwner.lifecycleScope.launch {
 
-            // Asegurar pack básico (si inserta categorías)
-            withContext(Dispatchers.IO) {
-                PackRepository(requireContext(), db).ensureBasicPackInstalled()
-            }
-
-            // 🔵 1) Traer filas crudas desde Room
-            val rows = withContext(Dispatchers.IO) {
-                db.categoryDao().getAllCategoryPreviewRows()
-            }
-
-            // 🔵 2) Transformarlas a CategoryPreview
-            val previews = CategoryPreviewMapper.build(rows)
-
-            // 🔵 3) Mostrar máximo 10 en Home
-            categoriasAdapter.submitList(previews.take(10))
-
-            // 🔵 4) Ocultar texto "en desarrollo"
-            binding.textoDesarrolloCategorias.visibility =
-                if (previews.isEmpty()) View.VISIBLE else View.GONE
-        }
-    }
-    private fun cargarPreviewCategorias() {
-        viewLifecycleOwner.lifecycleScope.launch {
-
-            // 0) Asegurar pack básico
-            withContext(Dispatchers.IO) {
-                PackRepository(requireContext(), db).ensureBasicPackInstalled()
-            }
-
-            // 1) Traer filas (incluye categorías vacías + suficiente info para armar 4 previews)
-            val rows = withContext(Dispatchers.IO) {
-                db.categoryDao().getAllCategoryPreviewRowsIncludingEmpty()
-            }
-
-            // 2) Mapear a CategoryPreview (con previewUris: List<String> de hasta 4)
-            val previews = CategoryPreviewMapper.build(rows)
-
-            // 3) Mostrar máximo 10
-            categoriasAdapter.submitList(previews.take(10))
-
-            // 4) Texto placeholder
-            binding.textoDesarrolloCategorias.visibility =
-                if (previews.isEmpty()) View.VISIBLE else View.GONE
-        }
-    }*/
 
     private fun cargarPreviewCategorias() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -1392,13 +1233,11 @@ private fun audio(nombre: String) {
                 PackRepository(requireContext(), db).ensureBasicPackInstalled()
             }
 
-            // 1) Traer itemKey 0..3 por categoría (igual que Listas)
             val rows0 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(0) }
             val rows1 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(1) }
             val rows2 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(2) }
             val rows3 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(3) }
 
-            // 2) Agrupar por categoría
             val byCat = LinkedHashMap<String, Pair<String, MutableList<String>>>()
 
             fun addRows(rows: List<CategoryPreviewKeyRow>) {
@@ -1411,18 +1250,14 @@ private fun audio(nombre: String) {
 
             addRows(rows0); addRows(rows1); addRows(rows2); addRows(rows3)
 
-            // 3) Resolver keys -> ItemLista -> string para el adapter
             val previews = withContext(Dispatchers.IO) {
                 byCat.map { (categoryId, pair) ->
                     val (name, keys) = pair
 
                     val uris = keys.mapNotNull { key ->
-                        val item = resolveItemKeyToItemLista(requireContext(), key)
-
-                        // 👇 IMPORTANTE: si es video, devolvé placeholder (como en Recientes)
-                        if (item == null) null
-                        else if (item.esImagen) item.uri.toString()
-                        else "video_placeholder" // nombre de drawable (sin @drawable/)
+                        resolveItemKeyToItemLista(requireContext(), key)
+                            ?.uri
+                            ?.toString()
                     }.take(4)
 
                     CategoryPreview(
@@ -1434,7 +1269,6 @@ private fun audio(nombre: String) {
             }
 
             categoriasAdapter.submitList(previews.take(10))
-
             binding.textoDesarrolloCategorias.visibility =
                 if (previews.isEmpty()) View.VISIBLE else View.GONE
         }
@@ -1460,3 +1294,98 @@ private fun audio(nombre: String) {
     }
 
 }
+/* para ver si esta inicializada la variable lastcaptureduri
+override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    super.onActivityResult(requestCode, resultCode, data)
+
+    if (resultCode == RESULT_OK) {
+        val mediaUri = when (requestCode) {
+            PICK_MEDIA_REQUEST -> data?.data
+            CAPTURE_IMAGE_REQUEST -> lastCapturedUri
+            CAPTURE_VIDEO_REQUEST -> lastCapturedUri
+            else -> null
+        }
+        if (mediaUri != null) {
+            val mimeType = contentResolver.getType(mediaUri)
+            if (mimeType != null) {
+
+//                    if (mimeType.startsWith("image/")) {
+//                        Log.d("CapturedMedia", "Imagen capturada. URI: $mediaUri")
+//                        ingresarNombreArchivo(mediaUri, true)
+
+                if (mimeType.startsWith("image/")) {
+                    if (requestCode == CAPTURE_IMAGE_REQUEST) {
+                        startCrop(mediaUri) // 👉 Editamos antes de continuar
+                    } else {
+                        ingresarNombreArchivo(mediaUri, true)
+                    }
+                } else if (mimeType.startsWith("video/")) {
+                    Log.d("CapturedMedia", "Video capturado URI: $mediaUri")
+                    ingresarNombreArchivo(mediaUri, false)
+                }
+            }
+        } else {
+            Log.e("CaptureError", "Media URI is null")
+        }
+
+        if (requestCode == UCROP_REQUEST_CODE && resultCode == RESULT_OK) {
+            val resultUri = UCrop.getOutput(data!!)
+            if (resultUri != null) {
+                ingresarNombreArchivo(resultUri, true) // Usamos imagen recortada
+            } else {
+                Toast.makeText(this, "Error al recortar la imagen", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+
+
+    /*
+    if (requestCode == REQUEST_CODE_SIGN_IN && resultCode == RESULT_OK) {
+        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            if (account != null) {
+                val email = account.email ?: "Correo no disponible"
+                // Inicializa el servicio de Google Drive después de la autenticación en un hilo en segundo plano
+                val executorService = Executors.newSingleThreadExecutor()
+                executorService.execute {
+                    driveServiceHelper = DriveServiceHelper(this, getGoogleDriveService(account))
+
+                    // Ahora que tienes el helper, puedes cargar las imágenes
+                    loadImageData()
+
+                    // Mostrar mensaje de éxito en el hilo principal
+                    runOnUiThread {
+                        Toast.makeText(this, "Conectado a Google Drive.\n Email: $email", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                Log.e("GoogleDrive", "Cuenta de Google es nula después del inicio de sesión")
+            }
+        } catch (e: ApiException) {
+            Log.e("GoogleDrive", "Error en la autenticación de Google Drive: ${e.statusCode}")
+            Toast.makeText(this, "Error en la autenticación", Toast.LENGTH_SHORT).show()
+        }
+    }*/
+
+    if (requestCode == SELECT_FILES_REQUEST_CODE && resultCode == RESULT_OK) {
+        val archivosSeleccionados = mutableListOf<Uri>()
+        data?.data?.let { archivosSeleccionados.add(it) }
+        data?.clipData?.let {
+            for (i in 0 until it.itemCount) {
+                archivosSeleccionados.add(it.getItemAt(i).uri)
+            }
+        }
+
+        val archivoComprimido = File(getExternalFilesDir(null), "exported_files.zip") // Comprimir los archivos seleccionados
+        comprimirArchivos(archivosSeleccionados, archivoComprimido.absolutePath)
+
+        compartirArchivo(archivoComprimido) // Compartir el archivo comprimido
+    }
+    if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_IMPORTAR_ZIP) {
+        val uri = data?.data
+        uri?.let { importarElementosDesdeZip(it) }
+    }
+}*/

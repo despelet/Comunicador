@@ -17,7 +17,7 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/constraintLayout"
             android:layout_width="match_parent"
-            android:layout_height="68dp"
+            android:layout_height="80dp"
             android:background="@color/color5"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -43,7 +43,7 @@
             <ImageView
                 android:id="@+id/logoTitle"
                 android:layout_width="wrap_content"
-                android:layout_height="68dp"
+                android:layout_height="80dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/bicom"
                 app:layout_constraintWidth_percent="0.65"
@@ -71,7 +71,9 @@
             android:background="@color/color5"
             app:itemTextColor="@color/color1"
             app:itemIconTint="@color/color1"
-            app:menu="@menu/bottom_nav_menu" />
+            app:menu="@menu/bottom_nav_menu"
+            app:labelVisibilityMode="selected"
+            app:itemHorizontalTranslationEnabled="true"/>
 
     </LinearLayout>
 

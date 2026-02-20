@@ -134,77 +134,103 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             val bucketId = RankingManager.TimeBucket.bucketIdFromMillis(now)
 
             val (topBucket, topGlobal) = withContext(Dispatchers.IO) {
-                val db = AppDatabase.getDatabase(requireContext())
-
-                // Traemos más de 6 para poder ordenar bien y tener margen
                 val bucket = db.itemUsadoBucketDao().getTopForBucket(bucketId, 30)
-
-                // Global para completar si el bucket no alcanza
-                val global = db.itemUsadoDao().obtenerMasUsados() // ya lo tenés en tu DAO
-
+                val global = db.itemUsadoDao().obtenerMasUsados()
                 bucket to global
             }
 
-            // Maps del BUCKET (frecuencia + recencia)
-            val bucketCount = topBucket.associate { it.nombreArchivo to it.cantidadDeUsos }
-            val bucketLastUsed = topBucket.associate { it.nombreArchivo to it.ultimaFechaUso }
+            // Precomputar normalización en IO para no llamar suspend fuera de IO
+            val rawToNorm = mutableMapOf<String, String>()
+            suspend fun norm(k: String): String {
+                return rawToNorm.getOrPut(k) {
+                    when {
+                        ItemKey.isPicto(k) || ItemKey.isMedia(k) -> k
+                        else -> {
+                            val existsPicto = db.pictogramDao().getPictoUiById(k) != null
+                            if (existsPicto) ItemKey.picto(k) else ItemKey.media(k)
+                        }
+                    }
+                }
+            }
 
-            // Maps GLOBAL (por si necesitamos completar)
-            val globalCount = topGlobal.associate { it.nombreArchivo to it.cantidadDeUsos }
-            val globalLastUsed = topGlobal.associate { it.nombreArchivo to it.ultimaFechaUso }
+            val bucketCount = mutableMapOf<String, Int>()
+            val bucketLastUsed = mutableMapOf<String, Long>()
+            val globalCount = mutableMapOf<String, Int>()
+            val globalLastUsed = mutableMapOf<String, Long>()
 
-            // Unión de candidatos: primero bucket, luego global (sin duplicar)
-            val candidatos = LinkedHashSet<String>().apply {
-                topBucket.forEach { add(it.nombreArchivo) }
-                topGlobal.forEach { add(it.nombreArchivo) }
-            }.toList()
+            val candidatos = withContext(Dispatchers.IO) {
+                // llenar maps bucket/global con norm correcto
+                topBucket.forEach {
+                    val k = norm(it.nombreArchivo)
+                    bucketCount[k] = maxOf(bucketCount[k] ?: 0, it.cantidadDeUsos)
+                    bucketLastUsed[k] = maxOf(bucketLastUsed[k] ?: 0L, it.ultimaFechaUso)
+                }
+                topGlobal.forEach {
+                    val k = norm(it.nombreArchivo)
+                    globalCount[k] = maxOf(globalCount[k] ?: 0, it.cantidadDeUsos)
+                    globalLastUsed[k] = maxOf(globalLastUsed[k] ?: 0L, it.ultimaFechaUso)
+                }
 
-            // Orden: (1) bucketCount desc, (2) bucketLastUsed desc, (3) globalCount desc, (4) globalLastUsed desc
-            val topFinalNombres = candidatos
+                // candidatos normalizados (bucket primero, después global)
+                LinkedHashSet<String>().apply {
+                    topBucket.forEach { add(norm(it.nombreArchivo)) }
+                    topGlobal.forEach { add(norm(it.nombreArchivo)) }
+                }.toList()
+            }
+
+            // LOGS (ya sin suspend)
+            Log.d("TOP6_DEBUG", "===== BUCKET RAW =====")
+            topBucket.forEach {
+                val n = rawToNorm[it.nombreArchivo] ?: it.nombreArchivo
+                Log.d("TOP6_DEBUG", "bucket -> raw=${it.nombreArchivo} norm=$n usos=${it.cantidadDeUsos} last=${it.ultimaFechaUso}")
+            }
+
+            Log.d("TOP6_DEBUG", "===== GLOBAL RAW =====")
+            topGlobal.take(10).forEach {
+                val n = rawToNorm[it.nombreArchivo] ?: it.nombreArchivo
+                Log.d("TOP6_DEBUG", "global -> raw=${it.nombreArchivo} norm=$n usos=${it.cantidadDeUsos} last=${it.ultimaFechaUso}")
+            }
+
+            Log.d("TOP6_DEBUG", "===== CANDIDATOS NORMALIZADOS =====")
+            candidatos.forEach { Log.d("TOP6_DEBUG", "candidate -> $it") }
+
+            val topFinalKeys = candidatos
                 .sortedWith(
                     compareByDescending<String> { bucketCount[it] ?: 0 }
                         .thenByDescending { bucketLastUsed[it] ?: 0L }
-                        // Desempates extra para los que vienen de global o para estabilidad
                         .thenByDescending { globalCount[it] ?: 0 }
                         .thenByDescending { globalLastUsed[it] ?: 0L }
                 )
                 .take(6)
 
-            // Convertimos a ItemLista (timestamp = ultima fecha real: bucket si existe, si no global)
-            val carpeta = File(requireContext().filesDir, "media")
-            val mediaItemsTop = topFinalNombres.mapNotNull { nombre ->
-                val archivoJpg = File(carpeta, "$nombre.jpg")
-                val archivoMp4 = File(carpeta, "$nombre.mp4")
+            Log.d("TOP6_DEBUG", "===== TOP FINAL KEYS =====")
+            topFinalKeys.forEachIndexed { index, key ->
+                Log.d("TOP6_DEBUG", "#${index + 1} -> $key | bucket=${bucketCount[key]} global=${globalCount[key]}")
+            }
 
-                val archivoExistente = when {
-                    archivoJpg.exists() -> archivoJpg
-                    archivoMp4.exists() -> archivoMp4
-                    else -> null
-                }
+            val mediaItemsTop = withContext(Dispatchers.IO) {
+                topFinalKeys.mapNotNull { key ->
+                    val lastUsed = bucketLastUsed[key] ?: globalLastUsed[key] ?: now
 
-                archivoExistente?.let { archivo ->
-                    val uri = Uri.fromFile(archivo)
-                    val esImagen = archivo.name.endsWith(".jpg", ignoreCase = true)
+                    val item = resolveItemKeyToItemLista(requireContext(), key)
+                        ?: run {
+                            // fallback: si vino como MED:basic_x pero existe como PIC:basic_x
+                            if (ItemKey.isMedia(key)) {
+                                val base = ItemKey.mediaBase(key)
+                                val picKey = ItemKey.picto(base)
+                                resolveItemKeyToItemLista(requireContext(), picKey)
+                            } else null
+                        }
 
-                    val lastUsed = bucketLastUsed[nombre] ?: globalLastUsed[nombre] ?: now
-
-//                    ItemLista(
-//                        nombre = nombre,
-//                        uri = uri,
-//                        esImagen = esImagen,
-//                        timestamp = lastUsed
-//                    )
-                    ItemLista(
-                        id = nombre,
-                        nombre = nombre,
-                        uri = uri,
-                        esImagen = esImagen,
-                        timestamp = lastUsed
-                    )
+                    item?.copy(timestamp = lastUsed)
                 }
             }
 
-           // val adapter = MediaAdapter(mediaItemsTop.toMutableList(), ::eliminar) { id -> audio(id) }
+            Log.d("TOP6_DEBUG", "===== ITEMS MOSTRADOS EN HOME =====")
+            mediaItemsTop.forEachIndexed { i, item ->
+                Log.d("TOP6_DEBUG", "#${i + 1} UI -> id=${item.id} nombre=${item.nombre} esImagen=${item.esImagen}")
+            }
+
             val adapter = MediaAdapter(
                 mediaList = mediaItemsTop.toMutableList(),
                 eliminar = { itemKey -> eliminar(itemKey) },
@@ -214,6 +240,45 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             binding.recyclerTop6.adapter = adapter
             binding.recyclerTop6.visibility = View.VISIBLE
         }
+
+        // Orden: (1) bucketCount desc, (2) bucketLastUsed desc, (3) globalCount desc, (4) globalLastUsed desc
+        /* val topFinalNombres = candidatos
+             .sortedWith(
+                 compareByDescending<String> { bucketCount[it] ?: 0 }
+                     .thenByDescending { bucketLastUsed[it] ?: 0L }
+                     // Desempates extra para los que vienen de global o para estabilidad
+                     .thenByDescending { globalCount[it] ?: 0 }
+                     .thenByDescending { globalLastUsed[it] ?: 0L }
+             )
+             .take(6)
+
+         // Convertimos a ItemLista (timestamp = ultima fecha real: bucket si existe, si no global)
+         val carpeta = File(requireContext().filesDir, "media")
+         val mediaItemsTop = topFinalNombres.mapNotNull { nombre ->
+             val archivoJpg = File(carpeta, "$nombre.jpg")
+             val archivoMp4 = File(carpeta, "$nombre.mp4")
+
+             val archivoExistente = when {
+                 archivoJpg.exists() -> archivoJpg
+                 archivoMp4.exists() -> archivoMp4
+                 else -> null
+             }
+
+             archivoExistente?.let { archivo ->
+                 val uri = Uri.fromFile(archivo)
+                 val esImagen = archivo.name.endsWith(".jpg", ignoreCase = true)
+
+                 val lastUsed = bucketLastUsed[nombre] ?: globalLastUsed[nombre] ?: now
+
+                 ItemLista(
+                     id = nombre,
+                     nombre = nombre,
+                     uri = uri,
+                     esImagen = esImagen,
+                     timestamp = lastUsed
+                 )
+             }
+         }*/
 
         loadImageData() // Cargar los datos (imágenes/videos)
 

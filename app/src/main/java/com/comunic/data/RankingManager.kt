@@ -1,6 +1,7 @@
 package com.comunic.data
 
 import android.content.Context
+import com.comunic.ItemKey
 import com.comunic.data.dao.ItemUsadoBucketDao
 import com.comunic.data.dao.ItemUsadoDao
 import com.comunic.data.db.AppDatabase
@@ -42,12 +43,58 @@ class RankingManager private constructor(context: Context) {
      * - Actualiza el ranking global (items_usados)
      * - Actualiza el ranking contextual por día+franja (items_usados_bucket)
      */
-    fun registrarUso(nombreArchivo: String) {
+//    fun registrarUso(nombreArchivo: String) {
+//        val now = System.currentTimeMillis()
+//
+//        scope.launch {
+//            // Ranking global
+//            val itemGlobal = itemUsadoDao.obtenerPorNombre(nombreArchivo)
+//            if (itemGlobal != null) {
+//                itemGlobal.cantidadDeUsos++
+//                itemGlobal.ultimaFechaUso = now
+//                itemUsadoDao.insertar(itemGlobal)
+//            } else {
+//                itemUsadoDao.insertar(
+//                    ItemUsado(
+//                        nombreArchivo = nombreArchivo,
+//                        cantidadDeUsos = 1,
+//                        ultimaFechaUso = now
+//                    )
+//                )
+//            }
+//
+//            // Ranking por momento (día+franja)
+//            val bucketId = TimeBucket.bucketIdFromMillis(now)
+//
+//            val itemBucket = itemUsadoBucketDao.obtenerPorNombreYBucket(nombreArchivo, bucketId)
+//            if (itemBucket != null) {
+//                itemBucket.cantidadDeUsos++
+//                itemBucket.ultimaFechaUso = now
+//                itemUsadoBucketDao.insertar(itemBucket)
+//            } else {
+//                itemUsadoBucketDao.insertar(
+//                    ItemUsadoBucket(
+//                        nombreArchivo = nombreArchivo,
+//                        bucketId = bucketId,
+//                        cantidadDeUsos = 1,
+//                        ultimaFechaUso = now
+//                    )
+//                )
+//            }
+//        }
+//    }
+
+
+    fun registrarUso(itemKeyOrLegacy: String) {
         val now = System.currentTimeMillis()
 
         scope.launch {
-            // Ranking global
-            val itemGlobal = itemUsadoDao.obtenerPorNombre(nombreArchivo)
+
+            val key = normalizeKey(itemKeyOrLegacy) // ✅ normalización única
+
+            // ---------- GLOBAL ----------
+            val itemGlobal = itemUsadoDao.obtenerPorNombre(key)
+
             if (itemGlobal != null) {
                 itemGlobal.cantidadDeUsos++
                 itemGlobal.ultimaFechaUso = now
@@ -55,17 +102,19 @@ class RankingManager private constructor(context: Context) {
             } else {
                 itemUsadoDao.insertar(
                     ItemUsado(
-                        nombreArchivo = nombreArchivo,
+                        nombreArchivo = key,
                         cantidadDeUsos = 1,
                         ultimaFechaUso = now
                     )
                 )
             }
 
-            // Ranking por momento (día+franja)
+            // ---------- BUCKET ----------
             val bucketId = TimeBucket.bucketIdFromMillis(now)
 
-            val itemBucket = itemUsadoBucketDao.obtenerPorNombreYBucket(nombreArchivo, bucketId)
+            val itemBucket =
+                itemUsadoBucketDao.obtenerPorNombreYBucket(key, bucketId)
+
             if (itemBucket != null) {
                 itemBucket.cantidadDeUsos++
                 itemBucket.ultimaFechaUso = now
@@ -73,13 +122,27 @@ class RankingManager private constructor(context: Context) {
             } else {
                 itemUsadoBucketDao.insertar(
                     ItemUsadoBucket(
-                        nombreArchivo = nombreArchivo,
+                        nombreArchivo = key,
                         bucketId = bucketId,
                         cantidadDeUsos = 1,
                         ultimaFechaUso = now
                     )
                 )
             }
+        }
+    }
+
+    private suspend fun normalizeKey(k: String): String = when {
+        ItemKey.isPicto(k) || ItemKey.isMedia(k) -> k
+
+        else -> {
+            val existsPicto =
+                db.pictogramDao().getPictoUiById(k) != null
+
+            if (existsPicto)
+                ItemKey.picto(k)
+            else
+                ItemKey.media(k)
         }
     }
 

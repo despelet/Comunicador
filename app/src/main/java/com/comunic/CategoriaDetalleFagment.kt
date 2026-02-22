@@ -206,26 +206,12 @@ class CategoriaDetalleFragment :
     private fun reproducirAudioPorItemKey(itemKeyOrId: String) {
         if (!ttsReady) return
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            val raw = itemKeyOrId.trim()
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val texto = SpeechTextResolver.resolve(db, itemKeyOrId)
 
-            val texto = when {
-                raw.startsWith("MED:") -> raw.removePrefix("MED:").trim()
-
-                raw.startsWith("PIC:") -> {
-                    val pictoId = raw.removePrefix("PIC:").trim()
-                    val picto = withContext(Dispatchers.IO) { db.pictogramDao().getPictoById(pictoId) }
-                    (picto?.label ?: pictoId).trim()
-                }
-
-                else -> {
-                    // por si llega "basic_yes" / "food_ensalada" sin prefijo
-                    val picto = withContext(Dispatchers.IO) { db.pictogramDao().getPictoById(raw) }
-                    (picto?.label ?: raw).trim()
-                }
+            withContext(Dispatchers.Main) {
+                tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
             }
-
-            tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
         }
     }
 

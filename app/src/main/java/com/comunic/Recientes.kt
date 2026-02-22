@@ -457,49 +457,15 @@ class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnElimin
         } else { Log.e("TextToSpeech", "Error al inicializar") }
     }
 
-//    private fun audio(text: String) {
-//        if (::escucharPalabra.isInitialized) {
-//            escucharPalabra.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-//        }
-//    }
-
-    // esta nueva funcion reproduce palabra dependiendo de si es picto o imagen de usuario
-//    private fun audio(nombre: String) {
-//        if (!::escucharPalabra.isInitialized) return
-//
-//        viewLifecycleOwner.lifecycleScope.launch {
-//            // si coincide con un pictograma, hablar el label
-//            val picto = db.pictogramDao().getPictoById(nombre)
-//            val texto = picto?.label ?: nombre
-//
-//            escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
-//        }
-//    }
     private fun audio(itemKeyOrId: String) {
         if (!::escucharPalabra.isInitialized) return
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            val raw = itemKeyOrId.trim()
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val texto = SpeechTextResolver.resolve(db, itemKeyOrId)
 
-            val texto = when {
-                raw.startsWith("MED:") -> {
-                    raw.removePrefix("MED:").trim()
-                }
-
-                raw.startsWith("PIC:") -> {
-                    val pictoId = raw.removePrefix("PIC:").trim()
-                    val picto = db.pictogramDao().getPictoById(pictoId)
-                    (picto?.label ?: pictoId).trim()
-                }
-
-                else -> {
-                    // ✅ Caso clave: pictos que llegan como "basic_yes" o "food_ensalada"
-                    val picto = db.pictogramDao().getPictoById(raw)
-                    (picto?.label ?: raw).trim()
-                }
+            withContext(Dispatchers.Main) {
+                escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
             }
-
-            escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
         }
     }
 

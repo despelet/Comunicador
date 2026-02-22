@@ -710,22 +710,24 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         } else { Log.e("TextToSpeech", "Error al inicializar") }
     }
 
-//    private fun audio(text: String) {
-//        if (::escucharPalabra.isInitialized) {
-//            escucharPalabra.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-//        }
-//    }
-private fun audio(nombre: String) {
-    if (!::escucharPalabra.isInitialized) return
+    private fun audio(itemKeyOrId: String) {
+        if (!::escucharPalabra.isInitialized) return
 
-    viewLifecycleOwner.lifecycleScope.launch {
-        // si coincide con un pictograma, hablar el label
-        val picto = db.pictogramDao().getPictoById(nombre)
-        val texto = picto?.label ?: nombre
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val texto = SpeechTextResolver.resolve(db, itemKeyOrId)
 
-        escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
+            withContext(Dispatchers.Main) {
+                escucharPalabra.speak(
+                    texto,
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    null
+                )
+            }
+        }
     }
-}
+
+
 
     override fun onDestroy() {
         if (::escucharPalabra.isInitialized) {
@@ -1359,6 +1361,9 @@ private fun audio(nombre: String) {
     }
 
 }
+
+
+
 /* para ver si esta inicializada la variable lastcaptureduri
 override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)

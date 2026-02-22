@@ -34,5 +34,7 @@
     <string name="secci_n_en_desarrollo">Sección en desarrollo</string>
     <string name="eliminar_seleccion">Eliminar selección</string>
     <string name="seleccionar_todos">Seleccionar todos</string>
+    <string name="anterior">anterior\n</string>
+    <string name="siguiente">siguiente</string>
 
 </resources>

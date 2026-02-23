@@ -50,6 +50,7 @@ interface CategoryDao {
 
 
     // ===== Preview de categorías =====
+    // Para mostrar el nombre de la categoría y la imagen del primer item, trayendo solo las categorías que tienen items
     @Query("""
     SELECT
         c.categoryId AS categoryId,
@@ -73,6 +74,7 @@ interface CategoryDao {
 """)
     suspend fun getAllCategoryPreviewRows(): List<CategoryPreviewRow>
 
+    // Para mostrar el nombre de la categoría aunque no tenga items, trayendo el itemKey del primer item para usarlo en el detalle de la categoría
     @Query("""
     SELECT placementId
     FROM category_items
@@ -83,6 +85,7 @@ interface CategoryDao {
 """)
     suspend fun findPlacementId(categoryId: String, itemKey: String): String?
 
+    // Para mostrar el nombre de la categoría aunque no tenga items, trayendo la imagen del primer item si existe
     @Query("""
 SELECT
   c.categoryId AS categoryId,
@@ -104,6 +107,7 @@ ORDER BY c.orderIndex ASC
 """)
     suspend fun getAllCategoryPreviewRowsIncludingEmpty(): List<CategoryPreviewRow>
 
+    // Para mostrar el nombre de la categoría aunque no tenga items, trayendo el itemKey del primer item para usarlo en el detalle de la categoría
     @Query("""
 SELECT
   c.categoryId AS categoryId,
@@ -120,6 +124,7 @@ ORDER BY c.orderIndex ASC
 """)
     suspend fun getCategoryPreviewKeyRows(offset: Int): List<CategoryPreviewKeyRow>
 
+    // Para mostrar el ícono de check en el detalle del item si pertenece a la categoría
     @Query("""
     SELECT EXISTS(
         SELECT 1 FROM category_items
@@ -134,6 +139,7 @@ ORDER BY c.orderIndex ASC
         val name: String
     )
 
+    // Traer categorías a las que pertenece un item para mostrar en el detalle del item
     @Query("""
     SELECT c.categoryId AS categoryId,
            c.name       AS name
@@ -143,5 +149,15 @@ ORDER BY c.orderIndex ASC
     ORDER BY c.orderIndex ASC
 """)
     suspend fun getCategoriesForItemKey(itemKey: String): List<CategoryMiniRow>
+
+    // para que e actualice en el momento el litado de listas al agregar o quitar un item
+    @Query("""
+  SELECT c.categoryId AS categoryId, c.name AS name
+  FROM categories c
+  JOIN category_items ci ON ci.categoryId = c.categoryId
+  WHERE ci.itemKey = :itemKey
+  ORDER BY c.orderIndex ASC
+""")
+    fun observeCategoriesForItemKey(itemKey: String): kotlinx.coroutines.flow.Flow<List<CategoryMiniRow>>
 
 }

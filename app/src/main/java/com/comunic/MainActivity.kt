@@ -281,4 +281,21 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         navigateTo(R.id.menu_home, HomeFragment())
     }
 
+    fun pedirAgregarAListaDesdeCuadro(item: ItemLista) {
+        val current = supportFragmentManager.findFragmentById(R.id.fragment_container)
+
+        val host = when {
+            current is AddToListHost -> current
+            // si usás NavHostFragment, descomentá esto:
+            // current is NavHostFragment -> current.childFragmentManager.fragments.firstOrNull { it is AddToListHost } as? AddToListHost
+            else -> null
+        }
+
+        if (host != null) {
+            host.mostrarDialogoAgregarAListas(item)
+        } else {
+            Toast.makeText(this, "Esta pantalla no soporta 'Agregar a lista'", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 }

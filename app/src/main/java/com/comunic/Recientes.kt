@@ -62,7 +62,11 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
-class Recientes : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEliminarSeleccionListener, MenuHandler {
+class Recientes : Fragment(),
+    TextToSpeech.OnInitListener,
+    MediaAdapter.OnEliminarSeleccionListener,
+    MenuHandler,
+    AddToListHost {
 
     private var _binding: FragmentRecientesBinding? = null
     private val binding get() = _binding!!
@@ -1046,7 +1050,7 @@ fun actualizarPanelSeleccion(cantidad: Int) {
         mediaAdapter.notifyDataSetChanged()
     }
 
-    private fun mostrarDialogoAgregarAListas(item: ItemLista) {
+    override fun mostrarDialogoAgregarAListas(item: ItemLista) {
         viewLifecycleOwner.lifecycleScope.launch {
             val categorias = withContext(Dispatchers.IO) { db.categoryDao().getAll() }
 

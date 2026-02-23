@@ -36,5 +36,6 @@
     <string name="seleccionar_todos">Seleccionar todos</string>
     <string name="anterior">anterior\n</string>
     <string name="siguiente">siguiente</string>
+    <string name="mas_opciones">Más opciones</string>
 
 </resources>

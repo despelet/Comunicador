@@ -15,6 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.DialogFragment
@@ -31,6 +32,7 @@ import com.squareup.picasso.Picasso
 import com.comunic.databinding.CuadroImagenBinding
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.sql.DataSource
@@ -78,6 +80,7 @@ class CuadroImagen : DialogFragment() {
         return binding.root
     }
 
+    private var currentPos: Int = 0
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         db = AppDatabase.getDatabase(requireContext())
@@ -101,6 +104,37 @@ class CuadroImagen : DialogFragment() {
         configurarBotonCerrar()
         //cerrarAutomaticamente()
 
+        currentPos = posicionInicial
+
+        binding.btnMore.setOnClickListener { anchor ->
+            val popup = PopupMenu(requireContext(), anchor)
+            popup.menuInflater.inflate(R.menu.menu_cuadroimagen, popup.menu)
+
+            popup.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    R.id.action_add_to_list -> {
+                        val item = listaCompleta.getOrNull(currentPos) ?: return@setOnMenuItemClickListener true
+                        (activity as? MainActivity)?.pedirAgregarAListaDesdeCuadro(item)
+                        true
+                    }
+                    else -> false
+                }
+            }
+
+            popup.show()
+        }
+
+        // en tu callback del ViewPager:
+        binding.mainCarousel.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                currentPos = position
+                actualizarDots(currentIndex = position, totalItems = listaCompleta.size)
+                //cargarYRenderCategorias(position)
+                observeCategorias(position)
+            }
+        })
+
     }
 
     override fun onStart() {
@@ -116,7 +150,8 @@ class CuadroImagen : DialogFragment() {
         binding.mainCarousel.post {
             val pos = posicionInicial.coerceIn(0, (listaCompleta.size - 1).coerceAtLeast(0))
             ajustarDialogParaItem(pos)
-            cargarYRenderCategorias(pos)
+            //cargarYRenderCategorias(pos)
+            observeCategorias(pos)
         }
     }
 
@@ -182,8 +217,9 @@ class CuadroImagen : DialogFragment() {
 
                 if (position in 0 until listaCompleta.size) {
                     ajustarDialogParaItem(position)
-                    cargarYRenderCategorias(position)
+                    //cargarYRenderCategorias(position)
                     actualizarSugerencias(listaCompleta[position])
+                    observeCategorias(position)
                 }
             }
         })
@@ -446,17 +482,17 @@ class CuadroImagen : DialogFragment() {
         }
     }
 
-    private fun cargarYRenderCategorias(pos: Int) {
-        val item = listaCompleta.getOrNull(pos) ?: return
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            val cats: List<CategoryDao.CategoryMiniRow> = withContext(Dispatchers.IO) {
-                val itemKey = normalizarItemKey(item.id) // normalizarItemKey es suspend
-                db.categoryDao().getCategoriesForItemKey(itemKey)
-            }
-            renderCategorias(cats)
-        }
-    }
+//    private fun cargarYRenderCategorias(pos: Int) {
+//        val item = listaCompleta.getOrNull(pos) ?: return
+//
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            val cats: List<CategoryDao.CategoryMiniRow> = withContext(Dispatchers.IO) {
+//                val itemKey = normalizarItemKey(item.id) // normalizarItemKey es suspend
+//                db.categoryDao().getCategoriesForItemKey(itemKey)
+//            }
+//            renderCategorias(cats)
+//        }
+//    }
     private suspend fun normalizarItemKey(raw: String): String {
         // Si ya está normalizado, listo
         if (raw.startsWith("PIC:") || raw.startsWith("MED:")) return raw
@@ -522,6 +558,23 @@ class CuadroImagen : DialogFragment() {
             }
 
             binding.categoriesContainer.addView(btn, lp)
+        }
+    }
+
+    private var catsJob: Job? = null
+
+    private fun observeCategorias(pos: Int) {
+        val item = listaCompleta.getOrNull(pos) ?: return
+
+        catsJob?.cancel()
+        catsJob = viewLifecycleOwner.lifecycleScope.launch {
+            val itemKey = withContext(Dispatchers.IO) { normalizarItemKey(item.id) }
+
+            db.categoryDao()
+                .observeCategoriesForItemKey(itemKey)
+                .collect { cats ->
+                    renderCategorias(cats)
+                }
         }
     }
 

@@ -1,6 +1,8 @@
 package com.comunic
 
 import MediaAdapterProvider
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
@@ -13,16 +15,24 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
+import com.comunic.data.dao.CategoryDao
+import com.comunic.data.db.AppDatabase
 import com.squareup.picasso.Picasso
 import com.comunic.databinding.CuadroImagenBinding
+import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.sql.DataSource
 
 
@@ -33,6 +43,7 @@ class CuadroImagen : DialogFragment() {
     private var posicionInicial: Int = 0
     //lateinit var listener: CuadroImagen.PalabraListener
     var listener: PalabraListener? = null
+    private lateinit var db: AppDatabase
 
     private val MAX_DOTS = 5
     private var dotsStartIndex = 0 // índice real del primer dot visible
@@ -69,6 +80,7 @@ class CuadroImagen : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        db = AppDatabase.getDatabase(requireContext())
 
         listaCompleta = arguments?.getParcelableArrayList("listaCompleta") ?: emptyList()
         posicionInicial = arguments?.getInt("posicionInicial") ?: 0
@@ -94,10 +106,18 @@ class CuadroImagen : DialogFragment() {
     override fun onStart() {
         super.onStart()
 
-        val widthInPixels = (420 * resources.displayMetrics.density).toInt()
-        val heightInPixels = (550 * resources.displayMetrics.density).toInt()
+        val dm = resources.displayMetrics
+        val maxW = (dm.widthPixels * 0.90f).toInt()
 
-        dialog?.window?.setLayout(widthInPixels, heightInPixels)
+        // ancho máximo; alto wrap según contenido
+        dialog?.window?.setLayout(maxW, ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        binding.mainCarousel.post {
+            val pos = posicionInicial.coerceIn(0, (listaCompleta.size - 1).coerceAtLeast(0))
+            ajustarDialogParaItem(pos)
+            cargarYRenderCategorias(pos)
+        }
     }
 
 
@@ -158,10 +178,11 @@ class CuadroImagen : DialogFragment() {
 
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                // Dejamos esto para asegurar estado final exacto
                 actualizarDots(currentIndex = position, totalItems = listaCompleta.size)
 
                 if (position in 0 until listaCompleta.size) {
+                    ajustarDialogParaItem(position)
+                    cargarYRenderCategorias(position)
                     actualizarSugerencias(listaCompleta[position])
                 }
             }
@@ -363,6 +384,146 @@ class CuadroImagen : DialogFragment() {
 
     private fun lerp(a: Float, b: Float, t: Float): Float = a + (b - a) * t
 
+    interface CategoriaClickListener {
+        fun irACategoria(categoryId: String, categoryName: String)
+    }
+    var categoriaListener: CategoriaClickListener? = null
+
+    private fun ajustarDialogParaItem(pos: Int) {
+        val item = listaCompleta.getOrNull(pos) ?: return
+
+        val dm = resources.displayMetrics
+        val maxW = (dm.widthPixels * 0.90f).toInt()
+        val maxH = (dm.heightPixels * 0.85f).toInt()
+
+        // Reservamos espacio aprox para dots + categorías + márgenes
+        val reserved = (140 * dm.density).toInt()
+        val maxMediaH = (maxH - reserved).coerceAtLeast((180 * dm.density).toInt())
+
+        val ratio = obtenerAspectRatio(item) ?: 1f // fallback cuadrado
+
+        val targetW = maxW
+        val targetH = (targetW / ratio).toInt().coerceAtMost(maxMediaH)
+
+        binding.mainCarousel.layoutParams = binding.mainCarousel.layoutParams.apply {
+            width = targetW
+            height = targetH
+        }
+
+        dialog?.window?.setLayout(targetW, ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun obtenerAspectRatio(item: ItemLista): Float? {
+        return if (item.esImagen) {
+            obtenerAspectRatioImagen(item.uri)
+        } else {
+            obtenerAspectRatioVideo(item.uri)
+        }
+    }
+
+    private fun obtenerAspectRatioImagen(uri: Uri): Float? {
+        return try {
+            requireContext().contentResolver.openInputStream(uri)?.use { input ->
+                val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                android.graphics.BitmapFactory.decodeStream(input, null, opts)
+                if (opts.outWidth > 0 && opts.outHeight > 0) opts.outWidth.toFloat() / opts.outHeight.toFloat() else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun obtenerAspectRatioVideo(uri: Uri): Float? {
+        return try {
+            val r = android.media.MediaMetadataRetriever()
+            r.setDataSource(requireContext(), uri)
+            val w = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull()
+            val h = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull()
+            r.release()
+            if (w != null && h != null && w > 0 && h > 0) w.toFloat() / h.toFloat() else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun cargarYRenderCategorias(pos: Int) {
+        val item = listaCompleta.getOrNull(pos) ?: return
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val cats: List<CategoryDao.CategoryMiniRow> = withContext(Dispatchers.IO) {
+                val itemKey = normalizarItemKey(item.id) // normalizarItemKey es suspend
+                db.categoryDao().getCategoriesForItemKey(itemKey)
+            }
+            renderCategorias(cats)
+        }
+    }
+    private suspend fun normalizarItemKey(raw: String): String {
+        // Si ya está normalizado, listo
+        if (raw.startsWith("PIC:") || raw.startsWith("MED:")) return raw
+
+        // Si existe como picto en Room, es PIC; si no, asumimos MED
+        val existsPicto = db.pictogramDao().getPictoUiById(raw) != null
+        return if (existsPicto) ItemKey.picto(raw) else ItemKey.media(raw)
+    }
+
+    private fun renderCategorias(categorias: List<CategoryDao.CategoryMiniRow>) {
+
+        binding.categoriesContainer.removeAllViews()
+
+        binding.categoriesScroll.visibility =
+            if (categorias.isEmpty()) View.GONE else View.VISIBLE
+
+        if (categorias.isEmpty()) return
+
+        categorias.forEach { cat ->
+
+            val btn = MaterialButton(
+                requireContext(),
+                null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle
+            ).apply {
+
+                text = cat.name
+                isAllCaps = false
+
+                // ✅ COLOR TEXTO (FIX PRINCIPAL)
+                setTextColor(
+                    ContextCompat.getColor(context, R.color.color1)
+                )
+
+                // ✅ BORDE visible
+                strokeWidth = 2
+                strokeColor = ColorStateList.valueOf(
+                    ContextCompat.getColor(context, R.color.color1)
+                )
+
+                // ✅ fondo transparente estilo chip
+                backgroundTintList =
+                    ColorStateList.valueOf(Color.TRANSPARENT)
+
+                // bordes redondeados tipo pill
+                cornerRadius =
+                    (18 * resources.displayMetrics.density).toInt()
+
+                setOnClickListener {
+                    dismissAllowingStateLoss()
+                    categoriaListener?.irACategoria(
+                        cat.categoryId,
+                        cat.name
+                    )
+                }
+            }
+
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(12, 0, 12, 0)
+            }
+
+            binding.categoriesContainer.addView(btn, lp)
+        }
+    }
 
 }
 

@@ -129,4 +129,19 @@ ORDER BY c.orderIndex ASC
 """)
     suspend fun existsItemInCategory(categoryId: String, itemKey: String): Boolean
 
+    data class CategoryMiniRow(
+        val categoryId: String,
+        val name: String
+    )
+
+    @Query("""
+    SELECT c.categoryId AS categoryId,
+           c.name       AS name
+    FROM categories c
+    INNER JOIN category_items ci ON ci.categoryId = c.categoryId
+    WHERE ci.itemKey = :itemKey
+    ORDER BY c.orderIndex ASC
+""")
+    suspend fun getCategoriesForItemKey(itemKey: String): List<CategoryMiniRow>
+
 }

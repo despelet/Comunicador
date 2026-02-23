@@ -133,16 +133,27 @@ open class MediaAdapter(
 
                     // ABRIR el CuadroImagen nuevo: carrusel con la LISTA COMPLETA y empezando en 'pos'
                     val fragmento = CuadroImagen.nuevaInstancia(
-                        listaCompleta = mediaList.toList(),   // pasa toda la lista
-                        posicionInicial = pos                 // empieza en el item tocado
+                        listaCompleta = mediaList.toList(),
+                        posicionInicial = pos
                     )
 
-                    // Le asignamos el listener para reproducir palabra
                     fragmento.listener = object : CuadroImagen.PalabraListener {
                         override fun reproducirPalabra(palabra: String) {
-                            palabraAudio(palabra)
+                            palabraAudio(palabra) // palabra == itemKey (PIC:/MED:)
                         }
                     }
+
+// ✅ NUEVO: navegación a detalle de categoría desde el dialog
+                    fragmento.categoriaListener = object : CuadroImagen.CategoriaClickListener {
+                        override fun irACategoria(categoryId: String, categoryName: String) {
+                            val fm = (holder.itemView.context as AppCompatActivity).supportFragmentManager
+                            fm.beginTransaction()
+                                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoryId, categoryName))
+                                .addToBackStack(null)
+                                .commit()
+                        }
+                    }
+
                     fragmento.show(
                         (holder.itemView.context as AppCompatActivity).supportFragmentManager,
                         "CuadroImagen"
@@ -187,16 +198,27 @@ open class MediaAdapter(
 
                     // ABRIR el CuadroImagen nuevo: carrusel con la LISTA COMPLETA y empezando en 'pos'
                     val fragmento = CuadroImagen.nuevaInstancia(
-                        listaCompleta = mediaList.toList(),   // pasa toda la lista
-                        posicionInicial = pos                 // empieza en el item tocado
+                        listaCompleta = mediaList.toList(),
+                        posicionInicial = pos
                     )
 
-                    // Le asignamos el listener para reproducir palabra
                     fragmento.listener = object : CuadroImagen.PalabraListener {
                         override fun reproducirPalabra(palabra: String) {
-                            palabraAudio(palabra)
+                            palabraAudio(palabra) // palabra == itemKey (PIC:/MED:)
                         }
                     }
+
+// ✅ NUEVO: navegación a detalle de categoría desde el dialog
+                    fragmento.categoriaListener = object : CuadroImagen.CategoriaClickListener {
+                        override fun irACategoria(categoryId: String, categoryName: String) {
+                            val fm = (holder.itemView.context as AppCompatActivity).supportFragmentManager
+                            fm.beginTransaction()
+                                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoryId, categoryName))
+                                .addToBackStack(null)
+                                .commit()
+                        }
+                    }
+
                     fragmento.show(
                         (holder.itemView.context as AppCompatActivity).supportFragmentManager,
                         "CuadroImagen"

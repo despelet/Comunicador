@@ -125,7 +125,8 @@ open class MediaAdapter(
                     // Registramos el uso primero
                     RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.id)
                     //palabraAudio(mediaItem.nombre)
-                    palabraAudio(mediaItem.id)
+                    //Log.d("TTS_DBG", "MediaAdapter speak id=${mediaItem.id}")
+                  //  palabraAudio(mediaItem.id)
 
                     // Posición segura del item clickeado
                     val pos = holder.bindingAdapterPosition
@@ -139,6 +140,7 @@ open class MediaAdapter(
 
                     fragmento.listener = object : CuadroImagen.PalabraListener {
                         override fun reproducirPalabra(palabra: String) {
+                            //Log.d("TTS_DBG", "MediaAdapter speak id=${mediaItem.id}")
                             palabraAudio(palabra) // palabra == itemKey (PIC:/MED:)
                         }
                     }
@@ -190,7 +192,8 @@ open class MediaAdapter(
                     // Registramos el uso
                     RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.id)
                     //palabraAudio(mediaItem.nombre)
-                    palabraAudio(mediaItem.id)
+                    //Log.d("TTS_DBG", "MediaAdapter speak id=${mediaItem.id}")
+                   // palabraAudio(mediaItem.id)
 
                     // Posición segura del item clickeado
                     val pos = holder.bindingAdapterPosition
@@ -204,6 +207,7 @@ open class MediaAdapter(
 
                     fragmento.listener = object : CuadroImagen.PalabraListener {
                         override fun reproducirPalabra(palabra: String) {
+                            //Log.d("TTS_DBG", "MediaAdapter speak id=${mediaItem.id}")
                             palabraAudio(palabra) // palabra == itemKey (PIC:/MED:)
                         }
                     }

@@ -50,6 +50,11 @@ class CuadroImagen : DialogFragment() {
     private val MAX_DOTS = 5
     private var dotsStartIndex = 0 // índice real del primer dot visible
 
+    // para reproducrti palabra al delizar
+    private var pagerCallback: ViewPager2.OnPageChangeCallback? = null
+    private var pendingSpeakPos: Int? = null
+    private var lastSpokenPos: Int = -1
+
     interface PalabraListener {
         fun reproducirPalabra(palabra: String)
     }
@@ -95,10 +100,6 @@ class CuadroImagen : DialogFragment() {
 
         }
 
-// Debug visual: ver si el pager principal está en pantalla
-        //binding.mainCarousel.setBackgroundColor(0x55FF0000) // rojo con alpha
-       // binding.suggestionsCarousel.setBackgroundColor(0x5500FF00) // verde con alpha
-
         configurarCarruselPrincipal()
        // configurarFlechasCarrusel()
         configurarBotonCerrar()
@@ -123,17 +124,6 @@ class CuadroImagen : DialogFragment() {
 
             popup.show()
         }
-
-        // en tu callback del ViewPager:
-        binding.mainCarousel.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                super.onPageSelected(position)
-                currentPos = position
-                actualizarDots(currentIndex = position, totalItems = listaCompleta.size)
-                //cargarYRenderCategorias(position)
-                observeCategorias(position)
-            }
-        })
 
     }
 
@@ -192,18 +182,25 @@ class CuadroImagen : DialogFragment() {
             val pos = posicionInicial.coerceIn(0, (listaCompleta.size - 1).coerceAtLeast(0))
             Log.d("CuadroImagenDBG", "setCurrentItem pos=$pos")
             binding.mainCarousel.setCurrentItem(pos, false)
-           // actualizarVisibilidadFlechas(pos)
-            //actualizarDots(pos)
+
             actualizarDots(currentIndex = pos, totalItems = listaCompleta.size)
             listaCompleta.getOrNull(pos)?.let { actualizarSugerencias(it) }
+
+            //  hablar al abrir
+            lastSpokenPos = pos
+            pendingSpeakPos = pos
+            Log.d("TTS_DBG", "CuadroImagen speak open id=${listaCompleta[pos].id}")
+            listener?.reproducirPalabra(listaCompleta[pos].id)
         }
 
-        binding.mainCarousel.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+        // Si ya había uno registrado, lo removemos para no duplicar eventos
+        pagerCallback?.let { binding.mainCarousel.unregisterOnPageChangeCallback(it) }
+
+        pagerCallback = object : ViewPager2.OnPageChangeCallback() {
 
             override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels)
 
-                // position = página base, offset = progreso hacia la siguiente
                 actualizarDotsScroll(
                     baseIndex = position,
                     offset = positionOffset,
@@ -213,16 +210,35 @@ class CuadroImagen : DialogFragment() {
 
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
+
+                currentPos = position
+                pendingSpeakPos = position
+
                 actualizarDots(currentIndex = position, totalItems = listaCompleta.size)
 
-                if (position in 0 until listaCompleta.size) {
+                if (position in listaCompleta.indices) {
                     ajustarDialogParaItem(position)
-                    //cargarYRenderCategorias(position)
                     actualizarSugerencias(listaCompleta[position])
                     observeCategorias(position)
                 }
             }
-        })
+
+            override fun onPageScrollStateChanged(state: Int) {
+                super.onPageScrollStateChanged(state)
+
+                // ✅ hablar cuando el swipe termina (queda quieto)
+                if (state == ViewPager2.SCROLL_STATE_IDLE) {
+                    val pos = pendingSpeakPos ?: binding.mainCarousel.currentItem
+                    if (pos != lastSpokenPos && pos in listaCompleta.indices) {
+                        lastSpokenPos = pos
+                        Log.d("TTS_DBG", "CuadroImagen speak open id=${listaCompleta[pos].id}")
+                        listener?.reproducirPalabra(listaCompleta[pos].id) // id = itemKey (PIC:/MED:)
+                    }
+                }
+            }
+        }
+
+        binding.mainCarousel.registerOnPageChangeCallback(pagerCallback!!)
     }
 
 
@@ -578,32 +594,13 @@ class CuadroImagen : DialogFragment() {
         }
     }
 
+    override fun onDestroyView() {
+        catsJob?.cancel()
+        pagerCallback?.let { binding.mainCarousel.unregisterOnPageChangeCallback(it) }
+        pagerCallback = null
+        super.onDestroyView()
+    }
+
 }
 
-//    private fun configurarFlechasCarrusel() {
-//        binding.btnPrev.setOnClickListener {
-//            val prev = (binding.mainCarousel.currentItem - 1).coerceAtLeast(0)
-//            binding.mainCarousel.setCurrentItem(prev, true)
-//        }
-//
-//        binding.btnNext.setOnClickListener {
-//            val last = (listaCompleta.size - 1).coerceAtLeast(0)
-//            val next = (binding.mainCarousel.currentItem + 1).coerceAtMost(last)
-//            binding.mainCarousel.setCurrentItem(next, true)
-//        }
-//
-//        // Estado inicial
-//        actualizarVisibilidadFlechas(binding.mainCarousel.currentItem)
-//    }
-//
-//    private fun actualizarVisibilidadFlechas(position: Int) {
-//        val last = listaCompleta.size - 1
-//        val tieneMasDeUno = listaCompleta.size > 1
-//
-//        binding.btnPrev.visibility =
-//            if (tieneMasDeUno && position > 0) View.VISIBLE else View.INVISIBLE
-//
-//        binding.btnNext.visibility =
-//            if (tieneMasDeUno && position < last) View.VISIBLE else View.INVISIBLE
-//    }
 

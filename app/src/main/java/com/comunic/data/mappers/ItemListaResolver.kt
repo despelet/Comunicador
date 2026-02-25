@@ -17,17 +17,13 @@ suspend fun resolveItemKeyToItemLista(
 
     val db = AppDatabase.getDatabase(context)
 
-
-
     return when {
 
         ItemKey.isPicto(itemKey) -> {
             val id = ItemKey.pictoId(itemKey)
-//            val row = db.pictogramDao().getPictoUiById(id)
-//            row?.toItemLista(timestamp = 0L)
-            val row = db.pictogramDao().getPictoUiById(id)
+            val row = db.pictogramDao().getPictoUiEnabledById(id)
             val item = row?.toItemLista(timestamp = 0L)
-            item?.copy(id = itemKey)
+            item?.copy(id = itemKey)  // ✅ ahora sí id="PIC:xxx"
         }
 
         ItemKey.isMedia(itemKey) -> {

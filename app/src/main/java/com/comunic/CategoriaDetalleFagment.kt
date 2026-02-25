@@ -10,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -39,6 +40,9 @@ class CategoriaDetalleFragment :
     private lateinit var db: AppDatabase
     private lateinit var mediaAdapter: MediaAdapter
     private val listaDeArchivos: MutableList<ItemLista> = mutableListOf()
+
+    private lateinit var categoryId: String
+    private lateinit var categoryName: String
 
     companion object {
         fun newInstance(categoryId: String, categoryName: String) =
@@ -100,35 +104,25 @@ class CategoriaDetalleFragment :
         super.onViewCreated(view, savedInstanceState)
 
         tts = TextToSpeech(requireContext(), this)
+        db = AppDatabase.getDatabase(requireContext())
 
-        val categoryId = requireArguments().getString("categoryId")!!
-        val categoryName = requireArguments().getString("categoryName")!!
+        categoryId = requireArguments().getString("categoryId")!!
+        categoryName = requireArguments().getString("categoryName")!!
         binding.txtTitulo.text = categoryName
 
-//        binding.btnAgregarElemento.setOnClickListener {
-//            mostrarDialogoAgregarItem(categoryId)
-//        }
         binding.btnAgregarElemento.setOnClickListener {
             abrirSelectorParaAgregar(categoryId)
         }
 
-        db = AppDatabase.getDatabase(requireContext())
-
-        // 1) Recycler en grilla (como querías)
+        // ✅ Config Recycler + adapter (tu código)
         binding.recyclerPictos.layoutManager = GridLayoutManager(requireContext(), 3)
 
-        // 2) Adapter reutilizado (como Recientes/Home)
         mediaAdapter = MediaAdapter(
             mediaList = listaDeArchivos,
-            eliminar = { itemKey ->
-                eliminarDeCategoria(categoryId, itemKey)
-            },
-            palabraAudio = { itemKey ->
-                reproducirAudioPorItemKey(itemKey)
-            }
+            eliminar = { itemKey -> eliminarDeCategoria(categoryId, itemKey) },
+            palabraAudio = { itemKey -> reproducirAudioPorItemKey(itemKey) }
         )
 
-        // 3) Si querés soportar eliminación múltiple desde el adapter
         mediaAdapter.eliminarSeleccionListener = object : MediaAdapter.OnEliminarSeleccionListener {
             override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
                 eliminarSeleccionDeCategoria(categoryId, seleccionados)
@@ -137,7 +131,9 @@ class CategoriaDetalleFragment :
 
         binding.recyclerPictos.adapter = mediaAdapter
 
-        // 4) Cargar items reales de la categoría (pictos + media)
+        // ✅ Nuevo: configurar botón eliminar lista (solo user)
+        setupDeleteCategoryButton()
+
         loadCategory(categoryId)
     }
 
@@ -265,6 +261,47 @@ class CategoriaDetalleFragment :
                     loadCategory(categoryId)
                 }
             }.show(parentFragmentManager, "PickItemsAdd")
+        }
+    }
+
+    private fun setupDeleteCategoryButton() {
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            val cat = withContext(Dispatchers.IO) {
+                db.categoryDao().getCategoryById(categoryId)
+            }
+
+            val isSystem = cat?.isSystem == true
+
+            // Solo user => visible
+            binding.btnEliminarCategoria.visibility = if (isSystem) View.GONE else View.VISIBLE
+
+            binding.btnEliminarCategoria.setOnClickListener {
+                confirmarEliminarCategoria()
+            }
+        }
+    }
+
+    private fun confirmarEliminarCategoria() {
+        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+            .setTitle("Eliminar lista")
+            .setMessage("¿Deseás eliminar la lista \"$categoryName\"?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                eliminarCategoria()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun eliminarCategoria() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                // ✅ Solo afecta a user por tu WHERE en la query del DAO
+                db.categoryDao().softDeleteUserCategory(categoryId)
+            }
+
+            Toast.makeText(requireContext(), "Lista eliminada", Toast.LENGTH_SHORT).show()
+            parentFragmentManager.popBackStack() // vuelve a Listas
         }
     }
 

@@ -93,12 +93,23 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         db = AppDatabase.getDatabase(requireContext())
 
         ///// INICIALIZAR CUADRICULA CATEGROIA
-        categoriasAdapter = CategoriasCuadriculaAdapter(emptyList()) { cat ->
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(cat.categoryId, cat.name))
-                .addToBackStack(null)
-                .commit()
-        }
+        categoriasAdapter = CategoriasCuadriculaAdapter(
+            items = emptyList(),
+            onClick = { cat ->
+                parentFragmentManager.beginTransaction()
+                    .replace(
+                        R.id.fragment_container,
+                        CategoriaDetalleFragment.newInstance(cat.categoryId, cat.name)
+                    )
+                    .addToBackStack(null)
+                    .commit()
+            },
+            onLongClick = { cat ->
+                // En Home NO querés borrar listas, así que lo dejamos sin acción
+                // (o podés mostrar un toast)
+                // Toast.makeText(requireContext(), "Mantener presionado: sin acción en Home", Toast.LENGTH_SHORT).show()
+            }
+        )
 
         binding.recyclerCategorias.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
@@ -301,12 +312,12 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 
         db = AppDatabase.getDatabase(requireContext())
 
-        categoriasAdapter = CategoriasCuadriculaAdapter(emptyList()) { cat ->
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(cat.categoryId, cat.name))
-                .addToBackStack(null)
-                .commit()
-        }
+//        categoriasAdapter = CategoriasCuadriculaAdapter(emptyList()) { cat ->
+//            parentFragmentManager.beginTransaction()
+//                .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(cat.categoryId, cat.name))
+//                .addToBackStack(null)
+//                .commit()
+//        }
 
         binding.recyclerCategorias.layoutManager =
             LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
@@ -855,14 +866,12 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
                 }
             }
 
-            // 3) Cargar pictos del pack básico (categoría "basic_core") desde Room
-            //val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
-            // 3) Cargar pictos del pack básico desde Room (por packId)
-            val pictosBasic = db.pictogramDao().getPictosUiForPack("basic")
+            // 3) Cargar pictos de packs habilitados (según installed_packs.enabled)
+            val pictos = db.pictogramDao().getEnabledPictosUi()
 
-            // Convertir a ItemLista para que funcionen con MediaAdapter + CuadroImagen
-            val pictosAsItems = pictosBasic.map { row ->
-                row.toItemLista(timestamp = 0L) // packs: timestamp fijo (luego lo mejoramos)
+            val pictosAsItems = pictos.map { row ->
+                row.toItemLista(timestamp = 0L)
+                    .copy(id = ItemKey.picto(row.pictogramId)) // ✅ id = "PIC:xxx"
             }
 
             listaDeArchivos.addAll(pictosAsItems)
@@ -1300,37 +1309,79 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
                 PackRepository(requireContext(), db).ensureBasicPackInstalled()
             }
 
-            val rows0 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(0) }
-            val rows1 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(1) }
-            val rows2 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(2) }
-            val rows3 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRows(3) }
+            val rows0 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(0) }
+            val rows1 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(1) }
+            val rows2 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(2) }
+            val rows3 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(3) }
 
-            val byCat = LinkedHashMap<String, Pair<String, MutableList<String>>>()
+//            val byCat = LinkedHashMap<String, Pair<String, MutableList<String>>>()
+//
+//            fun addRows(rows: List<CategoryPreviewKeyRow>) {
+//                rows.forEach { r ->
+//                    val entry = byCat.getOrPut(r.categoryId) { r.name to mutableListOf() }
+//                    val key = r.itemKey
+//                    if (!key.isNullOrBlank()) entry.second.add(key)
+//                }
+//            }
+            data class CatAgg(
+                val categoryId: String,
+                val name: String,
+                val isSystem: Boolean,
+                val packId: String,          // ✅ no-null
+                val packEnabled: Boolean,    // ✅ no-null
+                val keys: MutableList<String> = mutableListOf()
+            )
+
+            val byCat = LinkedHashMap<String, CatAgg>()
 
             fun addRows(rows: List<CategoryPreviewKeyRow>) {
                 rows.forEach { r ->
-                    val entry = byCat.getOrPut(r.categoryId) { r.name to mutableListOf() }
-                    val key = r.itemKey
-                    if (!key.isNullOrBlank()) entry.second.add(key)
+                    val agg = byCat.getOrPut(r.categoryId) {
+                        CatAgg(
+                            categoryId = r.categoryId,
+                            name = r.name,
+                            isSystem = r.isSystem,
+                            packId = r.packId,
+                            packEnabled = r.packEnabled
+                        )
+                    }
+                    r.itemKey?.takeIf { it.isNotBlank() }?.let { agg.keys.add(it) }
                 }
             }
 
             addRows(rows0); addRows(rows1); addRows(rows2); addRows(rows3)
 
-            val previews = withContext(Dispatchers.IO) {
-                byCat.map { (categoryId, pair) ->
-                    val (name, keys) = pair
+//            val previews = withContext(Dispatchers.IO) {
+//                byCat.map { (categoryId, pair) ->
+//                    val (name, keys) = pair
+//
+//                    val uris = keys.mapNotNull { key ->
+//                        resolveItemKeyToItemLista(requireContext(), key)
+//                            ?.uri
+//                            ?.toString()
+//                    }.take(4)
+//
+//                    CategoryPreview(
+//                        categoryId = categoryId,
+//                        name = name,
+//                        previewUris = uris
+//                    )
+//                }
+//            }
 
-                    val uris = keys.mapNotNull { key ->
-                        resolveItemKeyToItemLista(requireContext(), key)
-                            ?.uri
-                            ?.toString()
+            val previews = withContext(Dispatchers.IO) {
+                byCat.values.map { agg ->
+                    val uris = agg.keys.mapNotNull { key ->
+                        resolveItemKeyToItemLista(requireContext(), key)?.uri?.toString()
                     }.take(4)
 
                     CategoryPreview(
-                        categoryId = categoryId,
-                        name = name,
-                        previewUris = uris
+                        categoryId = agg.categoryId,
+                        name = agg.name,
+                        previewUris = uris,
+                        isSystem = agg.isSystem,
+                        packEnabled = agg.packEnabled ?: true, // system sin pack row -> true (no debería pasar por el WHERE)
+                        packId = agg.packId
                     )
                 }
             }

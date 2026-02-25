@@ -30,7 +30,7 @@ import com.comunic.data.entity.PictogramOverrideEntity
         CategoryItemEntity::class,
         PictogramOverrideEntity::class
     ],
-    version = 4
+    version = 7
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -51,14 +51,13 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "items_usados_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
-                    .build()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)                    .build()
                 INSTANCE = instance
                 instance
             }
         }
 
-        val MIGRATION_1_2 = object : Migration(1, 2) {
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS items_usados_bucket (
@@ -72,7 +71,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATION_2_3 = object : Migration(2, 3) {
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
 
                 db.execSQL("""
@@ -139,7 +138,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATION_3_4 = object : Migration(3, 4) {
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // 1) Crear tabla nueva
                 db.execSQL("""
@@ -166,6 +165,71 @@ abstract class AppDatabase : RoomDatabase() {
                 // 4) Re-crear índices
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_category_items_categoryId_orderIndex ON category_items(categoryId, orderIndex)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_category_items_itemKey ON category_items(itemKey)")
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+
+                // installed_packs: enabled + isSystem
+                db.execSQL("ALTER TABLE installed_packs ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE installed_packs ADD COLUMN isSystem INTEGER NOT NULL DEFAULT 0")
+
+                // categories: packId + isSystem + isDeleted
+                db.execSQL("ALTER TABLE categories ADD COLUMN packId TEXT NOT NULL DEFAULT 'user'")
+                db.execSQL("ALTER TABLE categories ADD COLUMN isSystem INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE categories ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+
+                // índices útiles
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_installed_packs_enabled ON installed_packs(enabled)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_categories_packId ON categories(packId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_categories_isDeleted ON categories(isDeleted)")
+            }
+        }
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // borra el pack agrupador viejo que ya no usamos
+                db.execSQL("DELETE FROM installed_packs WHERE packId = 'basic'")
+            }
+        }
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+
+                // 1) Pasar pictos del pack viejo "basic" al nuevo pack correspondiente
+                db.execSQL("""
+            UPDATE pictograms
+            SET packId = 'basic_food'
+            WHERE packId = 'basic'
+              AND pictogramId LIKE 'food_%'
+        """.trimIndent())
+
+                db.execSQL("""
+            UPDATE pictograms
+            SET packId = 'basic_core'
+            WHERE packId = 'basic'
+              AND pictogramId LIKE 'basic_%'
+        """.trimIndent())
+
+                // 2) (opcional) si quedó alguno raro, mandalo a core por defecto
+                db.execSQL("""
+            UPDATE pictograms
+            SET packId = 'basic_core'
+            WHERE packId = 'basic'
+        """.trimIndent())
+
+                // 3) Asegurar que existan filas en installed_packs para los nuevos
+                db.execSQL("""
+            INSERT OR IGNORE INTO installed_packs(packId, version, installedAt, enabled, isSystem)
+            VALUES ('basic_core', 1, strftime('%s','now')*1000, 1, 1)
+        """.trimIndent())
+
+                db.execSQL("""
+            INSERT OR IGNORE INTO installed_packs(packId, version, installedAt, enabled, isSystem)
+            VALUES ('basic_food', 1, strftime('%s','now')*1000, 1, 1)
+        """.trimIndent())
+
+                // 4) Ahora sí: borrar el pack viejo (ya no lo necesitás)
+                db.execSQL("DELETE FROM installed_packs WHERE packId='basic'")
             }
         }
     }

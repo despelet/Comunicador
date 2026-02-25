@@ -25,7 +25,8 @@ interface PictogramDao {
     data class PictogramUiRow(
         val pictogramId: String,
         val label: String,
-        val imageUri: String
+        val imageUri: String,
+        val packId: String
     )
 
 //    @Query("""
@@ -44,10 +45,11 @@ interface PictogramDao {
 
     // traer pictos por lista de ids
     @Query("""
-    SELECT 
+    SELECT
       p.pictogramId AS pictogramId,
       COALESCE(o.customLabel, p.baseLabel) AS label,
-      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri,
+      p.packId AS packId
     FROM pictograms p
     LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
     WHERE p.pictogramId IN (:ids)
@@ -56,10 +58,11 @@ interface PictogramDao {
 
     // label para palabraaudio
     @Query("""
-    SELECT 
+    SELECT
       p.pictogramId AS pictogramId,
       COALESCE(o.customLabel, p.baseLabel) AS label,
-      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri,
+      p.packId AS packId
     FROM pictograms p
     LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
     WHERE p.pictogramId = :id
@@ -75,29 +78,92 @@ interface PictogramDao {
     suspend fun getPictosForPack(packId: String): List<PictogramEntity>
 
     @Query("""
-SELECT 
-  p.pictogramId AS pictogramId,
-  COALESCE(o.customLabel, p.baseLabel) AS label,
-  COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+SELECT
+    p.pictogramId AS pictogramId,
+    COALESCE(o.customLabel, p.baseLabel) AS label,
+    COALESCE(o.customImageUri, p.baseImageUri) AS imageUri,
+    p.packId AS packId
 FROM pictograms p
 LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+JOIN installed_packs ip ON ip.packId = p.packId
 WHERE p.packId = :packId
+  AND ip.enabled = 1
 ORDER BY p.createdAt ASC
 """)
     suspend fun getPictosUiForPack(packId: String): List<PictogramUiRow>
 
     @Query("""
 SELECT
-    p.pictogramId AS pictogramId,
-    COALESCE(o.customLabel, p.baseLabel) AS label,
-    COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+  p.pictogramId AS pictogramId,
+  COALESCE(o.customLabel, p.baseLabel) AS label,
+  COALESCE(o.customImageUri, p.baseImageUri) AS imageUri,
+  p.packId AS packId
 FROM pictograms p
-LEFT JOIN pictogram_overrides o
-    ON o.pictogramId = p.pictogramId
+LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+LEFT JOIN installed_packs ip ON ip.packId = p.packId
 WHERE p.pictogramId = :id
+  AND (p.packId = 'user' OR COALESCE(ip.enabled, 1) = 1)
 LIMIT 1
 """)
     suspend fun getPictoUiById(id: String): PictogramUiRow?
+
+    @Query("""
+SELECT
+  p.pictogramId AS pictogramId,
+  COALESCE(o.customLabel, p.baseLabel) AS label,
+  COALESCE(o.customImageUri, p.baseImageUri) AS imageUri,
+  p.packId AS packId
+FROM pictograms p
+LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+JOIN installed_packs ip ON ip.packId = p.packId
+WHERE ip.enabled = 1
+ORDER BY p.createdAt ASC
+""")
+    suspend fun getEnabledPictosUi(): List<PictogramUiRow>
+
+    data class PictogramUiRowNoPack(
+        val pictogramId: String,
+        val label: String,
+        val imageUri: String
+    )
+
+    @Query("""
+    SELECT
+      p.pictogramId AS pictogramId,
+      COALESCE(o.customLabel, p.baseLabel) AS label,
+      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+    FROM pictograms p
+    LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+    LEFT JOIN installed_packs ip ON ip.packId = p.packId
+    WHERE p.pictogramId = :id
+      AND COALESCE(ip.enabled, 1) = 1
+    LIMIT 1
+    """)
+    suspend fun getPictoUiEnabledById_NoPack(id: String): PictogramUiRowNoPack?
+
+    data class PictoUiMiniRow(
+        val pictogramId: String,
+        val label: String,
+        val imageUri: String
+    )
+
+    @Query("""
+SELECT p.pictogramId AS pictogramId,
+       COALESCE(o.customLabel, p.baseLabel) AS label,
+       COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+FROM pictograms p
+LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+LEFT JOIN installed_packs ip ON ip.packId = p.packId
+WHERE p.pictogramId = :id
+  AND COALESCE(ip.enabled, 1) = 1
+LIMIT 1
+""")
+    suspend fun getPictoUiEnabledById(id: String): PictoUiMiniRow?
+
+    @Query("SELECT packId, COUNT(*) AS c FROM pictograms GROUP BY packId")
+    suspend fun debugCountPictosByPack(): List<PackCountRow>
+
+    data class PackCountRow(val packId: String, val c: Int)
 }
 
 

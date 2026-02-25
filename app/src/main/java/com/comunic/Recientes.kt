@@ -568,6 +568,19 @@ class Recientes : Fragment(),
             // 0) Asegurar que el pack básico exista (idempotente)
             val db = AppDatabase.getDatabase(requireContext())
             PackRepository(requireContext(), db).ensureBasicPackInstalled()
+            withContext(Dispatchers.IO) {
+                val dao = db.pictogramDao()
+                val ipDao = db.installedPackDao()
+
+                // 1) Cuántos pictos hay por packId (para ver si existe "basic")
+                val counts = dao.debugCountPictosByPack()
+                Log.d("PACK_DEBUG", "Pictos por packId: $counts")
+
+                // 2) Estado enabled de los packs nuevos (y si existe "basic")
+                Log.d("PACK_DEBUG", "enabled basic_core=${ipDao.isEnabled("basic_core")}")
+                Log.d("PACK_DEBUG", "enabled basic_food=${ipDao.isEnabled("basic_food")}")
+                Log.d("PACK_DEBUG", "enabled basic=${ipDao.isEnabled("basic")}") // debería ser null si lo borraste
+            }
 
             // 1) Limpiar lista
             listaDeArchivos.clear()
@@ -598,10 +611,18 @@ class Recientes : Fragment(),
 
             // 3) Cargar pictos del pack básico (categoría "basic_core") desde Room
            // val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
-            val pictosBasic = db.pictogramDao().getPictosUiForPack("basic")
-            // Convertir a ItemLista para que funcionen con MediaAdapter + CuadroImagen
-            val pictosAsItems = pictosBasic.map { row ->
-                row.toItemLista(timestamp = 0L) // packs: timestamp fijo (luego lo mejoramos)
+           // val pictosBasic = db.pictogramDao().getPictosUiForPack("basic")
+            // Convertir a ItemLista para que funcionen con MediaAdapter + CuadroImagen//
+//            val pictosAsItems = pictosBasic.map { row ->
+//                row.toItemLista(timestamp = 0L) // packs: timestamp fijo (luego lo mejoramos)
+//            }
+
+            // 3) Cargar pictos de packs habilitados
+            val pictos = db.pictogramDao().getEnabledPictosUi()
+
+            val pictosAsItems = pictos.map { row ->
+                row.toItemLista(timestamp = 0L)
+                    .copy(id = ItemKey.picto(row.pictogramId)) // id consistente PIC:xxx
             }
 
             listaDeArchivos.addAll(pictosAsItems)
@@ -1052,7 +1073,7 @@ fun actualizarPanelSeleccion(cantidad: Int) {
 
     override fun mostrarDialogoAgregarAListas(item: ItemLista) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val categorias = withContext(Dispatchers.IO) { db.categoryDao().getAll() }
+            val categorias = withContext(Dispatchers.IO) { db.categoryDao().getUserActive() }
 
             if (categorias.isEmpty()) {
                 Toast.makeText(requireContext(), "No hay listas. Creá una primero.", Toast.LENGTH_SHORT).show()

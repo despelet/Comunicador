@@ -9,6 +9,7 @@ import com.comunic.CategoryPreviewKeyRow
 import com.comunic.CategoryPreviewRow
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CategoryDao {
@@ -110,26 +111,6 @@ ORDER BY c.orderIndex ASC
 """)
     suspend fun getAllCategoryPreviewRowsIncludingEmpty(): List<CategoryPreviewRow>
 
-//    data class CategoryPreviewKeyRowSimple(
-//        val categoryId: String,
-//        val name: String,
-//        val itemKey: String?
-//    )
-//
-//    // Para mostrar el nombre de la categoría aunque no tenga items, trayendo el itemKey del primer item para usarlo en el detalle de la categoría
-//    @Query("""
-//SELECT  c.categoryId AS categoryId,
-//        c.name AS name,
-//        (SELECT ci.itemKey
-//         FROM category_items ci
-//         WHERE ci.categoryId = c.categoryId
-//         ORDER BY ci.orderIndex ASC
-//         LIMIT 1 OFFSET :offset
-//        ) AS itemKey
-//FROM categories c
-//ORDER BY c.orderIndex ASC
-//""")
-//    suspend fun getCategoryPreviewKeyRows(offset: Int): List<CategoryPreviewKeyRowSimple>
 
     // Para mostrar el ícono de check en el detalle del item si pertenece a la categoría
     @Query("""
@@ -148,24 +129,31 @@ ORDER BY c.orderIndex ASC
 
     // Traer categorías a las que pertenece un item para mostrar en el detalle del item
     @Query("""
-    SELECT c.categoryId AS categoryId,
-           c.name       AS name
-    FROM categories c
-    INNER JOIN category_items ci ON ci.categoryId = c.categoryId
-    WHERE ci.itemKey = :itemKey
-    ORDER BY c.orderIndex ASC
+SELECT c.categoryId AS categoryId,
+       c.name       AS name
+FROM categories c
+LEFT JOIN installed_packs ip ON ip.packId = c.packId
+INNER JOIN category_items ci ON ci.categoryId = c.categoryId
+WHERE ci.itemKey = :itemKey
+  AND c.isDeleted = 0
+  AND (c.isSystem = 0 OR COALESCE(ip.enabled, 1) = 1)
+ORDER BY c.orderIndex ASC
 """)
     suspend fun getCategoriesForItemKey(itemKey: String): List<CategoryMiniRow>
 
     // para que e actualice en el momento el litado de listas al agregar o quitar un item
     @Query("""
-  SELECT c.categoryId AS categoryId, c.name AS name
-  FROM categories c
-  JOIN category_items ci ON ci.categoryId = c.categoryId
-  WHERE ci.itemKey = :itemKey
-  ORDER BY c.orderIndex ASC
+SELECT c.categoryId AS categoryId,
+       c.name       AS name
+FROM categories c
+LEFT JOIN installed_packs ip ON ip.packId = c.packId
+JOIN category_items ci ON ci.categoryId = c.categoryId
+WHERE ci.itemKey = :itemKey
+  AND c.isDeleted = 0
+  AND (c.isSystem = 0 OR COALESCE(ip.enabled, 1) = 1)
+ORDER BY c.orderIndex ASC
 """)
-    fun observeCategoriesForItemKey(itemKey: String): kotlinx.coroutines.flow.Flow<List<CategoryMiniRow>>
+    fun observeCategoriesForItemKey(itemKey: String): Flow<List<CategoryMiniRow>>
 
     @Query("""
   SELECT * FROM categories

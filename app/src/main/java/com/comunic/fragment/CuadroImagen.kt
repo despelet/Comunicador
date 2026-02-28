@@ -586,6 +586,10 @@ class CuadroImagen : DialogFragment() {
             db.categoryDao()
                 .observeCategoriesForItemKey(itemKey)
                 .collect { cats ->
+                    Log.d(
+                        "CUADRO_CATS_FLOW",
+                        "emit -> itemKey=$itemKey  cats=${cats.map { it.name }}"
+                    )
                     renderCategorias(cats)
                 }
         }

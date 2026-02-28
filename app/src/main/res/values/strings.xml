@@ -37,5 +37,7 @@
     <string name="anterior">anterior\n</string>
     <string name="siguiente">siguiente</string>
     <string name="mas_opciones">Más opciones</string>
+    <string name="opciones">Opciones</string>
+    <string name="habilitar_pack">Habilitar pack</string>
 
 </resources>

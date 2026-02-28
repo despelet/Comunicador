@@ -5,6 +5,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -16,6 +17,8 @@ import com.bumptech.glide.request.RequestOptions
 class CategoriasCuadriculaAdapter (
     private var items: List<CategoryPreview>,
     private val onClick: (CategoryPreview) -> Unit,
+    private val onOptionsClick: (CategoryPreview) -> Unit,
+    private val onEnableClick: (CategoryPreview) -> Unit,    // ⬇descarga
     private val onLongClick: (CategoryPreview) -> Unit
     ) : RecyclerView.Adapter<CategoriasCuadriculaAdapter.VH>() {
 
@@ -26,7 +29,11 @@ class CategoriasCuadriculaAdapter (
         val img2: ImageView = view.findViewById(R.id.img2)
         val img3: ImageView = view.findViewById(R.id.img3)
         val img4: ImageView = view.findViewById(R.id.img4)
+        val btnOpciones: ImageButton = view.findViewById(R.id.btnOpcionesCategoria)
+        val btnHabilitar: ImageButton = view.findViewById(R.id.btnHabilitarPack)
     }
+
+
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
         val v = LayoutInflater.from(parent.context)
@@ -37,6 +44,9 @@ class CategoriasCuadriculaAdapter (
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = items[position]
         holder.nombre.text = item.name
+
+        val disabled = item.isSystem && !item.packEnabled
+
         holder.card.setOnClickListener { onClick(item) }
 
         val imgs = listOf(holder.img1, holder.img2, holder.img3, holder.img4)
@@ -50,13 +60,21 @@ class CategoriasCuadriculaAdapter (
             if (i < 4) loadPreviewInto(imgs[i], uri)
         }
 
+        //  Alternar botones overlay
+        holder.btnOpciones.visibility = if (disabled) View.GONE else View.VISIBLE
+        holder.btnHabilitar.visibility = if (disabled) View.VISIBLE else View.GONE
+
+        //  Acciones
+        holder.btnOpciones.setOnClickListener { onOptionsClick(item) }     // ⋮
+        holder.btnHabilitar.setOnClickListener { onEnableClick(item) }     // ⬇️ habilitar
+        // longpress en toda la tarjeta (además del botón)
         holder.card.setOnLongClickListener {
             onLongClick(item)
             true
         }
 
         // Si es pack del sistema pero no está habilitado, mostrarlo atenuado (alpha 0.45)
-        val disabled = item.isSystem && !item.packEnabled
+
         holder.itemView.alpha = if (disabled) 0.45f else 1f
     }
 

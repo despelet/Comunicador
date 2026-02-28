@@ -8,6 +8,11 @@
     android:clickable="true"
     android:focusable="true">
 
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -92,4 +97,31 @@
             android:textSize="16sp"
             android:maxLines="2"/>
     </LinearLayout>
+
+        <!-- BOTÓN OPCIONES (overlay) -->
+        <ImageButton
+            android:id="@+id/btnOpcionesCategoria"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="6dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/opciones"
+            android:src="@drawable/ic_more_vert"
+            android:padding="6dp"
+            app:tint="@color/color1" />
+        <!-- BOTÓN DESCARGA (habilitar) -->
+        <ImageButton
+            android:id="@+id/btnHabilitarPack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="6dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/habilitar_pack"
+            android:src="@android:drawable/stat_sys_download"
+            android:padding="6dp"
+            android:visibility="gone" />
+
+    </FrameLayout>
 </com.google.android.material.card.MaterialCardView>

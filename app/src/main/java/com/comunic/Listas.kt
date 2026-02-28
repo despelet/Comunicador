@@ -62,6 +62,12 @@ class Listas : Fragment(), MenuHandler {
             onClick = { cat ->
                 onCategoriaClick(cat)
             },
+            onOptionsClick = { cat ->
+                mostrarOpcionesCategoria(cat)
+            },
+            onEnableClick = { cat ->
+                habilitarPackYEntrar(cat)
+            },
             onLongClick = { cat ->
                 mostrarOpcionesCategoria(cat)
             }

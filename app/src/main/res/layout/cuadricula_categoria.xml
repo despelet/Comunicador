@@ -92,20 +92,20 @@
             android:id="@+id/txtNombreCategoria"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:maxLines="2"
             android:paddingTop="10dp"
-            android:textStyle="bold"
             android:textSize="16sp"
-            android:maxLines="2"/>
+            android:textStyle="bold" />
     </LinearLayout>
 
         <!-- BOTÓN OPCIONES (overlay) -->
         <ImageButton
             android:id="@+id/btnOpcionesCategoria"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_gravity="top|end"
+            android:layout_width="18dp"
+            android:layout_height="30dp"
+            android:layout_gravity="bottom|end"
             android:layout_margin="6dp"
-            android:background="@android:color/transparent"
+            android:background="@color/color5"
             android:contentDescription="@string/opciones"
             android:src="@drawable/ic_more_vert"
             android:padding="6dp"
@@ -119,6 +119,7 @@
             android:layout_margin="6dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/habilitar_pack"
+
             android:src="@android:drawable/stat_sys_download"
             android:padding="6dp"
             android:visibility="gone" />

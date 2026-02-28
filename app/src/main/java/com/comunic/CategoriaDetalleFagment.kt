@@ -20,10 +20,12 @@ import com.comunic.databinding.FragmentCategoriaDetalleBinding
 import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
 import com.comunic.data.entity.CategoryItemEntity
+import com.comunic.data.entity.InstalledPackEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.comunic.data.mappers.resolveItemKeyToItemLista
+import com.comunic.data.mappers.resolveItemKeyToItemListaAllowDisabled
 import java.util.Locale
 import java.util.UUID
 
@@ -43,6 +45,16 @@ class CategoriaDetalleFragment :
 
     private lateinit var categoryId: String
     private lateinit var categoryName: String
+
+    private var isPackEnabled: Boolean = true
+    private var isSystemCategory: Boolean = false
+    private var packId: String = "user"
+
+    private val previewMode: Boolean
+        get() = (isSystemCategory && !isPackEnabled)
+
+    private var previewEnabled: Boolean = false
+
 
     companion object {
         fun newInstance(categoryId: String, categoryName: String) =
@@ -110,17 +122,38 @@ class CategoriaDetalleFragment :
         categoryName = requireArguments().getString("categoryName")!!
         binding.txtTitulo.text = categoryName
 
-        binding.btnAgregarElemento.setOnClickListener {
-            abrirSelectorParaAgregar(categoryId)
+        // boton agregar elementos
+//        binding.btnAgregarElemento.setOnClickListener {
+//            abrirSelectorParaAgregar(categoryId)
+//        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val status = withContext(Dispatchers.IO) {
+                db.categoryDao().getCategoryStatus(categoryId)
+            }
+
+            isSystemCategory = status?.isSystem == true
+            packId = status?.packId ?: "user"
+            isPackEnabled = status?.packEnabled ?: true
+            previewEnabled = isSystemCategory && !isPackEnabled
+
+            configurarBotonSegunEstado()
+            loadCategory(categoryId)
         }
+
 
         // ✅ Config Recycler + adapter (tu código)
         binding.recyclerPictos.layoutManager = GridLayoutManager(requireContext(), 3)
 
+//        mediaAdapter = MediaAdapter(
+//            mediaList = listaDeArchivos,
+//            eliminar = { itemKey -> eliminarDeCategoria(categoryId, itemKey) },
+//            palabraAudio = { itemKey -> reproducirAudioPorItemKey(itemKey) }
+//        )
         mediaAdapter = MediaAdapter(
             mediaList = listaDeArchivos,
             eliminar = { itemKey -> eliminarDeCategoria(categoryId, itemKey) },
-            palabraAudio = { itemKey -> reproducirAudioPorItemKey(itemKey) }
+            palabraAudio = { itemKey -> reproducirAudioPorItemKey(itemKey) },
+            grayscaleMode = { previewEnabled }   // ✅ TODO gris si el pack está deshabilitado
         )
 
         mediaAdapter.eliminarSeleccionListener = object : MediaAdapter.OnEliminarSeleccionListener {
@@ -134,7 +167,7 @@ class CategoriaDetalleFragment :
         // ✅ Nuevo: configurar botón eliminar lista (solo user)
         setupDeleteCategoryButton()
 
-        loadCategory(categoryId)
+        //loadCategory(categoryId)
     }
 
     override fun onInit(status: Int) {
@@ -160,9 +193,18 @@ class CategoriaDetalleFragment :
             }
             Log.d("CAT_DEBUG", "keys=${keys.joinToString()}")
 
+//            val items = withContext(Dispatchers.IO) {
+//                keys.mapNotNull { key ->
+//                    resolveItemKeyToItemLista(requireContext(), key)
+//                }
+//            }
             val items = withContext(Dispatchers.IO) {
                 keys.mapNotNull { key ->
-                    resolveItemKeyToItemLista(requireContext(), key)
+                    if (isSystemCategory && !isPackEnabled) {
+                        resolveItemKeyToItemListaAllowDisabled(requireContext(), key)
+                    } else {
+                        resolveItemKeyToItemLista(requireContext(), key)
+                    }
                 }
             }
 
@@ -302,6 +344,52 @@ class CategoriaDetalleFragment :
 
             Toast.makeText(requireContext(), "Lista eliminada", Toast.LENGTH_SHORT).show()
             parentFragmentManager.popBackStack() // vuelve a Listas
+        }
+    }
+
+    private fun configurarBotonSegunEstado() {
+        if (isSystemCategory && !isPackEnabled) {
+            binding.btnAgregarElemento.text = "Habilitar"
+            binding.btnAgregarElemento.setOnClickListener {
+                habilitarPack(packId) // packId = basic_core o basic_food
+            }
+        } else {
+            binding.btnAgregarElemento.text = "Agregar"
+            binding.btnAgregarElemento.setOnClickListener {
+                abrirSelectorParaAgregar(categoryId)
+            }
+        }
+    }
+
+    private fun habilitarPack(packId: String) {
+        if (packId.isBlank()) return
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                val dao = db.installedPackDao()
+                val existing = dao.get(packId)
+                if (existing == null) {
+                    dao.upsert(
+                        InstalledPackEntity(
+                            packId = packId,
+                            version = 1,
+                            installedAt = System.currentTimeMillis(),
+                            enabled = true,
+                            isSystem = true
+                        )
+                    )
+                } else {
+                    dao.setEnabled(packId, true)
+                }
+            }
+
+            // refrescar estado + UI
+            val status = withContext(Dispatchers.IO) { db.categoryDao().getCategoryStatus(categoryId) }
+            isPackEnabled = status?.packEnabled ?: true
+            previewEnabled = isSystemCategory && !isPackEnabled
+            configurarBotonSegunEstado()
+            loadCategory(categoryId)
+            mediaAdapter.notifyDataSetChanged()
         }
     }
 

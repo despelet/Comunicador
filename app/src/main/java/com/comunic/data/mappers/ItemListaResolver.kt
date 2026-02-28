@@ -51,6 +51,29 @@ suspend fun resolveItemKeyToItemLista(
     }
 }
 
+suspend fun resolveItemKeyToItemListaAllowDisabled(
+    context: Context,
+    itemKey: String
+): ItemLista? {
+    val db = AppDatabase.getDatabase(context)
+
+    return when {
+        ItemKey.isPicto(itemKey) -> {
+            val id = ItemKey.pictoId(itemKey)
+            val row = db.pictogramDao().getPictoUiById_NoPackFilter(id)
+            val item = row?.toItemLista(timestamp = 0L)
+            item?.copy(id = itemKey) // mantiene "PIC:xxx"
+        }
+
+        ItemKey.isMedia(itemKey) -> {
+            // para media, dejás igual que tu resolver normal
+            resolveItemKeyToItemLista(context, itemKey)
+        }
+
+        else -> null
+    }
+}
+
 
 // ===============================
 // Helper interno (SOLO usado acá)

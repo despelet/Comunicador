@@ -46,27 +46,6 @@ class Listas : Fragment(), MenuHandler {
         return binding.root
     }
 
-//    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-//        super.onViewCreated(view, savedInstanceState)
-//
-//        binding.fabNuevaLista.setOnClickListener {
-//            mostrarDialogoNuevaLista()
-//        }
-//
-//        db = AppDatabase.getDatabase(requireContext())
-//
-//        // 1) Adapter (mismo que Home)
-//        categoriasAdapter = CategoriasCuadriculaAdapter(emptyList()) { cat ->
-//            abrirCategoriaDetalle(cat.categoryId, cat.name)
-//        }
-//
-//        // 2) Layout: grilla 2 columnas tipo Spotify
-//        binding.recyclerCategorias.layoutManager = GridLayoutManager(requireContext(), 2)
-//        binding.recyclerCategorias.adapter = categoriasAdapter
-//
-//        // 3) Cargar datos
-//        cargarCategorias()
-//    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -158,23 +137,24 @@ private fun cargarCategorias() {
     }
 }
 
-    private fun onCategoriaClick(cat: CategoryPreview) {
-        val disabled = cat.isSystem && !cat.packEnabled
+//    private fun onCategoriaClick(cat: CategoryPreview) {
+//        val disabled = cat.isSystem && !cat.packEnabled
+//
+//        if (!disabled) {
+//            abrirCategoriaDetalle(cat.categoryId, cat.name)
+//            return
+//        }
+//
+//        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+//            .setTitle("Habilitar pack")
+//            .setMessage("Esta lista pertenece a un pack deshabilitado. ¿Querés habilitarlo para poder verla?")
+//            .setPositiveButton("Habilitar") { _, _ ->
+//                habilitarPackYEntrar(cat)
+//            }
+//            .setNegativeButton("Cancelar", null)
+//            .show()
+//    }
 
-        if (!disabled) {
-            abrirCategoriaDetalle(cat.categoryId, cat.name)
-            return
-        }
-
-        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-            .setTitle("Habilitar pack")
-            .setMessage("Esta lista pertenece a un pack deshabilitado. ¿Querés habilitarlo para poder verla?")
-            .setPositiveButton("Habilitar") { _, _ ->
-                habilitarPackYEntrar(cat)
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
 
     private fun habilitarPackYEntrar(cat: CategoryPreview) {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -201,11 +181,21 @@ private fun cargarCategorias() {
         }
     }
 
-    private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoryId, categoryName))
-            .addToBackStack(null)
-            .commit()
+//    private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
+//        parentFragmentManager.beginTransaction()
+//            .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoryId, categoryName))
+//            .addToBackStack(null)
+//            .commit()
+//    }
+private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
+    parentFragmentManager.beginTransaction()
+        .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoryId, categoryName))
+        .addToBackStack(null)
+        .commit()
+}
+
+    private fun onCategoriaClick(cat: CategoryPreview) {
+        abrirCategoriaDetalle(cat.categoryId, cat.name) // entra siempre
     }
 
     private fun mostrarDialogoNuevaLista() {

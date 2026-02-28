@@ -255,6 +255,24 @@ ORDER BY c.orderIndex ASC
     @Query("SELECT * FROM categories WHERE categoryId = :id LIMIT 1")
     suspend fun getCategoryById(id: String): CategoryEntity?
 
+    data class CategoryStatusRow(
+        val categoryId: String,
+        val isSystem: Boolean,
+        val packId: String,
+        val packEnabled: Boolean
+    )
+
+    @Query("""
+SELECT c.categoryId AS categoryId,
+       c.isSystem AS isSystem,
+       c.packId AS packId,
+       COALESCE(ip.enabled, 1) AS packEnabled
+FROM categories c
+LEFT JOIN installed_packs ip ON ip.packId = c.packId
+WHERE c.categoryId = :categoryId
+LIMIT 1
+""")
+    suspend fun getCategoryStatus(categoryId: String): CategoryStatusRow?
 
 
 }

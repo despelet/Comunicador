@@ -164,6 +164,19 @@ LIMIT 1
     suspend fun debugCountPictosByPack(): List<PackCountRow>
 
     data class PackCountRow(val packId: String, val c: Int)
+
+    // aumque ete dehabiliatado puedo ver la imagen y el nombre
+    @Query("""
+SELECT p.pictogramId AS pictogramId,
+       COALESCE(o.customLabel, p.baseLabel) AS label,
+       COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
+FROM pictograms p
+LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
+WHERE p.pictogramId = :id
+LIMIT 1
+""")
+    suspend fun getPictoUiById_NoPackFilter(id: String): PictoUiMiniRow?
+
 }
 
 

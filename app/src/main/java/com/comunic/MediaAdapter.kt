@@ -27,18 +27,23 @@ import android.graphics.Color
 import com.comunic.data.RankingManager
 import com.comunic.data.dao.PictogramDao
 import java.io.File
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+
 
 
 open class MediaAdapter(
     private val mediaList: MutableList<ItemLista>,
     private val eliminar: (String) -> Unit,
     private val palabraAudio: (String) -> Unit,
-    private val onLongClick: ((ItemLista) -> Unit)? = null
+    private val onLongClick: ((ItemLista) -> Unit)? = null,
+    private val grayscaleMode: (ItemLista) -> Boolean = { false }
 ) : RecyclerView.Adapter<MediaAdapter.MediaViewHolder>() {
 
     private var edicion = false // estado del modo edicion
     private var modoEliminacion = false // estado del modo eliminacion
     private val seleccionados = mutableSetOf<String>() // lista de elementos para eliminar
+
 
     fun setModoEliminacion(activar: Boolean) {
         modoEliminacion = activar
@@ -64,6 +69,9 @@ open class MediaAdapter(
 
     override fun onBindViewHolder(holder: MediaViewHolder, position: Int) {
         val mediaItem = mediaList[position]
+
+        //val gray = grayscaleMode // para hcer griaceo al estar dehabilitadp un pack
+
         holder.itemView.setOnLongClickListener {
             // Si estás en modo eliminación o edición, no abrimos “Agregar a lista”
             if (modoEliminacion || edicion) return@setOnLongClickListener true
@@ -107,6 +115,7 @@ open class MediaAdapter(
                         Log.e("MediaAdapter", "Error loading image: ${e?.message}")
                     }
                 })
+            applyGray(holder.imageView, grayscaleMode(mediaItem))
             holder.imageView.contentDescription = mediaItem.nombre
             holder.itemView.setOnClickListener {
 
@@ -173,6 +182,8 @@ open class MediaAdapter(
                 .frame(1000) // Muestra un frame específico (en milisegundos)
                 .into(holder.videoThumbnail)
 
+            applyGray(holder.videoThumbnail, grayscaleMode(mediaItem))
+
             holder.itemView.setOnClickListener {
 
                 if (modoEliminacion) {
@@ -229,6 +240,7 @@ open class MediaAdapter(
                     )
                 }
             }
+
         }
 
         // cuando apreto boton de editar, me pide contraseña
@@ -280,6 +292,18 @@ open class MediaAdapter(
         }
     }
 
+
+    // pack deshabilitado de color gris
+    private fun applyGray(view: ImageView, gray: Boolean) {
+        if (gray) {
+            val matrix = ColorMatrix().apply { setSaturation(0f) }
+            view.colorFilter = ColorMatrixColorFilter(matrix)
+            view.alpha = 0.65f
+        } else {
+            view.colorFilter = null
+            view.alpha = 1f
+        }
+    }
 
 
     //fun obtenerSeleccionados(): Set<String> = seleccionados.toSet()

@@ -1,4 +1,4 @@
-package com.comunic
+package com.comunic.fragment
 
 import android.Manifest
 import android.app.Activity
@@ -35,12 +35,19 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import com.comunic.AddToListHost
+import com.comunic.ItemKey
+import com.comunic.ItemLista
+import com.comunic.adapters.MediaAdapter
+import com.comunic.MenuHandler
+import com.comunic.R
+import com.comunic.SpeechTextResolver
 import com.comunic.databinding.FragmentRecientesBinding
-import com.comunic.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
-import com.comunic.HomeFragment.Companion.CAPTURE_VIDEO_REQUEST
-import com.comunic.HomeFragment.Companion.PERMISSION_REQUEST_CODE
-import com.comunic.HomeFragment.Companion.PICK_MEDIA_REQUEST
-import com.comunic.HomeFragment.Companion.UCROP_REQUEST_CODE
+import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
+import com.comunic.fragment.HomeFragment.Companion.CAPTURE_VIDEO_REQUEST
+import com.comunic.fragment.HomeFragment.Companion.PERMISSION_REQUEST_CODE
+import com.comunic.fragment.HomeFragment.Companion.PICK_MEDIA_REQUEST
+import com.comunic.fragment.HomeFragment.Companion.UCROP_REQUEST_CODE
 import com.comunic.data.db.AppDatabase
 import com.comunic.data.db.PackRepository
 import com.comunic.data.entity.CategoryEntity
@@ -362,7 +369,8 @@ class Recientes : Fragment(),
         val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
         val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
             .setView(dialogView)
             .setPositiveButton("OK") { _, _ ->
@@ -634,7 +642,8 @@ class Recientes : Fragment(),
 
     fun solicitarContrasena() {
         val builder = AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
         builder.setTitle("Ingrese la contraseña")
 
         val input = EditText(requireContext())
@@ -671,7 +680,8 @@ class Recientes : Fragment(),
 
     override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle("¿Eliminar elementos seleccionados?")
             .setMessage("Se eliminarán ${seleccionados.size} elementos. ¿Desea continuar?")
             .setPositiveButton("Eliminar") { _, _ ->
@@ -743,7 +753,8 @@ class Recientes : Fragment(),
             val seleccionados = mediaAdapter.obtenerSeleccionados()
             if (seleccionados.isNotEmpty()) {
                 AlertDialog.Builder(requireContext(),
-                    R.style.ThemeOverlay_Comunic_AlertDialog)
+                    R.style.ThemeOverlay_Comunic_AlertDialog
+                )
                     .setTitle("Confirmar eliminación")
                     .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
                     .setPositiveButton("Eliminar") { dialog, _ ->
@@ -826,7 +837,8 @@ fun actualizarPanelSeleccion(cantidad: Int) {
         }
 
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle("Selecciona elementos para exportar")
             .setView(dialogView)
             .setPositiveButton("Continuar") { _, _ ->
@@ -846,7 +858,8 @@ fun actualizarPanelSeleccion(cantidad: Int) {
         val nombres = elementosSeleccionados.joinToString("\n") { "- ${it.nombre}" }
 
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle("Resumen de selección")
             .setMessage("Seleccionaste $cantidad elementos:\n\n$nombres")
             .setPositiveButton("Exportar") { _, _ ->
@@ -859,7 +872,8 @@ fun actualizarPanelSeleccion(cantidad: Int) {
 
     private fun mostrarDialogoTipoExportacion(elementosSeleccionados: List<ItemLista>) {
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle("¿Cómo querés exportarlos?")
             .setItems(arrayOf("Compartir archivos sueltos", "Exportar como ZIP")) { _, which ->
                 when (which) {
@@ -1038,15 +1052,15 @@ fun actualizarPanelSeleccion(cantidad: Int) {
 
     private fun saveOrdenSeleccionado(itemId: Int) {
         requireContext()
-            .getSharedPreferences(Companion.PREFS_NAME, android.content.Context.MODE_PRIVATE)
+            .getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
             .edit()
-            .putInt(Companion.KEY_ORDEN_RECENTES, itemId)
+            .putInt(KEY_ORDEN_RECENTES, itemId)
             .apply()
     }
 
     private fun getOrdenSeleccionado(): Int {
-        val prefs = requireContext().getSharedPreferences(Companion.PREFS_NAME, android.content.Context.MODE_PRIVATE)
-        return prefs.getInt(Companion.KEY_ORDEN_RECENTES, R.id.orden_reciente) // default: reciente
+        val prefs = requireContext().getSharedPreferences(PREFS_NAME, android.content.Context.MODE_PRIVATE)
+        return prefs.getInt(KEY_ORDEN_RECENTES, R.id.orden_reciente) // default: reciente
     }
 
     private fun aplicarOrden(itemId: Int, orderButton: Button) {

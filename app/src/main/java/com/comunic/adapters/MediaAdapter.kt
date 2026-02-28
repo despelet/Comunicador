@@ -1,12 +1,10 @@
 // Adaptador para manejar la creacion y enlace de elementos de la lista
 
-package com.comunic
+package com.comunic.adapters
 
 
 import android.content.Context
-import android.media.ThumbnailUtils
 import android.net.Uri
-import android.provider.MediaStore
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
@@ -14,7 +12,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.VideoView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.squareup.picasso.Picasso
@@ -25,11 +22,12 @@ import androidx.appcompat.app.AlertDialog
 import com.bumptech.glide.Glide
 import android.graphics.Color
 import com.comunic.data.RankingManager
-import com.comunic.data.dao.PictogramDao
-import java.io.File
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
-
+import com.comunic.fragment.CuadroImagen
+import com.comunic.ItemLista
+import com.comunic.R
+import com.comunic.fragment.CategoriaDetalleFragment
 
 
 open class MediaAdapter(

@@ -1,7 +1,6 @@
-package com.comunic
+package com.comunic.adapters
 
 import android.net.Uri
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,7 +11,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.squareup.picasso.Picasso
 import java.io.File
 import com.bumptech.glide.Glide
-import com.bumptech.glide.request.RequestOptions
+import com.comunic.CategoryPreview
+import com.comunic.R
 
 class CategoriasCuadriculaAdapter (
     private var items: List<CategoryPreview>,

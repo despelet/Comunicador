@@ -1,41 +1,38 @@
-package com.comunic
+package com.comunic.fragment
 
 import MediaAdapterProvider
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
+import com.comunic.CarouselPageTransformer
+import com.comunic.CarruselAdapter
+import com.comunic.ItemKey
+import com.comunic.ItemLista
+import com.comunic.MainActivity
+import com.comunic.R
 import com.comunic.data.dao.CategoryDao
 import com.comunic.data.db.AppDatabase
-import com.squareup.picasso.Picasso
 import com.comunic.databinding.CuadroImagenBinding
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.sql.DataSource
 
 
 class CuadroImagen : DialogFragment() {

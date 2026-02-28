@@ -1,4 +1,4 @@
-package com.comunic
+package com.comunic.fragment
 
 
 
@@ -11,12 +11,16 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.comunic.data.db.AppDatabase
 import com.comunic.data.db.PackRepository
 import com.comunic.databinding.FragmentListasBinding // <-- ajustá el paquete
 import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.GridLayoutManager
+import com.comunic.adapters.CategoriasCuadriculaAdapter
+import com.comunic.CategoryPreview
+import com.comunic.MenuHandler
+import com.comunic.PickItemsDialogFragment
+import com.comunic.R
 import com.comunic.data.dao.CategoryDao
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
@@ -195,7 +199,10 @@ private fun cargarCategorias() {
 //    }
 private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
     parentFragmentManager.beginTransaction()
-        .replace(R.id.fragment_container, CategoriaDetalleFragment.newInstance(categoryId, categoryName))
+        .replace(
+            R.id.fragment_container,
+            CategoriaDetalleFragment.newInstance(categoryId, categoryName)
+        )
         .addToBackStack(null)
         .commit()
 }

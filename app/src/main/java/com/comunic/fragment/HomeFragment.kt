@@ -1,4 +1,4 @@
-package com.comunic
+package com.comunic.fragment
 
 import android.Manifest
 import android.app.Activity.RESULT_OK
@@ -33,6 +33,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.comunic.adapters.CategoriasCuadriculaAdapter
+import com.comunic.CategoryPreview
+import com.comunic.CategoryPreviewKeyRow
 import com.comunic.databinding.FragmentHomeBinding
 import com.yalantis.ucrop.UCrop
 import java.io.File
@@ -52,10 +55,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.comunic.ItemKey
+import com.comunic.ItemLista
+import com.comunic.MainActivity
+import com.comunic.adapters.MediaAdapter
+import com.comunic.MenuHandler
+import com.comunic.R
+import com.comunic.SpeechTextResolver
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 
 
-class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEliminarSeleccionListener,
+class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
+    MediaAdapter.OnEliminarSeleccionListener,
     MenuHandler {
 
     private var _binding: FragmentHomeBinding? = null
@@ -104,11 +114,16 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
                     .addToBackStack(null)
                     .commit()
             },
+            onOptionsClick = { cat ->
+                Toast.makeText(requireContext(), "Mantener presionado: sin acción en Home", Toast.LENGTH_SHORT).show()            },
+            onEnableClick = { cat ->
+                Toast.makeText(requireContext(), "Mantener presionado: sin acción en Home", Toast.LENGTH_SHORT).show()            },
             onLongClick = { cat ->
                 // En Home NO querés borrar listas, así que lo dejamos sin acción
                 // (o podés mostrar un toast)
-                // Toast.makeText(requireContext(), "Mantener presionado: sin acción en Home", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Mantener presionado: sin acción en Home", Toast.LENGTH_SHORT).show()
             }
+
         )
 
         binding.recyclerCategorias.layoutManager =
@@ -347,7 +362,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
             val seleccionados = mediaAdapter.obtenerSeleccionados()
             if (seleccionados.isNotEmpty()) {
                 AlertDialog.Builder(requireContext(),
-                    R.style.ThemeOverlay_Comunic_AlertDialog)
+                    R.style.ThemeOverlay_Comunic_AlertDialog
+                )
                     .setTitle("Confirmar eliminación")
                     .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
                     .setPositiveButton("Eliminar") { dialog, _ ->
@@ -408,7 +424,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
     fun opcionesDeImagen() {
         val opciones = arrayOf("Abrir Galeria", "Abrir Camara")
         val builder = AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
         builder.setTitle("Seleccione una opción")
         builder.setItems(opciones) { _, which ->
             when (which) {
@@ -437,7 +454,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         val options = arrayOf("Capturar Imagen", "Grabar Video")
 
         val builder = AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
         builder.setTitle("Seleccionar Opción")
         builder.setItems(options) { _, which ->
             when (which) {
@@ -573,7 +591,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
         val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
             .setView(dialogView)
             .setPositiveButton("OK") { _, _ ->
@@ -883,7 +902,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 
     fun solicitarContrasena() {
         val builder = AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
         builder.setTitle("Ingrese la contraseña")
 
         val input = EditText(requireContext())
@@ -919,7 +939,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 
     override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle("¿Eliminar elementos seleccionados?")
             .setMessage("Se eliminarán ${seleccionados.size} elementos. ¿Desea continuar?")
             .setPositiveButton("Eliminar") { _, _ ->
@@ -1025,7 +1046,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         }
 
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle("Selecciona elementos para exportar")
             .setView(dialogView)
             .setPositiveButton("Continuar") { _, _ ->
@@ -1077,7 +1099,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
         val nombres = elementosSeleccionados.joinToString("\n") { "- ${it.nombre}" }
 
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle("Resumen de selección")
             .setMessage("Seleccionaste $cantidad elementos:\n\n$nombres")
             .setPositiveButton("Exportar") { _, _ ->
@@ -1110,7 +1133,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener, MediaAdapter.OnEli
 
     private fun mostrarDialogoTipoExportacion(elementosSeleccionados: List<ItemLista>) {
         AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog)
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
             .setTitle("¿Cómo querés exportarlos?")
             .setItems(arrayOf("Compartir archivos sueltos", "Exportar como ZIP")) { _, which ->
                 when (which) {

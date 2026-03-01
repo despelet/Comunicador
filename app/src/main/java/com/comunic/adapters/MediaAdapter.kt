@@ -115,20 +115,26 @@ open class MediaAdapter(
                 })
             applyGray(holder.imageView, grayscaleMode(mediaItem))
             holder.imageView.contentDescription = mediaItem.nombre
+
             holder.itemView.setOnClickListener {
+//                if (modoEliminacion) {
+//                    if (seleccionados.contains(mediaItem.id)) {
+//                        seleccionados.remove(mediaItem.id)
+//                        holder.itemView.setBackgroundColor(Color.TRANSPARENT)
+//                        onSeleccionCambio?.invoke(seleccionados.size)
+//                    } else {
+//                        seleccionados.add(mediaItem.id)     // agrego a la lista de seleccionados
+//                        holder.itemView.setBackgroundColor(Color.LTGRAY)
+//                        onSeleccionCambio?.invoke(seleccionados.size)
+//
+//                    }
 
-                if (modoEliminacion) {
-                    if (seleccionados.contains(mediaItem.id)) {
-                        seleccionados.remove(mediaItem.id)
-                        holder.itemView.setBackgroundColor(Color.TRANSPARENT)
-                        onSeleccionCambio?.invoke(seleccionados.size)
-                    } else {
-                        seleccionados.add(mediaItem.id)     // agrego a la lista de seleccionados
-                        holder.itemView.setBackgroundColor(Color.LTGRAY)
-                        onSeleccionCambio?.invoke(seleccionados.size)
+                    if (modoEliminacion) {
+                        toggleSeleccion(holder, mediaItem)
+                        return@setOnClickListener
 
-                    }
                 } else {
+
                     // Registramos el uso primero
                     RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.id)
                     //palabraAudio(mediaItem.nombre)
@@ -184,19 +190,24 @@ open class MediaAdapter(
 
             holder.itemView.setOnClickListener {
 
+//                if (modoEliminacion) {
+//                    if (seleccionados.contains(mediaItem.id)) {
+//                        seleccionados.remove(mediaItem.id)
+//                        holder.itemView.setBackgroundColor(Color.TRANSPARENT)
+//                        onSeleccionCambio?.invoke(seleccionados.size)
+//
+//                    } else {
+//                        seleccionados.add(mediaItem.id)     // agrego a la lista de seleccionados
+//                        holder.itemView.setBackgroundColor(Color.LTGRAY)
+//                        onSeleccionCambio?.invoke(seleccionados.size)
+//
+//                    }
+//
+//                }
+                //
                 if (modoEliminacion) {
-                    if (seleccionados.contains(mediaItem.id)) {
-                        seleccionados.remove(mediaItem.id)
-                        holder.itemView.setBackgroundColor(Color.TRANSPARENT)
-                        onSeleccionCambio?.invoke(seleccionados.size)
-
-                    } else {
-                        seleccionados.add(mediaItem.id)     // agrego a la lista de seleccionados
-                        holder.itemView.setBackgroundColor(Color.LTGRAY)
-                        onSeleccionCambio?.invoke(seleccionados.size)
-
-                    }
-
+                    toggleSeleccion(holder, mediaItem)
+                    return@setOnClickListener
                 } else {
                     // Registramos el uso
                     RankingManager.getInstance(holder.itemView.context).registrarUso(mediaItem.id)
@@ -254,11 +265,11 @@ open class MediaAdapter(
         }
 
         // Colorear si está seleccionado en modo eliminación
-        if (modoEliminacion && seleccionados.contains(mediaItem.id)) {
-            holder.itemView.setBackgroundColor(Color.LTGRAY)
-        } else {
-            holder.itemView.setBackgroundColor(Color.TRANSPARENT)
-        }
+//        if (modoEliminacion && seleccionados.contains(mediaItem.id)) {
+//            holder.itemView.setBackgroundColor(Color.LTGRAY)
+//        } else {
+//            holder.itemView.setBackgroundColor(Color.TRANSPARENT)
+//        }
 
         holder.botonEliminar.setOnClickListener {
             if (modoEliminacion) {
@@ -288,6 +299,8 @@ open class MediaAdapter(
                     .show()
             }
         }
+        val seleccionado = modoEliminacion && seleccionados.contains(mediaItem.id)
+        holder.itemView.setBackgroundColor(if (seleccionado) Color.LTGRAY else Color.TRANSPARENT)
     }
 
 
@@ -403,6 +416,20 @@ open class MediaAdapter(
         builder.show()
     }
 
+    fun getSeleccionadosCount(): Int = seleccionados.size
+
+    fun getSeleccionadosItems(): List<ItemLista> = obtenerSeleccionados()
+
+    private fun toggleSeleccion(holder: MediaViewHolder, mediaItem: ItemLista) {
+        if (seleccionados.contains(mediaItem.id)) {
+            seleccionados.remove(mediaItem.id)
+        } else {
+            seleccionados.add(mediaItem.id)
+        }
+
+        onSeleccionCambio?.invoke(seleccionados.size)
+        notifyItemChanged(holder.bindingAdapterPosition)
+    }
 
 
 

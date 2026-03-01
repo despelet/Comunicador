@@ -5,11 +5,17 @@ package com.comunic.fragment
 import android.app.AlertDialog
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import android.text.InputType
 import android.util.Log
+import android.view.ActionMode
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -55,6 +61,8 @@ class CategoriaDetalleFragment :
         get() = (isSystemCategory && !isPackEnabled)
 
     private var previewEnabled: Boolean = false
+
+    //private var deleteActionMode: ActionMode? = null
 
 
     companion object {
@@ -163,10 +171,21 @@ class CategoriaDetalleFragment :
             }
         }
 
+
+
         binding.recyclerPictos.adapter = mediaAdapter
 
         // ✅ Nuevo: configurar botón eliminar lista (solo user)
         setupDeleteCategoryButton()
+        // salir del modo eliminacion
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            if (binding.selectionPanel.visibility == View.VISIBLE) {
+                cerrarModoEliminacionPanel()
+            } else {
+                isEnabled = false
+                requireActivity().onBackPressed()
+            }
+        }
 
         //loadCategory(categoryId)
     }
@@ -179,6 +198,12 @@ class CategoriaDetalleFragment :
     }
 
     override fun onDestroyView() {
+        // por si queda activo
+        if (::mediaAdapter.isInitialized) {
+            mediaAdapter.onSeleccionCambio = null
+            mediaAdapter.setModoEliminacion(false)
+        }
+
         if (::tts.isInitialized) {
             tts.stop()
             tts.shutdown()
@@ -320,10 +345,147 @@ class CategoriaDetalleFragment :
             binding.btnEliminarCategoria.visibility = if (isSystem) View.GONE else View.VISIBLE
 
             binding.btnEliminarCategoria.setOnClickListener {
-                confirmarEliminarCategoria()
+                mostrarMenuEliminar()
             }
         }
     }
+
+    private fun mostrarMenuEliminar() {
+        val opciones = arrayOf("Eliminar lista", "Eliminar elementos de la lista")
+
+        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+            .setTitle("Eliminar")
+            .setItems(opciones) { _, which ->
+                when (which) {
+                    0 -> confirmarEliminarCategoria()                 // como ahora
+                    1 -> solicitarContrasenaEliminarElementos()       // nuevo
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun solicitarContrasenaEliminarElementos() {
+        val builder = AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+        builder.setTitle("Ingrese la contraseña")
+
+        val input = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        builder.setView(input)
+
+        builder.setPositiveButton("Aceptar") { _, _ ->
+            val passwordIngresada = input.text.toString()
+            if (passwordIngresada == "1234") {
+                activarModoEliminacionEnCategoria()
+            } else {
+                Toast.makeText(requireContext(), "Contraseña incorrecta", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        builder.setNegativeButton("Cancelar") { dialog, _ -> dialog.cancel() }
+        builder.show()
+    }
+
+    private fun activarModoEliminacionEnCategoria() {
+        mediaAdapter.setModoEliminacion(true)
+
+        // mostrar panel
+        binding.selectionPanel.visibility = View.VISIBLE
+        binding.selectionCountText.text = "0 elementos seleccionados"
+
+        // contador en vivo
+        mediaAdapter.onSeleccionCambio = { count ->
+            binding.selectionCountText.text = "$count elementos seleccionados"
+        }
+
+        // cancelar
+        binding.cancelSelectionButton.setOnClickListener {
+            cerrarModoEliminacionPanel()
+        }
+
+        // quitar seleccionados (solo de la categoría)
+        binding.deleteSelectedButton.setOnClickListener {
+            val seleccionados = mediaAdapter.getSeleccionadosItems()
+            if (seleccionados.isEmpty()) {
+                Toast.makeText(requireContext(), "No hay elementos seleccionados", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+                .setTitle("Quitar de la lista")
+                .setMessage("¿Quitar ${seleccionados.size} elemento(s) de \"$categoryName\"?")
+                .setPositiveButton("Quitar") { _, _ ->
+                    eliminarSeleccionDeCategoria(categoryId, seleccionados)
+                    cerrarModoEliminacionPanel()
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+        }
+
+        Toast.makeText(requireContext(), "Seleccioná elementos para quitar de la lista", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun cerrarModoEliminacionPanel() {
+        binding.selectionPanel.visibility = View.GONE
+        mediaAdapter.onSeleccionCambio = null
+        mediaAdapter.setModoEliminacion(false)
+    }
+
+//    private fun cerrarModoEliminacion() {
+//        deleteActionMode?.finish()
+//        // lo demás lo hace onDestroyActionMode
+//    }
+
+    /*private val actionModeCallback = object : ActionMode.Callback {
+        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
+            // Menú contextual: Eliminar / Cancelar
+            menu.add(0, 1, 0, "Eliminar").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+            menu.add(0, 2, 1, "Cancelar").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+
+            actualizarTituloActionMode()
+            return true
+        }
+
+        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
+            actualizarTituloActionMode()
+            return true
+        }
+
+        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+            return when (item.itemId) {
+                1 -> { // Eliminar
+                    val seleccionados = mediaAdapter.getSeleccionadosItems()
+                    if (seleccionados.isEmpty()) {
+                        Toast.makeText(requireContext(), "No hay elementos seleccionados", Toast.LENGTH_SHORT).show()
+                        true
+                    } else {
+                        eliminarSeleccionDeCategoria(categoryId, seleccionados)  // ya la tenés ✅
+                        cerrarModoEliminacion()
+                        true
+                    }
+                }
+                2 -> { // Cancelar
+                    cerrarModoEliminacion()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        override fun onDestroyActionMode(mode: ActionMode) {
+            deleteActionMode = null
+            mediaAdapter.setModoEliminacion(false)
+            mediaAdapter.onSeleccionCambio = null
+        }
+    }*/
+
+//    private fun actualizarTituloActionMode() {
+//        val count = mediaAdapter.getSeleccionadosCount()
+//        deleteActionMode?.title = "Seleccionados: $count"
+//    }
+
+
 
     private fun confirmarEliminarCategoria() {
         AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)

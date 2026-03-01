@@ -50,6 +50,44 @@
             app:tint="@color/color1" />
     </LinearLayout>
 
+
+    <LinearLayout
+        android:id="@+id/selectionPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/color5"
+        android:padding="8dp"
+        android:gravity="center_vertical"
+        android:visibility="gone"
+        android:layout_marginBottom="8dp">
+
+        <Button
+            android:id="@+id/cancelSelectionButton"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:drawableBottom="@android:drawable/ic_menu_revert"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@color/color5"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:id="@+id/selectionCountText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0 elementos seleccionados"
+            android:textColor="@android:color/black" />
+
+        <Button
+            android:id="@+id/deleteSelectedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Quitar"
+            android:backgroundTint="@android:color/holo_red_dark"
+            android:textColor="@android:color/white" />
+    </LinearLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerPictos"
         android:layout_width="match_parent"

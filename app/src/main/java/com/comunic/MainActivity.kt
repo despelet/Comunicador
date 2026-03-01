@@ -46,26 +46,6 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // BARRA INFERIOR
         bottomNav = findViewById(R.id.bottom_nav)
 
-        /*val addImageButton = findViewById<Button>(R.id.addImageButton)
-        addImageButton?.setOnClickListener {
-            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Manifest.permission.READ_MEDIA_IMAGES
-            } else {
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            }
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(permission), HomeFragment.PERMISSION_REQUEST_CODE
-                )
-            } else {
-                val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-                if (fragment is MenuHandler) {
-                    fragment.abrirSelectorDeImagen()
-                } else {
-                    Toast.makeText(this, "Función no disponible en esta sección", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }*/
-
 
         val menuButton: ImageButton = findViewById(R.id.menu)
         menuButton.setOnClickListener {                     // Abrir el menú lateral al presionar el botón
@@ -73,27 +53,6 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
 
         // Listener para la barra inferior
-        /*bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.menu_home -> {
-                    openFragment(HomeFragment())
-                    true
-                }
-                R.id.menu_recientes -> {
-                    openFragment(Recientes())
-                    true
-                }
-                R.id.menu_listas -> {
-                    openFragment(Listas())
-                    true
-                }
-                R.id.menu_sugeridos -> {
-                    openFragment(Sugeridos())
-                    true
-                }
-                else -> false
-            }
-        }*/
         setupBottomNav()
 
         // Cargar fragment por defecto
@@ -170,26 +129,6 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     else -> Toast.makeText(this, "Fragmento no compatible", Toast.LENGTH_SHORT).show()
                 }
             }
-
-            /*R.id.nav_drive -> {  // Nuevo caso para conectar con Google Drive
-                signInToGoogle()  // Llama a la función para iniciar sesión en Google Drive
-            }
-            R.id.nav_cambiar_cuenta -> {
-                // Mostrar un dialogo de confirmación
-                val builder = AlertDialog.Builder(this)
-                builder.setMessage("¿Está seguro que quiere cerrar sesión?")
-                    .setCancelable(false)
-                    .setPositiveButton("Sí") { dialog, id ->
-                        // Cerrar sesión y permitir elegir cuenta nuevamente
-                        signOutAndSelectAccount()
-                    }
-                    .setNegativeButton("No") { dialog, id ->
-                        // Solo cerrar el diálogo
-                        dialog.dismiss()
-                    }
-                val alert = builder.create()
-                alert.show()
-            } */
 
             R.id.exportar_archivos -> {
                 // Acción para exportar archivos

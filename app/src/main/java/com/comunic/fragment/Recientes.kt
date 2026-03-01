@@ -545,31 +545,6 @@ class Recientes : Fragment(),
     // ELIMINACION INDIVIDUAL DESDE ITEM_MEDIA.KT
 
 
-//    // si uso una carpeta del almacenamiento interno para imagenes y videos
-//    private fun loadImageData() {
-//        listaDeArchivos.clear() // Limpia la lista antes de cargar nuevos datos
-//
-//        val mediaDir = File(requireContext().filesDir, "media")         // Directorio único para imágenes y videos
-//
-//        if (mediaDir.exists()) { // Cargar archivos desde la carpeta "media"
-//            mediaDir.listFiles()?.forEach { file ->
-//                val esImagen = file.extension.equals("jpg", ignoreCase = true) // Verifica si es imagen
-//                listaDeArchivos.add(
-//                    ItemLista(
-//                        nombre = file.nameWithoutExtension,
-//                        uri = Uri.fromFile(file),
-//                        esImagen = esImagen,
-//                        timestamp = file.lastModified()
-//                    )
-//                )
-//            }
-//        }
-//
-//        //listaDeArchivos.sortByDescending { it.timestamp } // Ordenar por timestamp (más reciente primero)
-//     //   listaDeArchivos.sortBy { it.timestamp }
-//        mediaAdapter.notifyDataSetChanged() // Notificar al adaptador
-//    }
-
     private fun loadImageData() {
         viewLifecycleOwner.lifecycleScope.launch {
 
@@ -616,14 +591,6 @@ class Recientes : Fragment(),
                     )
                 }
             }
-
-            // 3) Cargar pictos del pack básico (categoría "basic_core") desde Room
-           // val pictosBasic = db.pictogramDao().getPictosForCategory("basic_core")
-           // val pictosBasic = db.pictogramDao().getPictosUiForPack("basic")
-            // Convertir a ItemLista para que funcionen con MediaAdapter + CuadroImagen//
-//            val pictosAsItems = pictosBasic.map { row ->
-//                row.toItemLista(timestamp = 0L) // packs: timestamp fijo (luego lo mejoramos)
-//            }
 
             // 3) Cargar pictos de packs habilitados
             val pictos = db.pictogramDao().getEnabledPictosUi()

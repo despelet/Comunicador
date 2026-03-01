@@ -162,9 +162,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         }
 
-
+        menuItem.isChecked = false // desmarcar el ítem seleccionado
         drawerLayout.closeDrawers() // Cierra el menú después de seleccionar un ítem
-        return true
+        return false
     }
 
     // funcion para llamar a las funciones que estan dentro de homefragment.

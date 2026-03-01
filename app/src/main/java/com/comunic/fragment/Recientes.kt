@@ -29,6 +29,7 @@ import android.widget.ListView
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -140,8 +141,6 @@ class Recientes : Fragment(),
 
         checkReadPermissionIfNeeded() // permisos
 
-
-
         orderButton.setOnClickListener { view ->
             val popup = PopupMenu(requireContext(), view)
             popup.menuInflater.inflate(R.menu.menu_filtro_recientes, popup.menu)
@@ -157,10 +156,11 @@ class Recientes : Fragment(),
 
 
         // Eliminacion de elementos
-        setupSelectionPanel() // seleccion y eliminacion
+        //setupSelectionPanel() // seleccion y eliminacion
         selectionPanel = binding.selectionPanel
         selectionCountText = binding.selectionCountText
         deleteSelectedButton = binding.deleteSelectedButton
+        cancelSelectionButton = binding.cancelSelectionButton
         deleteSelectedButton.setOnClickListener {
             val seleccionados = mediaAdapter.obtenerSeleccionados()
             onEliminarSeleccionSolicitada(seleccionados)
@@ -168,12 +168,17 @@ class Recientes : Fragment(),
         mediaAdapter.onSeleccionCambio = { count ->
             actualizarPanelSeleccion(count)
         }
-        cancelSelectionButton = binding.cancelSelectionButton
         binding.cancelSelectionButton.setOnClickListener {
-            mediaAdapter.cancelarModoEliminacion()
-            actualizarPanelSeleccion(0)
-            //selectionPanel.visibility = View.GONE
+            cancelarModoEliminacion()
         }
+
+        /// fin eliminacion
+//        cancelSelectionButton = binding.cancelSelectionButton
+//        binding.cancelSelectionButton.setOnClickListener {
+//            mediaAdapter.cancelarModoEliminacion()
+//            actualizarPanelSeleccion(0)
+//            //selectionPanel.visibility = View.GONE
+//        }
 
         binding.btnCamera.setOnClickListener {
             launchImageCapture()
@@ -186,6 +191,16 @@ class Recientes : Fragment(),
         binding.btnGallery.setOnClickListener {
             openGallery()
         }
+
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            if (modoEliminacionActivo) {
+                cancelarModoEliminacion()
+            } else {
+                isEnabled = false
+                requireActivity().onBackPressedDispatcher.onBackPressed()
+            }
+        }
+
 
         return binding.root
     }
@@ -202,18 +217,7 @@ class Recientes : Fragment(),
         }
     }
 
-//    fun opcionesDeImagen() {
-//        val opciones = arrayOf("Abrir Galeria", "Abrir Camara")
-//        val builder = AlertDialog.Builder(requireContext())
-//        builder.setTitle("Seleccione una opción")
-//        builder.setItems(opciones) { _, which ->
-//            when (which) {
-//                0 -> openGallery()
-//                1 -> openCamera()
-//            }
-//        }
-//        builder.show()
-//    }
+
 
     //para subir un archivo solo
     private fun openGallery() {
@@ -229,20 +233,21 @@ class Recientes : Fragment(),
     //private lateinit var lastCapturedUri: Uri
     private var lastCapturedUri: Uri? = null
 
-    private fun openCamera() {
-
-        val options = arrayOf("Capturar Imagen", "Grabar Video")
-
-        AlertDialog.Builder(requireContext())
-            .setTitle("Seleccionar Opción")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> launchImageCapture()
-                    1 -> launchVideoCapture()
-                }
-            }
-            .show()
-    }
+    // desacrtivo eto xq hice botone individuale
+//    private fun openCamera() {
+//
+//        val options = arrayOf("Capturar Imagen", "Grabar Video")
+//
+//        AlertDialog.Builder(requireContext())
+//            .setTitle("Seleccionar Opción")
+//            .setItems(options) { _, which ->
+//                when (which) {
+//                    0 -> launchImageCapture()
+//                    1 -> launchVideoCapture()
+//                }
+//            }
+//            .show()
+//    }
 
     private fun launchImageCapture() {
         val photoUri: Uri = createImageUri()
@@ -637,13 +642,13 @@ class Recientes : Fragment(),
         Toast.makeText(requireContext(), "Modo eliminación activado", Toast.LENGTH_SHORT).show()
     }
 
-    fun eliminarSeleccionadosDesdeAdapter(nombres: List<String>) {
-        for (nombre in nombres) {
-            eliminar(nombre) // asumimos que tenés una función que elimina el archivo por nombre
-        }
-        Toast.makeText(requireContext(), "Elementos eliminados", Toast.LENGTH_SHORT).show()
-        mediaAdapter.notifyDataSetChanged()
-    }
+//    fun eliminarSeleccionadosDesdeAdapter(nombres: List<String>) {
+//        for (nombre in nombres) {
+//            eliminar(nombre) // asumimos que tenés una función que elimina el archivo por nombre
+//        }
+//        Toast.makeText(requireContext(), "Elementos eliminados", Toast.LENGTH_SHORT).show()
+//        mediaAdapter.notifyDataSetChanged()
+//    }
 
     override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
         AlertDialog.Builder(requireContext(),
@@ -703,8 +708,8 @@ class Recientes : Fragment(),
         mediaAdapter.eliminarItems(itemsEliminados)
 
         // Cerrar UI de selección
-        selectionPanel.visibility = View.GONE
-//        cancelarModoEliminacion()
+        //selectionPanel.visibility = View.GONE
+       cancelarModoEliminacion()
         Toast.makeText(requireContext(), "${itemsEliminados.size} elementos eliminados", Toast.LENGTH_SHORT).show()
     }
 
@@ -712,33 +717,34 @@ class Recientes : Fragment(),
     private fun cancelarModoEliminacion() {
         modoEliminacionActivo = false
         mediaAdapter.setModoEliminacion(false)
+        actualizarPanelSeleccion(0) // reinicio contador
         Toast.makeText(requireContext(), "Modo eliminación cancelado", Toast.LENGTH_SHORT).show()
     }
 
-    private fun setupSelectionPanel() {
-        binding.deleteSelectedButton.setOnClickListener {
-            val seleccionados = mediaAdapter.obtenerSeleccionados()
-            if (seleccionados.isNotEmpty()) {
-                AlertDialog.Builder(requireContext(),
-                    R.style.ThemeOverlay_Comunic_AlertDialog
-                )
-                    .setTitle("Confirmar eliminación")
-                    .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
-                    .setPositiveButton("Eliminar") { dialog, _ ->
-                        mediaAdapter.eliminarSeleccionados()
-                        actualizarPanelSeleccion(0)
-                        dialog.dismiss()
-                    }
-                    .setNegativeButton("Cancelar", null)
-                    .show()
-            }
-        }
-
-        binding.cancelSelectionButton.setOnClickListener {
-            mediaAdapter.cancelarModoEliminacion()
-            actualizarPanelSeleccion(0)
-        }
-    }
+//    private fun setupSelectionPanel() {
+//        binding.deleteSelectedButton.setOnClickListener {
+//            val seleccionados = mediaAdapter.obtenerSeleccionados()
+//            if (seleccionados.isNotEmpty()) {
+//                AlertDialog.Builder(requireContext(),
+//                    R.style.ThemeOverlay_Comunic_AlertDialog
+//                )
+//                    .setTitle("Confirmar eliminación")
+//                    .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
+//                    .setPositiveButton("Eliminar") { dialog, _ ->
+//                        mediaAdapter.eliminarSeleccionados()
+//                        actualizarPanelSeleccion(0)
+//                        dialog.dismiss()
+//                    }
+//                    .setNegativeButton("Cancelar", null)
+//                    .show()
+//            }
+//        }
+//
+//        binding.cancelSelectionButton.setOnClickListener {
+//            mediaAdapter.cancelarModoEliminacion()
+//            actualizarPanelSeleccion(0)
+//        }
+//    }
 
 //    fun actualizarPanelSeleccion(cantidad: Int) {
 //        if (cantidad > 0) {
@@ -748,29 +754,32 @@ class Recientes : Fragment(),
 //            selectionPanel.visibility = android.view.View.GONE
 //        }
 //    }
-fun actualizarPanelSeleccion(cantidad: Int) {
-    TransitionManager.beginDelayedTransition(binding.root)
-    val enModoSeleccion = cantidad > 0
+    fun actualizarPanelSeleccion(cantidad: Int) {
+        TransitionManager.beginDelayedTransition(binding.root)
+        val enModoSeleccion = cantidad > 0
 
-    // Panel superior de selección
-    selectionPanel.visibility =
-        if (enModoSeleccion) View.VISIBLE else View.GONE
+        // Panel superior de selección
+        selectionPanel.visibility =
+            if (enModoSeleccion) View.VISIBLE else View.GONE
 
-    // Texto contador
-    selectionCountText.text =
-        "$cantidad elemento${if (cantidad > 1) "s" else ""} seleccionad${if (cantidad > 1) "os" else "o"}"
+        // Texto contador
+        selectionCountText.text =
+            "$cantidad elemento${if (cantidad > 1) "s" else ""} seleccionad${if (cantidad > 1) "os" else "o"}"
 
-    // ✅ Ocultar acciones de agregar mientras se selecciona
-    binding.btnCamera.visibility =
-        if (enModoSeleccion) View.GONE else View.VISIBLE
+        // ✅ Ocultar acciones de agregar mientras se selecciona
+        binding.btnCamera.visibility =
+            if (enModoSeleccion) View.GONE else View.VISIBLE
 
-    binding.btnGallery.visibility =
-        if (enModoSeleccion) View.GONE else View.VISIBLE
+        binding.btnVideo.visibility =
+            if (enModoSeleccion) View.GONE else View.VISIBLE
 
-    // ✅ Desactivar ordenar para evitar estados inconsistentes
-    binding.orderButton.isEnabled = !enModoSeleccion
-    binding.orderButton.alpha = if (enModoSeleccion) 0.4f else 1f
-}
+        binding.btnGallery.visibility =
+            if (enModoSeleccion) View.GONE else View.VISIBLE
+
+        // ✅ Desactivar ordenar para evitar estados inconsistentes
+        binding.orderButton.isEnabled = !enModoSeleccion
+        binding.orderButton.alpha = if (enModoSeleccion) 0.4f else 1f
+    }
 
     // EXPORTAR ELEMENTOS
     fun mostrarDialogoSeleccionarElementos() {

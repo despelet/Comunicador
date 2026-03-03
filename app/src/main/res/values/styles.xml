@@ -10,5 +10,9 @@
         <item name="colorAccent">@color/color3</item>
         <item name="android:background">@color/color4</item>
     </style>
+    <style name="NavDrawerText">
+        <item name="android:textSize">18sp</item>
+
+    </style>
 
 </resources>

@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     private var lastCapturedUri: Uri? = null
 
     private var mediaResultListener: MediaResultListener? = null
-
+    var pendingCategoryId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -414,6 +414,12 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         // 🔥 NOTIFICAR AL FRAGMENT
         mediaResultListener?.onMediaCreated(item)
+
+// 🔥 si hay lista pendiente, agregar también ahí
+        pendingCategoryId?.let { catId ->
+            (supportFragmentManager.findFragmentById(R.id.fragment_container) as? Recientes)
+                ?.agregarItemAListaExterna(catId, item)
+        }
 
         Toast.makeText(this, "Guardado: $nombre", Toast.LENGTH_SHORT).show()
     }

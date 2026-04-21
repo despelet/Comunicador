@@ -85,7 +85,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/recientes"
-                    android:textSize="18sp"
+                    android:textSize="12sp"
                     android:textStyle="bold"
                     android:paddingBottom="4dp"/>
 
@@ -113,7 +113,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/Listas"
-                    android:textSize="18sp"
+                    android:textSize="12sp"
                     android:textStyle="bold"
                     android:paddingBottom="4dp"/>
 

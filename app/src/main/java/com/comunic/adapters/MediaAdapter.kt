@@ -43,6 +43,7 @@ open class MediaAdapter(
     private val seleccionados = mutableSetOf<String>() // lista de elementos para eliminar
 
 
+
     fun setModoEliminacion(activar: Boolean) {
         modoEliminacion = activar
         if (!activar) {

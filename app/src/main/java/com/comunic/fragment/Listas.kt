@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.GridLayoutManager
 import com.comunic.adapters.CategoriasCuadriculaAdapter
 import com.comunic.CategoryPreview
+import com.comunic.MainActivity
 import com.comunic.MenuHandler
 import com.comunic.PickItemsDialogFragment
 import com.comunic.R
@@ -263,6 +264,8 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 com.comunic.data.mappers.loadAllAvailableItems(requireContext(), db)
             }
 
+            (activity as? MainActivity)?.pendingCategoryId = newId
+
             PickItemsDialogFragment(disponibles) { selected ->
                 viewLifecycleOwner.lifecycleScope.launch {
                     // 3) Insertar seleccionados como itemKey dentro de la categoría nueva
@@ -341,7 +344,15 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
         AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle(cat.name)
             .setItems(arrayOf("Eliminar lista")) { _, _ ->
-                eliminarCategoria(cat.categoryId)
+
+                AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+                    .setTitle("Eliminar lista")
+                    .setMessage("¿Seguro que querés eliminar \"${cat.name}\"?")
+                    .setPositiveButton("Eliminar") { _, _ ->
+                        eliminarCategoria(cat.categoryId)
+                    }
+                    .setNegativeButton("Cancelar", null)
+                    .show()
             }
             .setNegativeButton("Cancelar", null)
             .show()

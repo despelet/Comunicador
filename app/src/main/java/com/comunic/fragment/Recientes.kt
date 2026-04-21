@@ -39,6 +39,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.comunic.AddToListHost
 import com.comunic.ItemKey
 import com.comunic.ItemLista
+import com.comunic.MainActivity
 import com.comunic.adapters.MediaAdapter
 import com.comunic.MenuHandler
 import com.comunic.R
@@ -54,6 +55,9 @@ import com.comunic.data.db.PackRepository
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.mappers.toItemLista
+import com.comunic.interfaces.MediaResultListener
+import com.comunic.interfaces.OnNuevoItemListener
+import com.comunic.interfaces.RecientesProvider
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -74,7 +78,8 @@ class Recientes : Fragment(),
     TextToSpeech.OnInitListener,
     MediaAdapter.OnEliminarSeleccionListener,
     MenuHandler,
-    AddToListHost {
+    AddToListHost,
+    MediaResultListener {
 
     private var _binding: FragmentRecientesBinding? = null
     private val binding get() = _binding!!
@@ -97,6 +102,8 @@ class Recientes : Fragment(),
     // para integrar pack
     private lateinit var db: AppDatabase
 
+
+    var nuevoItemListener: OnNuevoItemListener? = null
 
 
     override fun onCreateView(
@@ -181,15 +188,15 @@ class Recientes : Fragment(),
 //        }
 
         binding.btnCamera.setOnClickListener {
-            launchImageCapture()
+            (activity as? MainActivity)?.launchImageCapture()
         }
 
         binding.btnVideo.setOnClickListener {
-            launchVideoCapture()
+            (activity as? MainActivity)?.launchVideoCapture()
         }
 
         binding.btnGallery.setOnClickListener {
-            openGallery()
+            (activity as? MainActivity)?.openGallery()
         }
 
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
@@ -203,6 +210,16 @@ class Recientes : Fragment(),
 
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.setMediaResultListener(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        (activity as? MainActivity)?.setMediaResultListener(null)
     }
 
     private fun checkReadPermissionIfNeeded() {
@@ -219,260 +236,247 @@ class Recientes : Fragment(),
 
 
 
-    //para subir un archivo solo
-    private fun openGallery() {
-        val intent = Intent(Intent.ACTION_PICK).apply {
-            type = "image/* video/*" // imagenes o videos
-            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
-        }
-        startActivityForResult(intent, PICK_MEDIA_REQUEST)
-    }
-
-
-    /* inicializo */
-    //private lateinit var lastCapturedUri: Uri
-    private var lastCapturedUri: Uri? = null
-
-    // desacrtivo eto xq hice botone individuale
-//    private fun openCamera() {
-//
-//        val options = arrayOf("Capturar Imagen", "Grabar Video")
-//
-//        AlertDialog.Builder(requireContext())
-//            .setTitle("Seleccionar Opción")
-//            .setItems(options) { _, which ->
-//                when (which) {
-//                    0 -> launchImageCapture()
-//                    1 -> launchVideoCapture()
-//                }
-//            }
-//            .show()
+//    //para subir un archivo solo
+//    override fun openGallery() {
+//        val intent = Intent(Intent.ACTION_PICK).apply {
+//            type = "image/* video/*" // imagenes o videos
+//            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
+//        }
+//        startActivityForResult(intent, PICK_MEDIA_REQUEST)
 //    }
 
-    private fun launchImageCapture() {
-        val photoUri: Uri = createImageUri()
-        lastCapturedUri = photoUri
 
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+//    /* inicializo */
+//    //private lateinit var lastCapturedUri: Uri
+//    private var lastCapturedUri: Uri? = null
+//
+//
+//     override fun launchImageCapture() {
+//        val photoUri: Uri = createImageUri()
+//        lastCapturedUri = photoUri
+//
+//        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+//        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+//
+//        startActivityForResult(intent, CAPTURE_IMAGE_REQUEST)
+//    }
+//
+//     override fun launchVideoCapture() {
+//        val videoUri: Uri = createVideoUri()
+//        lastCapturedUri = videoUri
+//
+//        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+//        intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri)
+//
+//        startActivityForResult(intent, CAPTURE_VIDEO_REQUEST)
+//    }
+//
+//     fun createImageUri(): Uri {
+//        val contentValues = ContentValues().apply {
+//            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+//            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
+//        }
+//        return requireContext().contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
+//    }
+//
+//     fun createVideoUri(): Uri {
+//        val contentValues = ContentValues().apply {
+//            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+//            put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
+//        }
+//        return requireContext().contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)!!
+//    }
+//
+//    // EDICION ucrop
+//    fun startCrop(uri: Uri) {
+//        val destinationUri = Uri.fromFile(File(requireContext().cacheDir, "imagen_editada_${System.currentTimeMillis()}.jpg"))
+//
+//        val options = UCrop.Options().apply {
+//            setCompressionFormat(Bitmap.CompressFormat.JPEG)
+//            setCompressionQuality(90)
+//            setFreeStyleCropEnabled(true) // Permite mover y redimensionar libremente
+//
+//            setToolbarColor(ContextCompat.getColor(requireContext(), R.color.color5))      // barra superior
+//            setStatusBarColor(ContextCompat.getColor(requireContext(), R.color.color5))     // barra de estado
+//            setToolbarWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // texto/iconos
+//            setActiveControlsWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // botones activos
+//            setRootViewBackgroundColor(ContextCompat.getColor(requireContext(), R.color.color5))   // fondo general
+//
+//            setToolbarTitle("Editar imagen") // título personalizado
+//        }
+//
+//        UCrop.of(uri, destinationUri)
+//            .withOptions(options)
+//            .withAspectRatio(1f, 1f)
+//            .start(requireContext(), this@Recientes) // 👈 IMPORTANTE: que el Fragment reciba el resultado
+//
+//    }
+//
+//
+//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+//        super.onActivityResult(requestCode, resultCode, data)
+//
+//        // devolucion para el ucrop
+//        if (requestCode == UCROP_REQUEST_CODE) {
+//            if (resultCode == RESULT_OK) {
+//                val resultUri = UCrop.getOutput(data!!)
+//                if (resultUri != null) {
+//                    ingresarNombreArchivo(resultUri, true)
+//                } else {
+//                    Toast.makeText(requireContext(), "Error al recortar la imagen. Usando imagen original.", Toast.LENGTH_SHORT).show()
+//                    lastCapturedUri?.let { ingresarNombreArchivo(it, true) }
+//                }
+//            } else {
+//                // Si el usuario canceló el crop, usamos la imagen original
+//                lastCapturedUri?.let {
+//                    ingresarNombreArchivo(it, true)
+//                }
+//            }
+//            return
+//        }
 
-        startActivityForResult(intent, CAPTURE_IMAGE_REQUEST)
-    }
+//        // devolucion para la captura de imagen o video
+//        if (resultCode == RESULT_OK) {
+//            val mediaUri = when (requestCode) {
+//                PICK_MEDIA_REQUEST -> data?.data
+//                CAPTURE_IMAGE_REQUEST -> lastCapturedUri
+//                CAPTURE_VIDEO_REQUEST -> lastCapturedUri
+//                else -> null
+//            }
+//
+//            if (mediaUri != null) {
+//                val mimeType = requireContext().contentResolver.getType(mediaUri)
+//                if (mimeType != null) {
+//                    if (mimeType.startsWith("image/")) {
+//                        if (requestCode == CAPTURE_IMAGE_REQUEST) {
+//                            startCrop(mediaUri) // 👉 Editamos antes de continuar
+//                        } else {
+//                            // ingresarNombreArchivo(mediaUri, true)
+//                            startCrop(mediaUri) // 👉 Editamos antes de continuar
+//                        }
+//                    } else if (mimeType.startsWith("video/")) {
+//                        Log.d("CapturedMedia", "Video capturado URI: $mediaUri")
+//                        ingresarNombreArchivo(mediaUri, false)
+//                    }
+//                }
+//            } else {
+//                Log.e("CaptureError", "Media URI is null")
+//            }
+//        }
+//
+//        // devolucion para el importar archivos
+//        if (requestCode == HomeFragment.REQUEST_CODE_IMPORTAR_ZIP && resultCode == Activity.RESULT_OK) {
+//            val uri = data?.data ?: return
+//            importarElementosDesdeZip(uri)
+//        }
+//    }
+//
+//
+//    private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
+//        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
+//        val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
+//
+//        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+//            .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
+//            .setView(dialogView)
+//            .setPositiveButton("OK") { _, _ ->
+//                val nombreRaw = nameEditText.text?.toString().orEmpty()
+//                val nombreLimpio = normalizarNombre(nombreRaw)
+//
+//                if (mediaUri != null && nombreLimpio.isNotEmpty()) {
+//                    guardarArchivo(mediaUri, nombreLimpio, isImage)
+//                } else {
+//                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
+//                }
+//            }
+//            .setNegativeButton("Cancelar", null)
+//            .show()
+//    }
+//
+//    /**
+//     * Normaliza para que:
+//     * - no haya espacios adelante/atrás
+//     * - no haya dobles espacios
+//     * - (opcional) evita caracteres problemáticos para nombres de archivo
+//     */
+//    private fun normalizarNombre(input: String): String {
+//        // 1) trim + colapsar espacios internos
+//        var s = input.trim().replace(Regex("\\s+"), " ")
+//
+//        // 2) opcional: eliminar caracteres inválidos en nombres de archivo (recomendado)
+//        // Windows/Android suelen romper con / \ : * ? " < > |
+//        s = s.replace(Regex("""[\\/:*?"<>|]"""), "")
+//
+//        return s
+//    }
+//
+//    private fun guardarArchivo(mediaUri: Uri, nombreLimpio: String, esImagen: Boolean) {
+//        // Guardar SIEMPRE usando el nombre limpio (archivo y todo)
+//        val savedUri = guardarEnAlmacenamientoInterno(requireContext(), mediaUri, nombreLimpio, esImagen)
+//        if (savedUri == null) return
+//
+//        // Si ya existía un item con ese nombre, lo reemplazamos
+//        val index = listaDeArchivos.indexOfFirst { it.nombre == nombreLimpio }
+//        if (index != -1) {
+//            listaDeArchivos.removeAt(index)
+//            mediaAdapter.notifyItemRemoved(index)
+//        }
+//
+//        // Importante: id y nombre coherentes (sin trims extra, ya está limpio)
+//        val item = ItemLista(
+//            id = ItemKey.media(nombreLimpio),
+//            nombre = nombreLimpio,
+//            uri = savedUri,
+//            esImagen = esImagen,
+//            timestamp = System.currentTimeMillis()
+//        )
+//
+//        listaDeArchivos.add(item)
+//        saveMediaData(nombreLimpio, savedUri, esImagen)
+//
+//        mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
+//
+//        Toast.makeText(
+//            requireContext(),
+//            if (esImagen) "Imagen guardada como $nombreLimpio" else "Video guardado como $nombreLimpio",
+//            Toast.LENGTH_SHORT
+//        ).show()
+//    }
+//
+//    private fun guardarEnAlmacenamientoInterno(
+//        context: Context,
+//        mediaUri: Uri,
+//        nombreArchivoLimpio: String,
+//        esImagen: Boolean
+//    ): Uri? {
+//        val directorio = File(context.filesDir, "media")
+//        if (!directorio.exists()) directorio.mkdirs()
+//
+//        val extension = if (esImagen) "jpg" else "mp4"
+//        val archivo = File(directorio, "$nombreArchivoLimpio.$extension")
+//
+//        return try {
+//            context.contentResolver.openInputStream(mediaUri)?.use { inputStream ->
+//                FileOutputStream(archivo).use { outputStream ->
+//                    inputStream.copyTo(outputStream)
+//                }
+//            }
+//            Uri.fromFile(archivo)
+//        } catch (e: IOException) {
+//            e.printStackTrace()
+//            null
+//        }
+//    }
+//
+//    private fun saveMediaData(nombreArchivoLimpio: String, mediaUri: Uri, isImage: Boolean) {
+//        val sharedPreferences = requireContext().getSharedPreferences("media_data", Context.MODE_PRIVATE)
+//        sharedPreferences.edit()
+//            .putString(nombreArchivoLimpio, mediaUri.toString())
+//            .putBoolean("$nombreArchivoLimpio|type", isImage)
+//            .apply()
+//    }
 
-    private fun launchVideoCapture() {
-        val videoUri: Uri = createVideoUri()
-        lastCapturedUri = videoUri
 
-        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri)
-
-        startActivityForResult(intent, CAPTURE_VIDEO_REQUEST)
-    }
-
-    private fun createImageUri(): Uri {
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
-        }
-        return requireContext().contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
-    }
-
-    private fun createVideoUri(): Uri {
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
-        }
-        return requireContext().contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)!!
-    }
-
-    // EDICION ucrop
-    fun startCrop(uri: Uri) {
-        val destinationUri = Uri.fromFile(File(requireContext().cacheDir, "imagen_editada_${System.currentTimeMillis()}.jpg"))
-
-        val options = UCrop.Options().apply {
-            setCompressionFormat(Bitmap.CompressFormat.JPEG)
-            setCompressionQuality(90)
-            setFreeStyleCropEnabled(true) // Permite mover y redimensionar libremente
-
-            setToolbarColor(ContextCompat.getColor(requireContext(), R.color.color5))      // barra superior
-            setStatusBarColor(ContextCompat.getColor(requireContext(), R.color.color5))     // barra de estado
-            setToolbarWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // texto/iconos
-            setActiveControlsWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // botones activos
-            setRootViewBackgroundColor(ContextCompat.getColor(requireContext(), R.color.color5))   // fondo general
-
-            setToolbarTitle("Editar imagen") // título personalizado
-        }
-
-        UCrop.of(uri, destinationUri)
-            .withOptions(options)
-            .withAspectRatio(1f, 1f)
-            .start(requireContext(), this@Recientes) // 👈 IMPORTANTE: que el Fragment reciba el resultado
-
-    }
-
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        // devolucion para el ucrop
-        if (requestCode == UCROP_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                val resultUri = UCrop.getOutput(data!!)
-                if (resultUri != null) {
-                    ingresarNombreArchivo(resultUri, true)
-                } else {
-                    Toast.makeText(requireContext(), "Error al recortar la imagen. Usando imagen original.", Toast.LENGTH_SHORT).show()
-                    lastCapturedUri?.let { ingresarNombreArchivo(it, true) }
-                }
-            } else {
-                // Si el usuario canceló el crop, usamos la imagen original
-                lastCapturedUri?.let {
-                    ingresarNombreArchivo(it, true)
-                }
-            }
-            return
-        }
-
-        // devolucion para la captura de imagen o video
-        if (resultCode == RESULT_OK) {
-            val mediaUri = when (requestCode) {
-                PICK_MEDIA_REQUEST -> data?.data
-                CAPTURE_IMAGE_REQUEST -> lastCapturedUri
-                CAPTURE_VIDEO_REQUEST -> lastCapturedUri
-                else -> null
-            }
-
-            if (mediaUri != null) {
-                val mimeType = requireContext().contentResolver.getType(mediaUri)
-                if (mimeType != null) {
-                    if (mimeType.startsWith("image/")) {
-                        if (requestCode == CAPTURE_IMAGE_REQUEST) {
-                            startCrop(mediaUri) // 👉 Editamos antes de continuar
-                        } else {
-                            // ingresarNombreArchivo(mediaUri, true)
-                            startCrop(mediaUri) // 👉 Editamos antes de continuar
-                        }
-                    } else if (mimeType.startsWith("video/")) {
-                        Log.d("CapturedMedia", "Video capturado URI: $mediaUri")
-                        ingresarNombreArchivo(mediaUri, false)
-                    }
-                }
-            } else {
-                Log.e("CaptureError", "Media URI is null")
-            }
-        }
-
-        // devolucion para el importar archivos
-        if (requestCode == HomeFragment.REQUEST_CODE_IMPORTAR_ZIP && resultCode == Activity.RESULT_OK) {
-            val uri = data?.data ?: return
-            importarElementosDesdeZip(uri)
-        }
-    }
-
-
-    private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
-        val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
-
-        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-            .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
-            .setView(dialogView)
-            .setPositiveButton("OK") { _, _ ->
-                val nombreRaw = nameEditText.text?.toString().orEmpty()
-                val nombreLimpio = normalizarNombre(nombreRaw)
-
-                if (mediaUri != null && nombreLimpio.isNotEmpty()) {
-                    guardarArchivo(mediaUri, nombreLimpio, isImage)
-                } else {
-                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }
-
-    /**
-     * Normaliza para que:
-     * - no haya espacios adelante/atrás
-     * - no haya dobles espacios
-     * - (opcional) evita caracteres problemáticos para nombres de archivo
-     */
-    private fun normalizarNombre(input: String): String {
-        // 1) trim + colapsar espacios internos
-        var s = input.trim().replace(Regex("\\s+"), " ")
-
-        // 2) opcional: eliminar caracteres inválidos en nombres de archivo (recomendado)
-        // Windows/Android suelen romper con / \ : * ? " < > |
-        s = s.replace(Regex("""[\\/:*?"<>|]"""), "")
-
-        return s
-    }
-
-    private fun guardarArchivo(mediaUri: Uri, nombreLimpio: String, esImagen: Boolean) {
-        // Guardar SIEMPRE usando el nombre limpio (archivo y todo)
-        val savedUri = guardarEnAlmacenamientoInterno(requireContext(), mediaUri, nombreLimpio, esImagen)
-        if (savedUri == null) return
-
-        // Si ya existía un item con ese nombre, lo reemplazamos
-        val index = listaDeArchivos.indexOfFirst { it.nombre == nombreLimpio }
-        if (index != -1) {
-            listaDeArchivos.removeAt(index)
-            mediaAdapter.notifyItemRemoved(index)
-        }
-
-        // Importante: id y nombre coherentes (sin trims extra, ya está limpio)
-        val item = ItemLista(
-            id = ItemKey.media(nombreLimpio),
-            nombre = nombreLimpio,
-            uri = savedUri,
-            esImagen = esImagen,
-            timestamp = System.currentTimeMillis()
-        )
-
-        listaDeArchivos.add(item)
-        saveMediaData(nombreLimpio, savedUri, esImagen)
-
-        mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
-
-        Toast.makeText(
-            requireContext(),
-            if (esImagen) "Imagen guardada como $nombreLimpio" else "Video guardado como $nombreLimpio",
-            Toast.LENGTH_SHORT
-        ).show()
-    }
-
-    private fun guardarEnAlmacenamientoInterno(
-        context: Context,
-        mediaUri: Uri,
-        nombreArchivoLimpio: String,
-        esImagen: Boolean
-    ): Uri? {
-        val directorio = File(context.filesDir, "media")
-        if (!directorio.exists()) directorio.mkdirs()
-
-        val extension = if (esImagen) "jpg" else "mp4"
-        val archivo = File(directorio, "$nombreArchivoLimpio.$extension")
-
-        return try {
-            context.contentResolver.openInputStream(mediaUri)?.use { inputStream ->
-                FileOutputStream(archivo).use { outputStream ->
-                    inputStream.copyTo(outputStream)
-                }
-            }
-            Uri.fromFile(archivo)
-        } catch (e: IOException) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-    private fun saveMediaData(nombreArchivoLimpio: String, mediaUri: Uri, isImage: Boolean) {
-        val sharedPreferences = requireContext().getSharedPreferences("media_data", Context.MODE_PRIVATE)
-        sharedPreferences.edit()
-            .putString(nombreArchivoLimpio, mediaUri.toString())
-            .putBoolean("$nombreArchivoLimpio|type", isImage)
-            .apply()
-    }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -650,14 +654,6 @@ class Recientes : Fragment(),
         Toast.makeText(requireContext(), "Modo eliminación activado", Toast.LENGTH_SHORT).show()
     }
 
-//    fun eliminarSeleccionadosDesdeAdapter(nombres: List<String>) {
-//        for (nombre in nombres) {
-//            eliminar(nombre) // asumimos que tenés una función que elimina el archivo por nombre
-//        }
-//        Toast.makeText(requireContext(), "Elementos eliminados", Toast.LENGTH_SHORT).show()
-//        mediaAdapter.notifyDataSetChanged()
-//    }
-
     override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
         AlertDialog.Builder(requireContext(),
             R.style.ThemeOverlay_Comunic_AlertDialog
@@ -729,39 +725,7 @@ class Recientes : Fragment(),
         Toast.makeText(requireContext(), "Modo eliminación cancelado", Toast.LENGTH_SHORT).show()
     }
 
-//    private fun setupSelectionPanel() {
-//        binding.deleteSelectedButton.setOnClickListener {
-//            val seleccionados = mediaAdapter.obtenerSeleccionados()
-//            if (seleccionados.isNotEmpty()) {
-//                AlertDialog.Builder(requireContext(),
-//                    R.style.ThemeOverlay_Comunic_AlertDialog
-//                )
-//                    .setTitle("Confirmar eliminación")
-//                    .setMessage("¿Deseás eliminar los ${seleccionados.size} elementos seleccionados?")
-//                    .setPositiveButton("Eliminar") { dialog, _ ->
-//                        mediaAdapter.eliminarSeleccionados()
-//                        actualizarPanelSeleccion(0)
-//                        dialog.dismiss()
-//                    }
-//                    .setNegativeButton("Cancelar", null)
-//                    .show()
-//            }
-//        }
-//
-//        binding.cancelSelectionButton.setOnClickListener {
-//            mediaAdapter.cancelarModoEliminacion()
-//            actualizarPanelSeleccion(0)
-//        }
-//    }
 
-//    fun actualizarPanelSeleccion(cantidad: Int) {
-//        if (cantidad > 0) {
-//            selectionPanel.visibility = android.view.View.VISIBLE
-//            selectionCountText.text = "$cantidad elemento${if (cantidad > 1) "s" else ""} seleccionad${if (cantidad > 1) "os" else "o"}"
-//        } else {
-//            selectionPanel.visibility = android.view.View.GONE
-//        }
-//    }
     fun actualizarPanelSeleccion(cantidad: Int) {
         TransitionManager.beginDelayedTransition(binding.root)
         val enModoSeleccion = cantidad > 0
@@ -1021,7 +985,7 @@ class Recientes : Fragment(),
 
 
                 listaDeArchivos.add(item)
-                saveMediaData(nombreSinExtension, uriGuardado, esImagen)
+                (activity as? MainActivity)?.saveMediaData(nombreSinExtension, uriGuardado, esImagen)
             }
 
 
@@ -1186,6 +1150,11 @@ class Recientes : Fragment(),
         }
     }
 
+
+    override fun onMediaCreated(item: ItemLista) {
+        listaDeArchivos.add(item)
+        mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
+    }
     companion object {
         private const val PREFS_NAME = "recientes_prefs"
         private const val KEY_ORDEN_RECENTES = "orden_recientes"

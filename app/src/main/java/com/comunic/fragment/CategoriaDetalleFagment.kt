@@ -3,6 +3,8 @@ package com.comunic.fragment
 
 
 import android.app.AlertDialog
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.text.InputType
@@ -23,6 +25,7 @@ import com.comunic.data.db.AppDatabase
 import com.comunic.databinding.FragmentCategoriaDetalleBinding
 import kotlinx.coroutines.launch
 import com.comunic.ItemLista
+import com.comunic.MainActivity
 import com.comunic.adapters.MediaAdapter
 import com.comunic.PickItemsDialogFragment
 import com.comunic.R
@@ -33,15 +36,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.data.mappers.resolveItemKeyToItemListaAllowDisabled
+import com.comunic.interfaces.MediaResultListener
+import com.comunic.interfaces.OnNuevoItemListener
+import com.comunic.interfaces.RecientesProvider
 import java.util.Locale
 import java.util.UUID
 
 class CategoriaDetalleFragment :
     Fragment(),
-    TextToSpeech.OnInitListener {
+    TextToSpeech.OnInitListener,
+    MediaResultListener {
 
     private var _binding: FragmentCategoriaDetalleBinding? = null
     private val binding get() = _binding!!
+
 
     private lateinit var tts: TextToSpeech
     private var ttsReady = false
@@ -65,6 +73,8 @@ class CategoriaDetalleFragment :
     //private var deleteActionMode: ActionMode? = null
 
 
+
+
     companion object {
         fun newInstance(categoryId: String, categoryName: String) =
             CategoriaDetalleFragment().apply {
@@ -82,6 +92,16 @@ class CategoriaDetalleFragment :
     ): View {
         _binding = FragmentCategoriaDetalleBinding.inflate(inflater, container, false)
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.setMediaResultListener(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        (activity as? MainActivity)?.setMediaResultListener(null)
     }
 
     /*override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -130,11 +150,25 @@ class CategoriaDetalleFragment :
         categoryId = requireArguments().getString("categoryId")!!
         categoryName = requireArguments().getString("categoryName")!!
         binding.txtTitulo.text = categoryName
+        val activity = activity as? MainActivity
 
-        // boton agregar elementos
-//        binding.btnAgregarElemento.setOnClickListener {
-//            abrirSelectorParaAgregar(categoryId)
-//        }
+        binding.btnAgregarElemento.setOnClickListener {
+            abrirSelectorParaAgregar(categoryId)
+        }
+
+        binding.btnCamera.setOnClickListener {
+            activity?.launchImageCapture()
+        }
+
+        binding.btnVideo.setOnClickListener {
+            activity?.launchVideoCapture()
+        }
+
+        binding.btnGallery.setOnClickListener {
+            activity?.openGallery()
+        }
+
+
         viewLifecycleOwner.lifecycleScope.launch {
             val status = withContext(Dispatchers.IO) {
                 db.categoryDao().getCategoryStatus(categoryId)
@@ -432,61 +466,6 @@ class CategoriaDetalleFragment :
         mediaAdapter.setModoEliminacion(false)
     }
 
-//    private fun cerrarModoEliminacion() {
-//        deleteActionMode?.finish()
-//        // lo demás lo hace onDestroyActionMode
-//    }
-
-    /*private val actionModeCallback = object : ActionMode.Callback {
-        override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-            // Menú contextual: Eliminar / Cancelar
-            menu.add(0, 1, 0, "Eliminar").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-            menu.add(0, 2, 1, "Cancelar").setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-
-            actualizarTituloActionMode()
-            return true
-        }
-
-        override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
-            actualizarTituloActionMode()
-            return true
-        }
-
-        override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
-            return when (item.itemId) {
-                1 -> { // Eliminar
-                    val seleccionados = mediaAdapter.getSeleccionadosItems()
-                    if (seleccionados.isEmpty()) {
-                        Toast.makeText(requireContext(), "No hay elementos seleccionados", Toast.LENGTH_SHORT).show()
-                        true
-                    } else {
-                        eliminarSeleccionDeCategoria(categoryId, seleccionados)  // ya la tenés ✅
-                        cerrarModoEliminacion()
-                        true
-                    }
-                }
-                2 -> { // Cancelar
-                    cerrarModoEliminacion()
-                    true
-                }
-                else -> false
-            }
-        }
-
-        override fun onDestroyActionMode(mode: ActionMode) {
-            deleteActionMode = null
-            mediaAdapter.setModoEliminacion(false)
-            mediaAdapter.onSeleccionCambio = null
-        }
-    }*/
-
-//    private fun actualizarTituloActionMode() {
-//        val count = mediaAdapter.getSeleccionadosCount()
-//        deleteActionMode?.title = "Seleccionados: $count"
-//    }
-
-
-
     private fun confirmarEliminarCategoria() {
         AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle("Eliminar lista")
@@ -511,15 +490,17 @@ class CategoriaDetalleFragment :
     }
 
     private fun configurarBotonSegunEstado() {
-        if (isSystemCategory && !isPackEnabled) {
-            binding.btnAgregarElemento.text = "Habilitar"
+
+        val habilitado = !(isSystemCategory && !isPackEnabled)
+
+        binding.btnAgregarElemento.isEnabled = habilitado
+        binding.btnCamera.isEnabled = habilitado
+        binding.btnVideo.isEnabled = habilitado
+        binding.btnGallery.isEnabled = habilitado
+
+        if (!habilitado) {
             binding.btnAgregarElemento.setOnClickListener {
-                habilitarPack(packId) // packId = basic_core o basic_food
-            }
-        } else {
-            binding.btnAgregarElemento.text = "Agregar"
-            binding.btnAgregarElemento.setOnClickListener {
-                abrirSelectorParaAgregar(categoryId)
+                habilitarPack(packId)
             }
         }
     }
@@ -556,6 +537,35 @@ class CategoriaDetalleFragment :
         }
     }
 
+
+
+    private fun agregarItemACategoria(item: ItemLista) {
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            withContext(Dispatchers.IO) {
+
+                val exists = db.categoryDao().existsItemInCategory(categoryId, item.id)
+                if (exists) return@withContext
+
+                val next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
+
+                db.categoryDao().insertCategoryItem(
+                    CategoryItemEntity(
+                        placementId = UUID.randomUUID().toString(),
+                        categoryId = categoryId,
+                        itemKey = item.id,
+                        orderIndex = next
+                    )
+                )
+            }
+
+            loadCategory(categoryId)
+        }
+    }
+
+    override fun onMediaCreated(item: ItemLista) {
+        agregarItemACategoria(item)
+    }
 
 }
 

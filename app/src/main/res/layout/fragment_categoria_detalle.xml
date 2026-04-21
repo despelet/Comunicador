@@ -31,23 +31,86 @@
         android:gravity="center_vertical"
         android:layout_marginBottom="8dp">
 
-        <Button
-            android:id="@+id/btnAgregarElemento"
-            android:layout_width="0dp"
+        <!-- 🔹 GRUPO IZQUIERDO -->
+        <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Agregar"
-            android:textColor="@color/color1" />
+            android:orientation="horizontal"
+            android:gravity="start|center_vertical">
 
+            <!-- AGREGAR -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAgregarElemento"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                app:icon="@android:drawable/ic_input_add"
+                app:iconSize="32dp"
+                app:iconPadding="10dp"
+                app:iconTint="@color/color1"
+                app:strokeColor="@color/color5" />
+
+
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+            <!-- CAMARA -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCamera"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                app:icon="@drawable/ic_camera"
+                app:iconSize="32dp"
+                app:iconPadding="10dp"
+                app:iconTint="@color/color1"
+                app:strokeColor="@color/color5" />
+
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+            <!-- VIDEO -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVideo"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                app:icon="@drawable/ic_videocam"
+                app:iconSize="32dp"
+                app:iconPadding="10dp"
+                app:iconTint="@color/color1"
+                app:strokeColor="@color/color5" />
+
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+            <!-- GALERIA -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGallery"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                app:icon="@drawable/ic_gallery"
+                app:iconSize="32dp"
+                app:iconPadding="10dp"
+                app:iconTint="@color/color1"
+                app:strokeColor="@color/color5" />
+
+        </LinearLayout>
+
+        <!-- 🔹 EMPUJA EL BOTÓN A LA DERECHA -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- 🔴 BOTÓN ELIMINAR (más chico) -->
         <ImageButton
             android:id="@+id/btnEliminarCategoria"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
             android:background="@android:color/transparent"
             android:contentDescription="Eliminar lista"
             android:src="@android:drawable/ic_menu_delete"
             app:tint="@color/color1" />
+
     </LinearLayout>
 
 

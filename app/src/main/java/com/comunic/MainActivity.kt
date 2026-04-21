@@ -14,9 +14,29 @@ import com.comunic.data.db.AppDatabase
 import com.comunic.fragment.HomeFragment
 import com.comunic.fragment.Listas
 import com.comunic.fragment.Recientes
+import com.comunic.interfaces.MediaResultListener
+import com.comunic.interfaces.RecientesProvider
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.launch
+import android.app.Activity
+import android.app.AlertDialog
+import android.content.ContentValues
+import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.EditText
+import androidx.core.content.ContextCompat
+import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
+import com.comunic.fragment.HomeFragment.Companion.CAPTURE_VIDEO_REQUEST
+import com.comunic.fragment.HomeFragment.Companion.PICK_MEDIA_REQUEST
+import com.comunic.fragment.HomeFragment.Companion.UCROP_REQUEST_CODE
+import com.yalantis.ucrop.UCrop
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -26,6 +46,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     private lateinit var navigationView: NavigationView
     private lateinit var bottomNav: BottomNavigationView
 
+    private var lastCapturedUri: Uri? = null
+
+    private var mediaResultListener: MediaResultListener? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,20 +100,21 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     }
 
     private fun openFragment(fragment: Fragment) {
+        val tag = when (fragment) {
+            is Recientes -> "RECENTES_TAG"
+            else -> fragment::class.java.simpleName
+        }
+
         supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
+            .replace(R.id.fragment_container, fragment, tag)
             .commit()
     }
 
     private fun navigateTo(menuId: Int, fragment: Fragment) {
-        // 1) abrir fragment
         openFragment(fragment)
 
-        // 2) marcar bottom nav SIN disparar la navegación de nuevo
         bottomNav.setOnItemSelectedListener(null)
         bottomNav.selectedItemId = menuId
-
-        // 3) volver a conectar el listener
         setupBottomNav()
     }
 
@@ -235,5 +259,195 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             Toast.makeText(this, "Esta pantalla no soporta 'Agregar a lista'", Toast.LENGTH_SHORT).show()
         }
     }
+
+    fun getRecientesFragment(): RecientesProvider? {
+        val fragment = supportFragmentManager.findFragmentByTag("RECENTES_TAG")
+        return fragment as? RecientesProvider
+    }
+
+    fun setMediaResultListener(listener: MediaResultListener?) {
+        mediaResultListener = listener
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    fun launchImageCapture() {
+        val photoUri = createImageUri()
+        lastCapturedUri = photoUri
+
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+
+        startActivityForResult(intent, CAPTURE_IMAGE_REQUEST)
+    }
+    fun launchVideoCapture() {
+        val videoUri = createVideoUri()
+        lastCapturedUri = videoUri
+
+        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri)
+
+        startActivityForResult(intent, CAPTURE_VIDEO_REQUEST)
+    }
+    fun openGallery() {
+        val intent = Intent(Intent.ACTION_PICK).apply {
+            type = "image/* video/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
+        }
+        startActivityForResult(intent, PICK_MEDIA_REQUEST)
+    }
+    private fun createImageUri(): Uri {
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
+        }
+        return contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)!!
+    }
+
+    private fun createVideoUri(): Uri {
+        val values = ContentValues().apply {
+            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+            put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
+        }
+        return contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)!!
+    }
+    private fun startCrop(uri: Uri) {
+        val destinationUri = Uri.fromFile(
+            File(cacheDir, "imagen_editada_${System.currentTimeMillis()}.jpg")
+        )
+
+        val options = UCrop.Options().apply {
+            setCompressionFormat(Bitmap.CompressFormat.JPEG)
+            setCompressionQuality(90)
+            setFreeStyleCropEnabled(true)
+
+            setToolbarColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
+            setStatusBarColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
+            setToolbarWidgetColor(ContextCompat.getColor(this@MainActivity, R.color.color1))
+            setActiveControlsWidgetColor(ContextCompat.getColor(this@MainActivity, R.color.color1))
+            setRootViewBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
+        }
+
+        UCrop.of(uri, destinationUri)
+            .withOptions(options)
+            .withAspectRatio(1f, 1f)
+            .start(this)
+    }
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == UCROP_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                val resultUri = UCrop.getOutput(data!!)
+                resultUri?.let { ingresarNombreArchivo(it, true) }
+            } else {
+                lastCapturedUri?.let { ingresarNombreArchivo(it, true) }
+            }
+            return
+        }
+
+        if (resultCode == RESULT_OK) {
+            val mediaUri = when (requestCode) {
+                PICK_MEDIA_REQUEST -> data?.data
+                CAPTURE_IMAGE_REQUEST -> lastCapturedUri
+                CAPTURE_VIDEO_REQUEST -> lastCapturedUri
+                else -> null
+            }
+
+            mediaUri?.let {
+                val mime = contentResolver.getType(it)
+
+                if (mime?.startsWith("image/") == true) {
+                    startCrop(it)
+                } else if (mime?.startsWith("video/") == true) {
+                    ingresarNombreArchivo(it, false)
+                }
+            }
+        }
+    }
+
+    private fun ingresarNombreArchivo(uri: Uri, esImagen: Boolean) {
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
+        val input = dialogView.findViewById<EditText>(R.id.nameEditText)
+
+        AlertDialog.Builder(this)
+            .setTitle(if (esImagen) "Sonido de la imagen" else "Sonido del video")
+            .setView(dialogView)
+            .setPositiveButton("OK") { _, _ ->
+
+                val nombre = input.text.toString().trim()
+                if (nombre.isEmpty()) {
+                    Toast.makeText(this, "Nombre vacío", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                guardarArchivo(uri, nombre, esImagen)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+    private fun guardarArchivo(uri: Uri, nombre: String, esImagen: Boolean) {
+
+        val savedUri = guardarEnAlmacenamientoInterno(uri, nombre, esImagen)
+            ?: return
+
+        val item = ItemLista(
+            id = ItemKey.media(nombre),
+            nombre = nombre,
+            uri = savedUri,
+            esImagen = esImagen,
+            timestamp = System.currentTimeMillis()
+        )
+
+        saveMediaData(nombre, savedUri, esImagen)
+
+        // 🔥 NOTIFICAR AL FRAGMENT
+        mediaResultListener?.onMediaCreated(item)
+
+        Toast.makeText(this, "Guardado: $nombre", Toast.LENGTH_SHORT).show()
+    }
+    fun guardarEnAlmacenamientoInterno(
+        mediaUri: Uri,
+        nombre: String,
+        esImagen: Boolean
+    ): Uri? {
+
+        val dir = File(filesDir, "media")
+        if (!dir.exists()) dir.mkdirs()
+
+        val ext = if (esImagen) "jpg" else "mp4"
+        val file = File(dir, "$nombre.$ext")
+
+        return try {
+            contentResolver.openInputStream(mediaUri)?.use { input ->
+                FileOutputStream(file).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            Uri.fromFile(file)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+    }
+    fun saveMediaData(nombre: String, uri: Uri, isImage: Boolean) {
+        val prefs = getSharedPreferences("media_data", MODE_PRIVATE)
+        prefs.edit()
+            .putString(nombre, uri.toString())
+            .putBoolean("$nombre|type", isImage)
+            .apply()
+    }
+
 
 }

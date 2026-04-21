@@ -1,6 +1,7 @@
 package com.comunic.adapters
 
 import android.net.Uri
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -43,6 +44,17 @@ class CategoriasCuadriculaAdapter (
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = items[position]
+
+        val TAG = "GRID_ADAPTER"
+
+        Log.d(TAG, "bind pos=$position catId=${item.categoryId} name='${item.name}' previewUris=${item.previewUris}")
+
+// Si querés verlo “por celda”:
+        for (i in 0 until 4) {
+            val uriStr = item.previewUris.getOrNull(i)
+            Log.d(TAG, "  cell=$i uriStr=$uriStr")
+        }
+
         holder.nombre.text = item.name
 
         val disabled = item.isSystem && !item.packEnabled
@@ -52,8 +64,8 @@ class CategoriasCuadriculaAdapter (
         val imgs = listOf(holder.img1, holder.img2, holder.img3, holder.img4)
 
         // Limpieza/placeholder básico
-        //imgs.forEach { it.setImageDrawable(null) }
-        imgs.forEach { it.setImageResource(R.drawable.ic_lista_placeholder) }
+        imgs.forEach { it.setImageDrawable(null) }
+        //imgs.forEach { it.setImageResource(R.drawable.ic_lista_placeholder) }
 
         // Cargar hasta 4
         item.previewUris.forEachIndexed { i, uri ->
@@ -87,16 +99,22 @@ class CategoriasCuadriculaAdapter (
 
 
     private fun loadPreviewInto(imageView: ImageView, uriOrRes: String) {
+        val TAG = "GRID_LOAD"
         val ctx = imageView.context
 
+        Log.d(TAG, "load uriOrRes='$uriOrRes'")
+
         if (uriOrRes.isBlank()) {
+            Log.d(TAG, " -> blank, clear image")
             imageView.setImageDrawable(null)
             return
         }
 
+
         // ✅ 1) Si es path absoluto (/data/...)
         if (uriOrRes.startsWith("/")) {
             val file = File(uriOrRes)
+            Log.d(TAG, " -> absolute path. exists=${file.exists()} size=${file.length()} path=${file.absolutePath}")
             if (!file.exists()) {
                 imageView.setImageDrawable(null)
                 return
@@ -150,7 +168,51 @@ class CategoriasCuadriculaAdapter (
             return
         }
 
-        // Detectar video por extensión del string (simple y suficiente)
+// 👉 Si es file://, convertimos a File (evita %20, UTF-8, etc.)
+        if (uri.scheme == "file") {
+            val path = uri.path
+            if (path.isNullOrBlank()) {
+                imageView.setImageDrawable(null)
+                return
+            }
+
+            val file = File(path)
+            if (!file.exists()) {
+                imageView.setImageDrawable(null)
+                return
+            }
+
+            val ext = file.extension.lowercase()
+            val esVideo = ext in listOf("mp4","mkv","avi","mov","webm")
+
+            if (esVideo) {
+                Glide.with(ctx)
+                    .asBitmap()
+                    .load(file)          // ✅ File, no Uri
+                    .frame(1000)
+                    .centerCrop()
+                    .into(imageView)
+            } else {
+                Picasso.get()
+                    .load(file)          // ✅ File, no Uri
+                    .fit()
+                    .centerCrop()
+                    .into(imageView, object : com.squareup.picasso.Callback {
+                        override fun onSuccess() {
+                            imageView.post {
+                                Log.d("GRID_LOAD", "ivSize=${imageView.width}x${imageView.height}")
+                            }
+                            Log.d("GRID_LOAD", "Picasso OK file=${file.absolutePath}")
+                        }
+                        override fun onError(e: Exception?) {
+                            Log.e("GRID_LOAD", "Picasso ERROR file=${file.absolutePath}", e)
+                        }
+                    })
+            }
+            return
+        }
+
+// Si no es file:// (por ejemplo content://), lo cargamos como Uri
         val lower = uriOrRes.lowercase()
         val esVideo = lower.endsWith(".mp4") || lower.endsWith(".mkv") || lower.endsWith(".avi")
                 || lower.endsWith(".mov") || lower.endsWith(".webm")
@@ -167,7 +229,17 @@ class CategoriasCuadriculaAdapter (
                 .load(uri)
                 .fit()
                 .centerCrop()
-                .into(imageView)
+                .into(imageView, object : com.squareup.picasso.Callback {
+                    override fun onSuccess() {
+                        imageView.post {
+                            Log.d("GRID_LOAD", "ivSize=${imageView.width}x${imageView.height}")
+                        }
+                        Log.d("GRID_LOAD", "Picasso OK uri=$uri")
+                    }
+                    override fun onError(e: Exception?) {
+                        Log.e("GRID_LOAD", "Picasso ERROR uri=$uri", e)
+                    }
+                })
         }
     }
 }

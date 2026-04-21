@@ -373,97 +373,105 @@ class Recientes : Fragment(),
     private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
         val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
-        AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog
-        )
+
+        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
             .setView(dialogView)
             .setPositiveButton("OK") { _, _ ->
-                val nombreArchivo = nameEditText.text.toString()
-                if (mediaUri != null && nombreArchivo.isNotBlank()) {
-                    guardarArchivo(mediaUri, nombreArchivo, isImage)
+                val nombreRaw = nameEditText.text?.toString().orEmpty()
+                val nombreLimpio = normalizarNombre(nombreRaw)
 
+                if (mediaUri != null && nombreLimpio.isNotEmpty()) {
+                    guardarArchivo(mediaUri, nombreLimpio, isImage)
                 } else {
-                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT)
-                        .show()
+                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
 
-    private fun guardarArchivo(mediaUri: Uri, nombre: String, esImagen: Boolean) {
-        /* si quiero que el nombre contecta el timestamp
-        val timestamp = System.currentTimeMillis()
-        val nombreConTimestamp = "$(nombre)_$timestamp" */
+    /**
+     * Normaliza para que:
+     * - no haya espacios adelante/atrás
+     * - no haya dobles espacios
+     * - (opcional) evita caracteres problemáticos para nombres de archivo
+     */
+    private fun normalizarNombre(input: String): String {
+        // 1) trim + colapsar espacios internos
+        var s = input.trim().replace(Regex("\\s+"), " ")
 
-//        val savedUri = guardarEnAlmacenamiento(mediaUri, nombreConTimestamp, esImagen)
-        val savedUri = guardarEnAlmacenamientoInterno(requireContext(), mediaUri, nombre, esImagen)
-        if (savedUri != null) {
-            // Eliminar el elemento antiguo
-            val index = listaDeArchivos.indexOfFirst { it.nombre == nombre }
-            if (index != -1) {
-                listaDeArchivos.removeAt(index)
-                mediaAdapter.notifyItemRemoved(index)
-            }
-            // Agregar la imagen o video a la lista y guardarla
-            //listaDeArchivos.add(Triple(nombre, savedUri, esImagen))
-            //listaDeArchivos.add(ItemLista(nombre, savedUri, esImagen, System.currentTimeMillis()))
-            listaDeArchivos.add(
-                ItemLista(
-                    id = ItemKey.media(nombre.trim()),
-                    nombre = nombre.trim(),
-                    uri = savedUri,
-                    esImagen = esImagen,
-                    timestamp = System.currentTimeMillis()
-                )
-            )
+        // 2) opcional: eliminar caracteres inválidos en nombres de archivo (recomendado)
+        // Windows/Android suelen romper con / \ : * ? " < > |
+        s = s.replace(Regex("""[\\/:*?"<>|]"""), "")
 
-            saveMediaData(nombre, savedUri, esImagen)
-            mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
-            Toast.makeText( requireContext(),
-                if (esImagen) "Imagen guardada como $nombre" else "Video guardado como $nombre",
-                Toast.LENGTH_SHORT
-            ).show()
+        return s
+    }
 
+    private fun guardarArchivo(mediaUri: Uri, nombreLimpio: String, esImagen: Boolean) {
+        // Guardar SIEMPRE usando el nombre limpio (archivo y todo)
+        val savedUri = guardarEnAlmacenamientoInterno(requireContext(), mediaUri, nombreLimpio, esImagen)
+        if (savedUri == null) return
 
+        // Si ya existía un item con ese nombre, lo reemplazamos
+        val index = listaDeArchivos.indexOfFirst { it.nombre == nombreLimpio }
+        if (index != -1) {
+            listaDeArchivos.removeAt(index)
+            mediaAdapter.notifyItemRemoved(index)
         }
+
+        // Importante: id y nombre coherentes (sin trims extra, ya está limpio)
+        val item = ItemLista(
+            id = ItemKey.media(nombreLimpio),
+            nombre = nombreLimpio,
+            uri = savedUri,
+            esImagen = esImagen,
+            timestamp = System.currentTimeMillis()
+        )
+
+        listaDeArchivos.add(item)
+        saveMediaData(nombreLimpio, savedUri, esImagen)
+
+        mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
+
+        Toast.makeText(
+            requireContext(),
+            if (esImagen) "Imagen guardada como $nombreLimpio" else "Video guardado como $nombreLimpio",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun guardarEnAlmacenamientoInterno(
         context: Context,
         mediaUri: Uri,
-        nombreArchivo: String,
+        nombreArchivoLimpio: String,
         esImagen: Boolean
     ): Uri? {
-        //val subCarpeta = if (esImagen) "imagenes" else "videos" // si quiero 2 carpetas diferentes
-//        val directorio = File(context.filesDir, subCarpeta) // si quiero 2 carpetas diferentes
-        val directorio = File(context.filesDir, "media") // Carpeta "media" en el almacenamiento interno
+        val directorio = File(context.filesDir, "media")
+        if (!directorio.exists()) directorio.mkdirs()
 
-        if (!directorio.exists()) {
-            directorio.mkdirs() // Crear la carpeta si no existe
-        }
+        val extension = if (esImagen) "jpg" else "mp4"
+        val archivo = File(directorio, "$nombreArchivoLimpio.$extension")
 
-        val archivo = File(directorio, "$nombreArchivo.${if (esImagen) "jpg" else "mp4"}")
         return try {
             context.contentResolver.openInputStream(mediaUri)?.use { inputStream ->
                 FileOutputStream(archivo).use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
             }
-            Uri.fromFile(archivo) // Retorna el URI del archivo guardado
+            Uri.fromFile(archivo)
         } catch (e: IOException) {
             e.printStackTrace()
             null
         }
     }
 
-    private fun saveMediaData(nombreArchivo: String, mediaUri: Uri, isImage: Boolean) {
+    private fun saveMediaData(nombreArchivoLimpio: String, mediaUri: Uri, isImage: Boolean) {
         val sharedPreferences = requireContext().getSharedPreferences("media_data", Context.MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putString(nombreArchivo, mediaUri.toString())
-        editor.putBoolean("$nombreArchivo|type", isImage) // Guardar si es imagen o video
-        editor.apply()
+        sharedPreferences.edit()
+            .putString(nombreArchivoLimpio, mediaUri.toString())
+            .putBoolean("$nombreArchivoLimpio|type", isImage)
+            .apply()
     }
 
     override fun onInit(status: Int) {

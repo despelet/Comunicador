@@ -1338,15 +1338,6 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
             val rows2 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(2) }
             val rows3 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(3) }
 
-//            val byCat = LinkedHashMap<String, Pair<String, MutableList<String>>>()
-//
-//            fun addRows(rows: List<CategoryPreviewKeyRow>) {
-//                rows.forEach { r ->
-//                    val entry = byCat.getOrPut(r.categoryId) { r.name to mutableListOf() }
-//                    val key = r.itemKey
-//                    if (!key.isNullOrBlank()) entry.second.add(key)
-//                }
-//            }
             data class CatAgg(
                 val categoryId: String,
                 val name: String,
@@ -1375,36 +1366,27 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 
             addRows(rows0); addRows(rows1); addRows(rows2); addRows(rows3)
 
-//            val previews = withContext(Dispatchers.IO) {
-//                byCat.map { (categoryId, pair) ->
-//                    val (name, keys) = pair
-//
-//                    val uris = keys.mapNotNull { key ->
-//                        resolveItemKeyToItemLista(requireContext(), key)
-//                            ?.uri
-//                            ?.toString()
-//                    }.take(4)
-//
-//                    CategoryPreview(
-//                        categoryId = categoryId,
-//                        name = name,
-//                        previewUris = uris
-//                    )
-//                }
-//            }
+            val TAG = "PREVIEW_2X2"
 
             val previews = withContext(Dispatchers.IO) {
                 byCat.values.map { agg ->
+
+                    Log.d(TAG, "CAT ${agg.categoryId} '${agg.name}' keys=${agg.keys}")
+
                     val uris = agg.keys.mapNotNull { key ->
-                        resolveItemKeyToItemLista(requireContext(), key)?.uri?.toString()
+                        val item = resolveItemKeyToItemLista(requireContext(), key)
+                        Log.d(TAG, "  key=$key -> item=${item != null} uri=${item?.uri} scheme=${item?.uri?.scheme}")
+                        item?.uri?.toString()
                     }.take(4)
+
+                    Log.d(TAG, "CAT ${agg.categoryId} urisFinal=$uris")
 
                     CategoryPreview(
                         categoryId = agg.categoryId,
                         name = agg.name,
                         previewUris = uris,
                         isSystem = agg.isSystem,
-                        packEnabled = agg.packEnabled ?: true, // system sin pack row -> true (no debería pasar por el WHERE)
+                        packEnabled = agg.packEnabled ?: true,
                         packId = agg.packId
                     )
                 }

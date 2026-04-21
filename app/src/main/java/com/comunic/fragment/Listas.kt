@@ -147,25 +147,6 @@ private fun cargarCategorias() {
     }
 }
 
-//    private fun onCategoriaClick(cat: CategoryPreview) {
-//        val disabled = cat.isSystem && !cat.packEnabled
-//
-//        if (!disabled) {
-//            abrirCategoriaDetalle(cat.categoryId, cat.name)
-//            return
-//        }
-//
-//        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-//            .setTitle("Habilitar pack")
-//            .setMessage("Esta lista pertenece a un pack deshabilitado. ¿Querés habilitarlo para poder verla?")
-//            .setPositiveButton("Habilitar") { _, _ ->
-//                habilitarPackYEntrar(cat)
-//            }
-//            .setNegativeButton("Cancelar", null)
-//            .show()
-//    }
-
-
     private fun habilitarPackYEntrar(cat: CategoryPreview) {
         viewLifecycleOwner.lifecycleScope.launch {
             withContext(Dispatchers.IO) {

@@ -214,7 +214,7 @@ ORDER BY
   CASE WHEN c.isSystem = 1 AND COALESCE(ip.enabled, 1) = 0 THEN 1 ELSE 0 END ASC,
   c.orderIndex ASC
 """)
-    suspend fun getCategoryPreviewKeyRowsForListScreen(offset: Int): List<CategoryPreviewKeyRowList>
+    fun getCategoryPreviewKeyRowsForListScreen(offset: Int): Flow<List<CategoryPreviewKeyRowList>>
 
     // Home: SOLO categorías activas (system pack enabled, user no deleted)
 // y por cada offset devolvemos el itemKey #0..#3 para armar el mosaico 2x2.

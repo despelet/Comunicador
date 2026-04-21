@@ -28,6 +28,7 @@ import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.entity.InstalledPackEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -83,21 +84,29 @@ class Listas : Fragment(), MenuHandler {
         binding.recyclerCategorias.adapter = categoriasAdapter
 
         // 3) Cargar datos
-        cargarCategorias()
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                PackRepository(requireContext(), db).ensureBasicPackInstalled()
+            }
+
+            observeRows().collect { allRows ->
+                procesarYActualizarUI(allRows)
+            }
+        }
     }
 
+    private fun observeRows() = combine(
+        db.categoryDao().getCategoryPreviewKeyRowsForListScreen(0),
+        db.categoryDao().getCategoryPreviewKeyRowsForListScreen(1),
+        db.categoryDao().getCategoryPreviewKeyRowsForListScreen(2),
+        db.categoryDao().getCategoryPreviewKeyRowsForListScreen(3)
+    ) { r0, r1, r2, r3 ->
+        listOf(r0, r1, r2, r3)
+    }
 
-private fun cargarCategorias() {
-    viewLifecycleOwner.lifecycleScope.launch {
+    private fun procesarYActualizarUI(allRows: List<List<CategoryDao.CategoryPreviewKeyRowList>>) {
 
-        withContext(Dispatchers.IO) {
-            PackRepository(requireContext(), db).ensureBasicPackInstalled()
-        }
-
-        val rows0 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRowsForListScreen(0) }
-        val rows1 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRowsForListScreen(1) }
-        val rows2 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRowsForListScreen(2) }
-        val rows3 = withContext(Dispatchers.IO) { db.categoryDao().getCategoryPreviewKeyRowsForListScreen(3) }
+        val (rows0, rows1, rows2, rows3) = allRows
 
         data class CatAgg(
             val categoryId: String,
@@ -121,32 +130,38 @@ private fun cargarCategorias() {
                         packEnabled = r.packEnabled
                     )
                 }
-                r.itemKey?.takeIf { it.isNotBlank() }?.let { agg.keys.add(it) }
+                r.itemKey?.takeIf { it.isNotBlank() }?.let {
+                    agg.keys.add(it)
+                }
             }
         }
 
-        addRows(rows0); addRows(rows1); addRows(rows2); addRows(rows3)
+        addRows(rows0)
+        addRows(rows1)
+        addRows(rows2)
+        addRows(rows3)
 
-        val previews = withContext(Dispatchers.IO) {
-            byCat.values.map { agg ->
-                val uris = agg.keys.mapNotNull { key ->
-                    resolvePreviewUriForListScreen(key)
-                }.take(4)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val previews = withContext(Dispatchers.IO) {
+                byCat.values.map { agg ->
+                    val uris = agg.keys.mapNotNull { key ->
+                        resolvePreviewUriForListScreen(key)
+                    }.take(4)
 
-                CategoryPreview(
-                    categoryId = agg.categoryId,
-                    name = agg.name,
-                    previewUris = uris,
-                    isSystem = agg.isSystem,
-                    packId = agg.packId,
-                    packEnabled = agg.packEnabled
-                )
+                    CategoryPreview(
+                        categoryId = agg.categoryId,
+                        name = agg.name,
+                        previewUris = uris,
+                        isSystem = agg.isSystem,
+                        packId = agg.packId,
+                        packEnabled = agg.packEnabled
+                    )
+                }
             }
-        }
 
-        categoriasAdapter.submitList(previews)
+            categoriasAdapter.submitList(previews)
+        }
     }
-}
 
     private fun habilitarPackYEntrar(cat: CategoryPreview) {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -168,7 +183,7 @@ private fun cargarCategorias() {
                 }
             }
 
-            cargarCategorias()
+            //procesarYActualizarUI()
             abrirCategoriaDetalle(cat.categoryId, cat.name)
         }
     }
@@ -234,7 +249,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 )
             }
 
-            cargarCategorias()
+            //cargarCategorias()
         }
     }
 
@@ -284,7 +299,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                     }
 
                     // 4) Refrescar grilla y abrir detalle
-                    cargarCategorias()
+                   // cargarCategorias()
                     abrirCategoriaDetalle(newId, nombre)
                 }
             }.show(parentFragmentManager, "PickItemsCreate")
@@ -379,7 +394,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 }
                 Log.d("PACK_DEBUG", "after disable: basic_core=${dao.isEnabled("basic_core")} basic_food=${dao.isEnabled("basic_food")}")
             }
-            cargarCategorias()
+            //cargarCategorias()
         }
     }
 
@@ -404,7 +419,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 }
                 Log.d("PACK_DEBUG", "after disable: basic_core=${dao.isEnabled("basic_core")} basic_food=${dao.isEnabled("basic_food")}")
             }
-            cargarCategorias()
+            //cargarCategorias()
         }
     }
 
@@ -415,7 +430,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 db.categoryDao().softDeleteUserCategory(categoryId)
             }
 
-            cargarCategorias() // refresca UI
+            //cargarCategorias() // refresca UI
         }
     }
 

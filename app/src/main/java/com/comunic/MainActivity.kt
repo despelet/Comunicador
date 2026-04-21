@@ -29,14 +29,17 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.EditText
 import androidx.core.content.ContextCompat
+import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_VIDEO_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.PICK_MEDIA_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.UCROP_REQUEST_CODE
 import com.yalantis.ucrop.UCrop
+import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.UUID
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -397,6 +400,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             .setNegativeButton("Cancelar", null)
             .show()
     }
+
+
     private fun guardarArchivo(uri: Uri, nombre: String, esImagen: Boolean) {
 
         val savedUri = guardarEnAlmacenamientoInterno(uri, nombre, esImagen)
@@ -412,17 +417,30 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         saveMediaData(nombre, savedUri, esImagen)
 
-        // 🔥 NOTIFICAR AL FRAGMENT
         mediaResultListener?.onMediaCreated(item)
 
-// 🔥 si hay lista pendiente, agregar también ahí
         pendingCategoryId?.let { catId ->
-            (supportFragmentManager.findFragmentById(R.id.fragment_container) as? Recientes)
-                ?.agregarItemAListaExterna(catId, item)
+            lifecycleScope.launch(Dispatchers.IO) {
+                val dao = AppDatabase.getDatabase(applicationContext).categoryDao()
+
+                val next = dao.getMaxOrderIndex(catId) + 1
+
+                dao.insertCategoryItem(
+                    CategoryItemEntity(
+                        placementId = UUID.randomUUID().toString(),
+                        categoryId = catId,
+                        itemKey = item.id,
+                        orderIndex = next
+                    )
+                )
+            }
         }
+        pendingCategoryId = null
 
         Toast.makeText(this, "Guardado: $nombre", Toast.LENGTH_SHORT).show()
     }
+
+
     fun guardarEnAlmacenamientoInterno(
         mediaUri: Uri,
         nombre: String,

@@ -36,6 +36,8 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.comunic.AddToListHost
 import com.comunic.ItemKey
 import com.comunic.ItemLista
@@ -44,6 +46,7 @@ import com.comunic.adapters.MediaAdapter
 import com.comunic.MenuHandler
 import com.comunic.R
 import com.comunic.SpeechTextResolver
+import com.comunic.adapters.SimpleListCheckAdapter
 import com.comunic.databinding.FragmentRecientesBinding
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_VIDEO_REQUEST
@@ -58,6 +61,7 @@ import com.comunic.data.mappers.toItemLista
 import com.comunic.interfaces.MediaResultListener
 import com.comunic.interfaces.OnNuevoItemListener
 import com.comunic.interfaces.RecientesProvider
+import com.google.android.material.button.MaterialButton
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -792,38 +796,89 @@ class Recientes : Fragment(),
         mediaAdapter.notifyDataSetChanged()
     }
 
-    override fun mostrarDialogoAgregarAListas(item: ItemLista) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val categorias = withContext(Dispatchers.IO) { db.categoryDao().getUserActive() }
+//    override fun mostrarDialogoAgregarAListas(item: ItemLista) {
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            val categorias = withContext(Dispatchers.IO) { db.categoryDao().getUserActive() }
+//
+//            if (categorias.isEmpty()) {
+//                Toast.makeText(requireContext(), "No hay listas. Creá una primero.", Toast.LENGTH_SHORT).show()
+//                return@launch
+//            }
+//
+//            val nombres = categorias.map { it.name }.toTypedArray()
+//            val checked = BooleanArray(categorias.size)
+//
+//            AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+//                .setTitle("Agregar a listas")
+//                .setMultiChoiceItems(nombres, checked) { _, which, isChecked ->
+//                    checked[which] = isChecked
+//                }
+//                .setNeutralButton("Nueva lista") { _, _ ->
+//                    mostrarDialogoCrearListaYAgregar(item)
+//                }
+//                .setPositiveButton("Agregar") { _, _ ->
+//                    val seleccionadas = categorias.filterIndexed { index, _ -> checked[index] }
+//                    if (seleccionadas.isEmpty()) {
+//                        Toast.makeText(requireContext(), "No seleccionaste ninguna lista", Toast.LENGTH_SHORT).show()
+//                    } else {
+//                        agregarItemAListas(item, seleccionadas.map { it.categoryId })
+//                    }
+//                }
+//                .setNegativeButton("Cancelar", null)
+//                .show()
+//        }
+//    }
+override fun mostrarDialogoAgregarAListas(item: ItemLista) {
 
-            if (categorias.isEmpty()) {
-                Toast.makeText(requireContext(), "No hay listas. Creá una primero.", Toast.LENGTH_SHORT).show()
-                return@launch
-            }
+    viewLifecycleOwner.lifecycleScope.launch {
 
-            val nombres = categorias.map { it.name }.toTypedArray()
-            val checked = BooleanArray(categorias.size)
-
-            AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-                .setTitle("Agregar a listas")
-                .setMultiChoiceItems(nombres, checked) { _, which, isChecked ->
-                    checked[which] = isChecked
-                }
-                .setNeutralButton("Nueva lista") { _, _ ->
-                    mostrarDialogoCrearListaYAgregar(item)
-                }
-                .setPositiveButton("Agregar") { _, _ ->
-                    val seleccionadas = categorias.filterIndexed { index, _ -> checked[index] }
-                    if (seleccionadas.isEmpty()) {
-                        Toast.makeText(requireContext(), "No seleccionaste ninguna lista", Toast.LENGTH_SHORT).show()
-                    } else {
-                        agregarItemAListas(item, seleccionadas.map { it.categoryId })
-                    }
-                }
-                .setNegativeButton("Cancelar", null)
-                .show()
+        val categorias = withContext(Dispatchers.IO) {
+            db.categoryDao().getUserActive()
         }
+
+        if (categorias.isEmpty()) {
+            Toast.makeText(requireContext(), "No hay listas. Creá una primero.", Toast.LENGTH_SHORT).show()
+            return@launch
+        }
+
+        val view = layoutInflater.inflate(R.layout.dialog_add_to_lists, null)
+
+        val recycler = view.findViewById<RecyclerView>(R.id.recyclerLists)
+        val btnAgregar = view.findViewById<MaterialButton>(R.id.btnConfirmar)
+        val btnNueva = view.findViewById<MaterialButton>(R.id.btnNuevaLista)
+
+        val checked = BooleanArray(categorias.size)
+
+        recycler.layoutManager = LinearLayoutManager(requireContext())
+        recycler.adapter = SimpleListCheckAdapter(
+            categorias,
+            checked
+        )
+
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(view)
+            .create()
+
+        btnNueva.setOnClickListener {
+            dialog.dismiss()
+            mostrarDialogoCrearListaYAgregar(item)
+        }
+
+        btnAgregar.setOnClickListener {
+            val seleccionadas = categorias.filterIndexed { i, _ -> checked[i] }
+
+            if (seleccionadas.isEmpty()) {
+                Toast.makeText(requireContext(), "Seleccioná al menos una lista", Toast.LENGTH_SHORT).show()
+            } else {
+                agregarItemAListas(item, seleccionadas.map { it.categoryId })
+                dialog.dismiss()
+            }
+        }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
     }
+}
 
     private fun mostrarDialogoCrearListaYAgregar(item: ItemLista) {
         val input = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {

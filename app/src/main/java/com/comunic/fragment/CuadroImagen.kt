@@ -52,6 +52,8 @@ class CuadroImagen : DialogFragment() {
     private var pendingSpeakPos: Int? = null
     private var lastSpokenPos: Int = -1
 
+    private var mostrarMenu: Boolean = true
+
     interface PalabraListener {
         fun reproducirPalabra(palabra: String)
     }
@@ -59,15 +61,19 @@ class CuadroImagen : DialogFragment() {
     companion object {
         fun nuevaInstancia(
             listaCompleta: List<ItemLista>,
-            posicionInicial: Int
+            posicionInicial: Int,
+            mostrarMenu: Boolean = true
         ): CuadroImagen {
             val fragment = CuadroImagen()
             val args = Bundle()
+
             args.putParcelableArrayList(
                 "listaCompleta",
                 ArrayList(listaCompleta)
             )
             args.putInt("posicionInicial", posicionInicial)
+            args.putBoolean("mostrarMenu", mostrarMenu)
+
             fragment.arguments = args
             return fragment
         }
@@ -89,6 +95,9 @@ class CuadroImagen : DialogFragment() {
 
         listaCompleta = arguments?.getParcelableArrayList("listaCompleta") ?: emptyList()
         posicionInicial = arguments?.getInt("posicionInicial") ?: 0
+        mostrarMenu = arguments?.getBoolean("mostrarMenu", true) ?: true
+
+        binding.btnMore.visibility = if (mostrarMenu) View.VISIBLE else View.GONE
 
         Log.d("CuadroImagenDBG", "lista size=${listaCompleta.size}, posInicial=$posicionInicial")
         listaCompleta.forEachIndexed { i, it ->
@@ -96,6 +105,8 @@ class CuadroImagen : DialogFragment() {
             Log.d("CuadroImagenDBG", "[$i] id=${it.id}, nombre=${it.nombre}, esImagen=${it.esImagen}, uri=${it.uri}")
 
         }
+
+
 
         configurarCarruselPrincipal()
        // configurarFlechasCarrusel()
@@ -268,7 +279,11 @@ class CuadroImagen : DialogFragment() {
             listener?.reproducirPalabra(idClick)
 
             val pos = listaCompleta.indexOfFirst { it.uri == uriClick }
-            val nuevoCuadro = nuevaInstancia(listaCompleta, if (pos != -1) pos else 0)
+            val nuevoCuadro = nuevaInstancia(
+                listaCompleta,
+                if (pos != -1) pos else 0,
+                mostrarMenu = mostrarMenu   // 👈 mantener el estado
+            )
             nuevoCuadro.listener = listener
             nuevoCuadro.show(parentFragmentManager, "CuadroImagen")
         }

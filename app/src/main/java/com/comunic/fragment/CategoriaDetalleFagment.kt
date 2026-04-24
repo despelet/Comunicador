@@ -196,7 +196,8 @@ class CategoriaDetalleFragment :
             mediaList = listaDeArchivos,
             eliminar = { itemKey -> eliminarDeCategoria(categoryId, itemKey) },
             palabraAudio = { itemKey -> reproducirAudioPorItemKey(itemKey) },
-            grayscaleMode = { previewEnabled }   // ✅ TODO gris si el pack está deshabilitado
+            grayscaleMode = { previewEnabled },
+            mostrarMenuEnDialog = false   // desactiva botone de 3 puntos y acciones asociadas (porque no queremos eliminar ni editar desde ahí en este caso
         )
 
         mediaAdapter.eliminarSeleccionListener = object : MediaAdapter.OnEliminarSeleccionListener {

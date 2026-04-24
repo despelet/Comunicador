@@ -140,14 +140,15 @@ class Recientes : Fragment(),
             ::eliminar,
             { id -> audio(id) },
             onLongClick = { item ->
-                mostrarDialogoAgregarAListas(item)   // ✅ tu función (la que armamos)
-            }
+                mostrarDialogoAgregarAListas(item)
+            },
+            mostrarMenuEnDialog = true
         )
         binding.recyclerView.adapter = mediaAdapter
 
         loadImageData() // Cargar los datos (imágenes/videos)
-        val ordenGuardado = getOrdenSeleccionado()
-        aplicarOrden(ordenGuardado, orderButton)
+//        val ordenGuardado = getOrdenSeleccionado()
+//        aplicarOrden(ordenGuardado, orderButton)
 
 
         checkReadPermissionIfNeeded() // permisos
@@ -324,9 +325,15 @@ class Recientes : Fragment(),
     }
     // ELIMINACION INDIVIDUAL DESDE ITEM_MEDIA.KT
 
+    private fun aplicarOrdenActual() {
+        val orden = getOrdenSeleccionado()
+        aplicarOrden(orden, binding.orderButton)
+    }
 
     private fun loadImageData() {
         viewLifecycleOwner.lifecycleScope.launch {
+            //val ordenGuardado = getOrdenSeleccionado()
+
 
             // 0) Asegurar que el pack básico exista (idempotente)
             val db = AppDatabase.getDatabase(requireContext())
@@ -384,6 +391,10 @@ class Recientes : Fragment(),
 
             // 4) Notificar
             mediaAdapter.notifyDataSetChanged()
+
+            withContext(Dispatchers.Main) {
+                aplicarOrdenActual()
+            }
         }
     }
 
@@ -754,7 +765,8 @@ class Recientes : Fragment(),
 
             zipInputStream.close() // cierro zip y aviso que se importo bien
             Toast.makeText(requireContext(), "Importación exitosa", Toast.LENGTH_SHORT).show()
-            mediaAdapter.notifyDataSetChanged()
+            //mediaAdapter.notifyDataSetChanged()
+            aplicarOrdenActual()
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(requireContext(), "Error al importar ZIP", Toast.LENGTH_SHORT).show()
@@ -966,8 +978,10 @@ override fun mostrarDialogoAgregarAListas(item: ItemLista) {
 
 
     override fun onMediaCreated(item: ItemLista) {
+//        listaDeArchivos.add(item)
+//        mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
         listaDeArchivos.add(item)
-        mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
+        aplicarOrdenActual()
     }
 
     fun agregarItemAListaExterna(categoryId: String, item: ItemLista) {

@@ -35,13 +35,13 @@ open class MediaAdapter(
     private val eliminar: (String) -> Unit,
     private val palabraAudio: (String) -> Unit,
     private val onLongClick: ((ItemLista) -> Unit)? = null,
-    private val grayscaleMode: (ItemLista) -> Boolean = { false }
+    private val grayscaleMode: (ItemLista) -> Boolean = { false },
+    private val mostrarMenuEnDialog: Boolean = true
 ) : RecyclerView.Adapter<MediaAdapter.MediaViewHolder>() {
 
     private var edicion = false // estado del modo edicion
     private var modoEliminacion = false // estado del modo eliminacion
     private val seleccionados = mutableSetOf<String>() // lista de elementos para eliminar
-
 
 
     fun setModoEliminacion(activar: Boolean) {
@@ -147,10 +147,11 @@ open class MediaAdapter(
                     if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
 
                     // ABRIR el CuadroImagen nuevo: carrusel con la LISTA COMPLETA y empezando en 'pos'
-                    val fragmento = CuadroImagen.nuevaInstancia(
-                        listaCompleta = mediaList.toList(),
-                        posicionInicial = pos
-                    )
+                        val fragmento = CuadroImagen.nuevaInstancia(
+                            listaCompleta = mediaList.toList(),
+                            posicionInicial = pos,
+                            mostrarMenu = mostrarMenuEnDialog
+                        )
 
                     fragmento.listener = object : CuadroImagen.PalabraListener {
                         override fun reproducirPalabra(palabra: String) {
@@ -223,7 +224,8 @@ open class MediaAdapter(
                     // ABRIR el CuadroImagen nuevo: carrusel con la LISTA COMPLETA y empezando en 'pos'
                     val fragmento = CuadroImagen.nuevaInstancia(
                         listaCompleta = mediaList.toList(),
-                        posicionInicial = pos
+                        posicionInicial = pos,
+                        mostrarMenu = mostrarMenuEnDialog
                     )
 
                     fragmento.listener = object : CuadroImagen.PalabraListener {

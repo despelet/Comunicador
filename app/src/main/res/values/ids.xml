@@ -9,4 +9,8 @@
     <item name="nav_eliminar" type="id"/>
     <item name="nav_proteger" type="id"/>
     <item name="nav_nosotros" type="id"/>
+    <item name="btnAgregarElemento" type="id"/>
+    <item name="txtTitulo" type="id"/>
+    <item name="btnEliminarCategoria" type="id"/>
+    <item name="recyclerPictos" type="id"/>
 </resources>

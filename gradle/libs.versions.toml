@@ -32,6 +32,9 @@ recyclerview = "1.3.2"
 roomVersion = "2.6.1"
 ucrop = "2.2.8"
 zip4j = "2.9.0"
+flexbox = "3.0.0"
+
+
 
 [libraries]
 androidx-appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompatVersion" }
@@ -75,6 +78,8 @@ picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 ucrop = { module = "com.github.yalantis:ucrop", version.ref = "ucrop" }
 zip4j = { module = "net.lingala.zip4j:zip4j", version.ref = "zip4j" }
+flexbox = { group = "com.google.android.flexbox", name = "flexbox", version.ref = "flexbox" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -135,6 +135,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.material.v1110)
+    implementation(libs.flexbox)// Para usar FlexboxLayoutManager en RecyclerView
 
 }
 

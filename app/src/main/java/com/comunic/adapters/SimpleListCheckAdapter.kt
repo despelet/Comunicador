@@ -11,6 +11,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.comunic.R
 import com.comunic.data.entity.CategoryEntity
 
+
+// CLICKEAR LIsTAs
+
 class SimpleListCheckAdapter(
     private val items: List<CategoryEntity>,
     private val checked: BooleanArray

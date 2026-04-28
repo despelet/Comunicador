@@ -20,6 +20,7 @@
         android:layout_weight="1"
         android:textSize="14sp"
         android:paddingStart="8dp"
+        android:textAllCaps="true"
         android:maxLines="1"
         android:ellipsize="end"
         android:textColor="@color/color1" />

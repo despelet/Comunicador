@@ -19,6 +19,7 @@
             android:layout_height="wrap_content"
             android:text="Listas"
             android:textSize="22sp"
+            android:textAllCaps="true"
             android:textStyle="bold"
             android:textColor="@color/color1"
             android:padding="16dp" />
@@ -28,6 +29,7 @@
             android:id="@+id/recyclerCategorias"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:textAllCaps="true"
             android:layout_weight="1"
             android:clipToPadding="false"
             android:padding="12dp"

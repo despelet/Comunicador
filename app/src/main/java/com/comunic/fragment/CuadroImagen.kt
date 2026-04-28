@@ -115,22 +115,26 @@ class CuadroImagen : DialogFragment() {
 
         currentPos = posicionInicial
 
-        binding.btnMore.setOnClickListener { anchor ->
-            val popup = PopupMenu(requireContext(), anchor)
-            popup.menuInflater.inflate(R.menu.menu_cuadroimagen, popup.menu)
-
-            popup.setOnMenuItemClickListener { menuItem ->
-                when (menuItem.itemId) {
-                    R.id.action_add_to_list -> {
-                        val item = listaCompleta.getOrNull(currentPos) ?: return@setOnMenuItemClickListener true
-                        (activity as? MainActivity)?.pedirAgregarAListaDesdeCuadro(item)
-                        true
-                    }
-                    else -> false
-                }
-            }
-
-            popup.show()
+//        binding.btnMore.setOnClickListener { anchor ->
+//            val popup = PopupMenu(requireContext(), anchor)
+//            popup.menuInflater.inflate(R.menu.menu_cuadroimagen, popup.menu)
+//
+//            popup.setOnMenuItemClickListener { menuItem ->
+//                when (menuItem.itemId) {
+//                    R.id.action_add_to_list -> {
+//                        val item = listaCompleta.getOrNull(currentPos) ?: return@setOnMenuItemClickListener true
+//                        (activity as? MainActivity)?.pedirAgregarAListaDesdeCuadro(item)
+//                        true
+//                    }
+//                    else -> false
+//                }
+//            }
+//
+//            popup.show()
+//        }
+        binding.btnMore.setOnClickListener {
+            val item = listaCompleta.getOrNull(currentPos) ?: return@setOnClickListener
+            (activity as? MainActivity)?.pedirAgregarAListaDesdeCuadro(item)
         }
 
     }
@@ -257,19 +261,7 @@ class CuadroImagen : DialogFragment() {
             ?.obtenerSugerenciasSiguientes(item.uri)
             ?: emptyList()
 
-//        val sugerenciasAdapter = CarruselAdapter(
-//            sugerencias.map { it.uri },
-//            sugerencias.map { it.nombre },
-//            sugerencias.map { it.esImagen }
-//        ) { uriClick, nombreClick ->
-//            //listener.reproducirPalabra(nombreClick)
-//            listener?.reproducirPalabra(nombreClick)
-//            // Abrir nuevo cuadro en la posición de la sugerencia
-//            val pos = listaCompleta.indexOfFirst { it.uri == uriClick }
-//            val nuevoCuadro = nuevaInstancia(listaCompleta, if (pos != -1) pos else 0)
-//            nuevoCuadro.listener = listener
-//            nuevoCuadro.show(parentFragmentManager, "CuadroImagen")
-//        }
+
         val sugerenciasAdapter = CarruselAdapter(
             uris = sugerencias.map { it.uri },
             labels = sugerencias.map { it.nombre },

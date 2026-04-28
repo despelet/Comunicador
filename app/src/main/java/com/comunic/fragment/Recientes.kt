@@ -24,6 +24,7 @@ import android.webkit.MimeTypeMap
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.PopupMenu
@@ -840,57 +841,92 @@ class Recientes : Fragment(),
 //                .show()
 //        }
 //    }
-override fun mostrarDialogoAgregarAListas(item: ItemLista) {
+    override fun mostrarDialogoAgregarAListas(item: ItemLista) {
 
-    viewLifecycleOwner.lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
 
-        val categorias = withContext(Dispatchers.IO) {
-            db.categoryDao().getUserActive()
-        }
-
-        if (categorias.isEmpty()) {
-            Toast.makeText(requireContext(), "No hay listas. Creá una primero.", Toast.LENGTH_SHORT).show()
-            return@launch
-        }
-
-        val view = layoutInflater.inflate(R.layout.dialog_add_to_lists, null)
-
-        val recycler = view.findViewById<RecyclerView>(R.id.recyclerLists)
-        val btnAgregar = view.findViewById<MaterialButton>(R.id.btnConfirmar)
-        val btnNueva = view.findViewById<MaterialButton>(R.id.btnNuevaLista)
-
-        val checked = BooleanArray(categorias.size)
-
-        recycler.layoutManager = LinearLayoutManager(requireContext())
-        recycler.adapter = SimpleListCheckAdapter(
-            categorias,
-            checked
-        )
-
-        val dialog = AlertDialog.Builder(requireContext())
-            .setView(view)
-            .create()
-
-        btnNueva.setOnClickListener {
-            dialog.dismiss()
-            mostrarDialogoCrearListaYAgregar(item)
-        }
-
-        btnAgregar.setOnClickListener {
-            val seleccionadas = categorias.filterIndexed { i, _ -> checked[i] }
-
-            if (seleccionadas.isEmpty()) {
-                Toast.makeText(requireContext(), "Seleccioná al menos una lista", Toast.LENGTH_SHORT).show()
-            } else {
-                agregarItemAListas(item, seleccionadas.map { it.categoryId })
-                dialog.dismiss()
+            val categorias = withContext(Dispatchers.IO) {
+                db.categoryDao().getUserActive()
             }
-        }
 
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        dialog.show()
+            if (categorias.isEmpty()) {
+                Toast.makeText(requireContext(), "No hay listas. Creá una primero.", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            val view = layoutInflater.inflate(R.layout.dialog_add_to_lists, null)
+
+            val recycler = view.findViewById<RecyclerView>(R.id.recyclerLists)
+            val btnAgregar = view.findViewById<MaterialButton>(R.id.btnConfirmar)
+            val btnNueva = view.findViewById<MaterialButton>(R.id.btnNuevaLista)
+
+            val checked = BooleanArray(categorias.size)
+
+            val headerAgregar = view.findViewById<LinearLayout>(R.id.headerAgregar)
+            val contenidoAgregar = view.findViewById<LinearLayout>(R.id.contenidoAgregar)
+            val iconAgregar = view.findViewById<ImageView>(R.id.iconExpand)
+
+            val headerExtra = view.findViewById<LinearLayout>(R.id.headerExtra)
+            val contenidoExtra = view.findViewById<LinearLayout>(R.id.contenidoExtra)
+            val iconExtra = view.findViewById<ImageView>(R.id.iconExtra)
+
+            val contenidos = listOf(contenidoAgregar, contenidoExtra)
+            val iconos = listOf(iconAgregar, iconExtra)
+
+            // Estado inicial: abrir "Agregar"
+            contenidoAgregar.visibility = View.VISIBLE
+            iconAgregar.rotation = 180f
+
+            contenidoExtra.visibility = View.GONE
+            iconExtra.rotation = 0f
+
+            fun toggle(target: LinearLayout, icon: ImageView) {
+                val isOpen = target.visibility == View.VISIBLE
+
+                TransitionManager.beginDelayedTransition(view as ViewGroup)
+
+                target.visibility = if (isOpen) View.GONE else View.VISIBLE
+                icon.animate().rotation(if (isOpen) 0f else 180f).setDuration(200).start()
+            }
+
+            headerAgregar.setOnClickListener {
+                toggle(contenidoAgregar, iconAgregar)
+            }
+
+            headerExtra.setOnClickListener {
+                toggle(contenidoExtra, iconExtra)
+            }
+
+            recycler.layoutManager = LinearLayoutManager(requireContext())
+            recycler.adapter = SimpleListCheckAdapter(
+                categorias,
+                checked
+            )
+
+            val dialog = AlertDialog.Builder(requireContext())
+                .setView(view)
+                .create()
+
+            btnNueva.setOnClickListener {
+                dialog.dismiss()
+                mostrarDialogoCrearListaYAgregar(item)
+            }
+
+            btnAgregar.setOnClickListener {
+                val seleccionadas = categorias.filterIndexed { i, _ -> checked[i] }
+
+                if (seleccionadas.isEmpty()) {
+                    Toast.makeText(requireContext(), "Seleccioná al menos una lista", Toast.LENGTH_SHORT).show()
+                } else {
+                    agregarItemAListas(item, seleccionadas.map { it.categoryId })
+                    dialog.dismiss()
+                }
+            }
+
+            dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+            dialog.show()
+        }
     }
-}
 
     private fun mostrarDialogoCrearListaYAgregar(item: ItemLista) {
         val input = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {

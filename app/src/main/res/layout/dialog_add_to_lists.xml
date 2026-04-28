@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -7,43 +8,110 @@
     android:padding="12dp"
     android:background="@color/color5">
 
-    <TextView
-        android:id="@+id/title"
+    <!-- HEADER DESPLEGABLE -->
+    <LinearLayout
+        android:id="@+id/headerAgregar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Agregar a listas"
-        android:textColor="@color/color1"
-        android:textStyle="bold"
-        android:textSize="18sp"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerLists"
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="Agregar a listas"
+            android:textColor="@color/color1"
+            android:textStyle="bold"
+            android:textSize="16sp" android:layout_height="wrap_content"/>
+
+        <ImageView
+            android:id="@+id/iconExpand"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_expand_more"
+            app:tint="@color/color1"/>
+    </LinearLayout>
+
+    <!-- CONTENIDO DESPLEGABLE -->
+    <LinearLayout
+        android:id="@+id/contenidoAgregar"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_marginTop="8dp"/>
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerLists"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginTop="8dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNuevaLista"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="Crear nueva lista"
+                app:backgroundTint="@color/color1"
+                android:textColor="@color/color5"
+                android:layout_height="wrap_content"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnConfirmar"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                app:backgroundTint="@color/color5"
+                android:textColor="@color/color1"
+                android:text="Confirmar" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+    </LinearLayout>
+    <!-- ================= SEGUNDA SECCIÓN (EJEMPLO) ================= -->
+    <LinearLayout
+        android:id="@+id/headerExtra"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="Otras opciones"
+            android:textColor="@color/color1"
+            android:textStyle="bold"
+            android:textSize="16sp" android:layout_height="wrap_content"/>
+
+        <ImageView
+            android:id="@+id/iconExtra"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_expand_more"
+            app:tint="@color/color1"/>
+    </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/contenidoExtra"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:padding="8dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnNuevaLista"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+        <!-- vacío por ahora -->
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Crear nueva lista"
-            app:backgroundTint="@color/color5"
+            android:text="(Sección en construcción)"
             android:textColor="@color/color1"/>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnConfirmar"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Confirmar"
-            app:backgroundTint="@color/color1"
-            android:textColor="@color/color5"/>
     </LinearLayout>
 
 </LinearLayout>

@@ -86,6 +86,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/recientes"
                     android:textSize="12sp"
+                    android:textAllCaps="true"
                     android:textStyle="bold"
                     android:paddingBottom="4dp"/>
 
@@ -95,6 +96,7 @@
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false"
                     android:overScrollMode="never"
+                    android:textAllCaps="true"
                     android:layout_marginTop="4dp"/>
 
             </LinearLayout>
@@ -115,6 +117,7 @@
                     android:text="@string/Listas"
                     android:textSize="12sp"
                     android:textStyle="bold"
+                    android:textAllCaps="true"
                     android:paddingBottom="4dp"/>
 
                 <FrameLayout
@@ -133,6 +136,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/secci_n_en_desarrollo"
+                        android:textAllCaps="true"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:layout_gravity="center"

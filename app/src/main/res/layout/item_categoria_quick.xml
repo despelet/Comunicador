@@ -13,6 +13,7 @@
         android:layout_height="wrap_content"
         android:paddingHorizontal="14dp"
         android:paddingVertical="10dp"
+        android:textAllCaps="true"
         android:textStyle="bold"
         android:textSize="14sp"/>
 </com.google.android.material.card.MaterialCardView>

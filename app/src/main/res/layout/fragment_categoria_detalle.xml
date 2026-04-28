@@ -18,7 +18,8 @@
         android:textStyle="bold"
         android:textAlignment="center"
         android:padding="8dp"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="12dp"
+        android:textAllCaps="true"/>
 
     <!-- ACCIONES -->
     <LinearLayout
@@ -166,6 +167,7 @@
         android:id="@+id/recyclerPictos"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:textAllCaps="true"
         android:layout_weight="1"
         android:clipToPadding="false"/>
 

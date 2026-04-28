@@ -18,6 +18,7 @@
         android:maxLines="1"
         android:ellipsize="end"
         android:textColor="@color/color1"
+        android:textAllCaps="true"
         android:textSize="24sp"
         android:textStyle="bold"
         android:background="@color/color5"

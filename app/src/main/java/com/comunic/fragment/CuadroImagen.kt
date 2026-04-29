@@ -540,7 +540,7 @@ class CuadroImagen : DialogFragment() {
             ).apply {
 
                 text = cat.name
-                isAllCaps = false
+                isAllCaps = true
 
                 // ✅ COLOR TEXTO (FIX PRINCIPAL)
                 setTextColor(

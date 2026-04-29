@@ -20,8 +20,13 @@
     <color name="color5">#f0ead2</color>
     <color name="color6">#59ADC178</color>
     <color name="color7">#C2BDA9</color>
+
 <!--    color8: gris seleccion del menu-->
     <color name="color8">#D6D1B8</color>
+
     <color name="color_success">#5DC00F</color>
 
+    <!--    <color name="color1">#33004C</color>-->
+    <!--    <color name="color5">#FFFFFF</color>-->
+    <!--    <color name="color7">#B096BD</color>-->
 </resources>

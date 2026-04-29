@@ -45,7 +45,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="80dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/bicom2"
+                android:src="@drawable/bicom_logo2"
                 app:layout_constraintStart_toStartOf="parent"
                 android:layout_marginStart="0dp"
                 app:layout_constraintTop_toTopOf="parent"

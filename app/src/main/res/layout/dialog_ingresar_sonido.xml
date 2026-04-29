@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/color5">
+
+    <!-- TÍTULO -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sonido de la imagen"
+        android:textColor="@color/color1"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"
+        android:textSize="20sp"/>
+
+    <!-- PREVIEW -->
+    <ImageView
+        android:id="@+id/imagePreview"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:scaleType="centerCrop"
+        android:layout_marginBottom="12dp"/>
+
+
+
+    <!-- INPUT -->
+    <EditText
+        android:id="@+id/editNombre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Escribí la palabra de tu imagen"
+        android:textColor="@color/color1"
+        android:textColorHint="@color/color1"
+        android:backgroundTint="@color/color1"
+        android:layout_marginBottom="12dp"
+        android:textSize="16sp"/>
+
+    <!-- BOTONES -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelar"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="Cancelar"
+            android:textColor="@color/color1"
+            app:backgroundTint="@color/color5"
+            android:layout_height="wrap_content"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGuardar"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="Guardar"
+            android:textColor="@color/color5"
+            app:backgroundTint="@color/color1"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+</LinearLayout>

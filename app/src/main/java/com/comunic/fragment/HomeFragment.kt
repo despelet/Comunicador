@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -22,11 +23,13 @@ import android.webkit.MimeTypeMap
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -62,6 +65,9 @@ import com.comunic.MenuHandler
 import com.comunic.R
 import com.comunic.SpeechTextResolver
 import com.comunic.data.mappers.resolveItemKeyToItemLista
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
+import com.squareup.picasso.Picasso
 
 
 class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
@@ -439,7 +445,7 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     //para subir un archivo solo
     private fun openGallery() {
         val intent = Intent(Intent.ACTION_PICK).apply {
-            type = "image/* video/*" // imagenes o videos
+            type = "*/*" // imagenes o videos
             putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
         }
         startActivityForResult(intent, PICK_MEDIA_REQUEST)
@@ -530,21 +536,47 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        Log.d("FLOW", "requestCode=$requestCode resultCode=$resultCode data=$data")
 
         // devolucion para el ucrop
         if (requestCode == UCROP_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
-                val resultUri = UCrop.getOutput(data!!)
+                Log.d("FLOW", "Entró en RESULT_OK ucrop")
+               // val resultUri = UCrop.getOutput(data!!)
+//                if (resultUri != null) {
+//                    ingresarNombreArchivo(resultUri, true)
+//                }
+                val resultUri = data?.let { UCrop.getOutput(it) }
                 if (resultUri != null) {
-                    ingresarNombreArchivo(resultUri, true)
-                } else {
+                    view?.post {
+                        if (!isAdded || activity == null || requireActivity().isFinishing) {
+                            Log.d("DIALOG", "Fragment no listo, no se muestra dialog")
+                            return@post
+                        }
+                        ingresarNombreArchivo(resultUri, true)
+                    }
+                }else {
                     Toast.makeText(requireContext(), "Error al recortar la imagen. Usando imagen original.", Toast.LENGTH_SHORT).show()
-                    lastCapturedUri?.let { ingresarNombreArchivo(it, true) }
+                    //lastCapturedUri?.let { ingresarNombreArchivo(it, true) }
+                    lastCapturedUri?.let {
+                        view?.post {
+                            if (isAdded) {
+                                ingresarNombreArchivo(it, true)
+                            }
+                        }
+                    }
                 }
             } else {
                 // Si el usuario canceló el crop, usamos la imagen original
+//                lastCapturedUri?.let {
+//                    ingresarNombreArchivo(it, true)
+//                }
                 lastCapturedUri?.let {
-                    ingresarNombreArchivo(it, true)
+                    view?.post {
+                        if (isAdded) {
+                            ingresarNombreArchivo(it, true)
+                        }
+                    }
                 }
             }
             return
@@ -552,12 +584,14 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 
         // devolicon para la captura de imagen o video
         if (resultCode == RESULT_OK) {
+            Log.d("FLOW", "Entró en RESULT_OK")
             val mediaUri = when (requestCode) {
                 PICK_MEDIA_REQUEST -> data?.data
                 CAPTURE_IMAGE_REQUEST -> lastCapturedUri
                 CAPTURE_VIDEO_REQUEST -> lastCapturedUri
                 else -> null
             }
+            Log.d("FLOW", "mediaUri=$mediaUri")
 
             if (mediaUri != null) {
                 val mimeType = requireContext().contentResolver.getType(mediaUri)
@@ -571,7 +605,13 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
                         }
                     } else if (mimeType.startsWith("video/")) {
                         Log.d("CapturedMedia", "Video capturado URI: $mediaUri")
-                        ingresarNombreArchivo(mediaUri, false)
+                        view?.post {
+                            if (!isAdded || activity == null || requireActivity().isFinishing) {
+                                Log.d("DIALOG", "Fragment no listo (video)")
+                                return@post
+                            }
+                            ingresarNombreArchivo(mediaUri, false)
+                        }
                     }
                 }
             } else {
@@ -587,28 +627,127 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     }
 
 
+//    private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
+//        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
+//        val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
+//        AlertDialog.Builder(requireContext(),
+//            R.style.ThemeOverlay_Comunic_AlertDialog
+//        )
+//            .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
+//            .setView(dialogView)
+//            .setPositiveButton("OK") { _, _ ->
+//                val nombreArchivo = nameEditText.text.toString()
+//                if (mediaUri != null && nombreArchivo.isNotBlank()) {
+//                    guardarArchivo(mediaUri, nombreArchivo, isImage)
+//
+//                } else {
+//                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT)
+//                        .show()
+//                }
+//            }
+//            .setNegativeButton("Cancelar", null)
+//            .show()
+//    }
     private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
-        val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
-        AlertDialog.Builder(requireContext(),
+    Log.d("DIALOG_FLOW", "Intentando mostrar dialog desde: ${this::class.java.simpleName}")
+        if (!isAdded || activity == null || requireActivity().isFinishing) {
+            Log.e("DIALOG", "Fragment no está activo, no se puede mostrar dialog")
+            return
+        }
+        Log.d("TEST", "Se llamó ingresarNombreArchivo")
+
+        val view = layoutInflater.inflate(R.layout.dialog_ingresar_sonido, null)
+
+        val imagePreview = view.findViewById<ImageView>(R.id.imagePreview)
+        val editNombre = view.findViewById<EditText>(R.id.editNombre)
+        val btnGuardar = view.findViewById<MaterialButton>(R.id.btnGuardar)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+
+        // Preview
+        if (mediaUri != null) {
+            Picasso.get().load(mediaUri).into(imagePreview)
+        }
+    Log.d("DIALOG", "Mostrando dialog ingresarNombreArchivo")
+        val dialog = AlertDialog.Builder(
+            requireContext(),
             R.style.ThemeOverlay_Comunic_AlertDialog
         )
-            .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
-            .setView(dialogView)
-            .setPositiveButton("OK") { _, _ ->
-                val nombreArchivo = nameEditText.text.toString()
-                if (mediaUri != null && nombreArchivo.isNotBlank()) {
-                    guardarArchivo(mediaUri, nombreArchivo, isImage)
+            .setView(view)
+            .create()
 
-                } else {
-                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT)
-                        .show()
-                }
+        /*btnGuardar.setOnClickListener {
+            val nombre = editNombre.text.toString().trim()
+
+            if (mediaUri != null && nombre.isNotEmpty()) {
+                guardarArchivo(mediaUri, nombre, isImage)
+                dialog.dismiss()
+            } else {
+                editNombre.error = "Ingresá un nombre"
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        }*/
+        btnGuardar.setOnClickListener {
+            val nombre = editNombre.text.toString().trim()
+
+            if (mediaUri != null && nombre.isNotEmpty()) {
+
+                val exito = guardarArchivo(mediaUri, nombre, isImage)
+
+                dialog.dismiss()
+
+                if (exito) {
+                    mostrarSnackbar(
+                        if (isImage) "Tu imagen se guardó con éxito" else "Tu video se guardó con éxito",
+                        true
+                    )
+                } else {
+                    mostrarSnackbar("Error al guardar", false)
+                }
+
+            } else {
+                editNombre.error = "Ingresá un nombre"
+            }
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+//        dialog.window?.setBackgroundDrawable(
+//            ColorDrawable(android.graphics.Color.TRANSPARENT)
+//        )
+    dialog.setCancelable(false)
     }
 
+
+    private fun mostrarSnackbar(mensaje: String, esExito: Boolean) {
+
+//        val snackbar = Snackbar
+//            .make(requireActivity().findViewById(android.R.id.content), mensaje, Snackbar.LENGTH_SHORT)
+//            .setAnchorView(R.id.bottom_nav)
+
+        val rootView = requireActivity().findViewById<View>(android.R.id.content)
+
+        val snackbar = Snackbar
+            .make(rootView, mensaje, Snackbar.LENGTH_SHORT)
+//            .setAnchorView(R.id.bottom_nav)
+
+        val color = if (esExito) {
+            ContextCompat.getColor(requireContext(), R.color.color3)
+        } else {
+            ContextCompat.getColor(requireContext(), com.google.android.material.R.color.design_default_color_error)
+        }
+
+        snackbar.setBackgroundTint(color)
+        snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+        snackbar.show()
+    }
+
+    /*
 //    private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
 //        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
 //        val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
@@ -643,26 +782,21 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 //                ).show()
 //            }
 //        }
-//    }
+//    }*/
 
 
-    private fun guardarArchivo(mediaUri: Uri, nombre: String, esImagen: Boolean) {
-        /* si quiero que el nombre contecta el timestamp
-        val timestamp = System.currentTimeMillis()
-        val nombreConTimestamp = "$(nombre)_$timestamp" */
+    private fun guardarArchivo(mediaUri: Uri, nombre: String, esImagen: Boolean): Boolean {
 
-//        val savedUri = guardarEnAlmacenamiento(mediaUri, nombreConTimestamp, esImagen)
         val savedUri = guardarEnAlmacenamientoInterno(requireContext(), mediaUri, nombre, esImagen)
+
         if (savedUri != null) {
-            // Eliminar el elemento antiguo
+
             val index = listaDeArchivos.indexOfFirst { it.nombre == nombre }
             if (index != -1) {
                 listaDeArchivos.removeAt(index)
                 mediaAdapter.notifyItemRemoved(index)
             }
-            // Agregar la imagen o video a la lista y guardarla
-            //listaDeArchivos.add(Triple(nombre, savedUri, esImagen))
-          //  listaDeArchivos.add(ItemLista(nombre, savedUri, esImagen, System.currentTimeMillis()))
+
             listaDeArchivos.add(
                 ItemLista(
                     id = nombre,
@@ -675,25 +809,11 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 
             saveMediaData(nombre, savedUri, esImagen)
             mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
-            Toast.makeText( requireContext(),
-                if (esImagen) "Imagen guardada como $nombre" else "Video guardado como $nombre",
-                Toast.LENGTH_SHORT
-            ).show()
 
-            /*// 📤 **Subir a Google Drive**
-            val mimeType = if (esImagen) "image/jpeg" else "video/mp4"
-            driveServiceHelper.uploadFile(savedUri, nombre, mimeType)
-                .addOnSuccessListener { fileId ->
-                    Log.d("GoogleDrive", "Archivo subido con éxito. ID: $fileId")
-                }
-                .addOnFailureListener { e ->
-                    Log.e("GoogleDrive", "Error al subir archivo: ${e.message}")
-                }
-
-        } else {
-            Toast.makeText(this, "Error al guardar", Toast.LENGTH_SHORT).show()
-        } */
+            return true
         }
+
+        return false
     }
 
     private fun guardarEnAlmacenamientoInterno(

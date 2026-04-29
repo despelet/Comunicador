@@ -27,13 +27,20 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageView
 import androidx.core.content.ContextCompat
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_VIDEO_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.PICK_MEDIA_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.UCROP_REQUEST_CODE
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
+import com.squareup.picasso.Picasso
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import java.io.File
@@ -379,26 +386,96 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
     }
 
-    private fun ingresarNombreArchivo(uri: Uri, esImagen: Boolean) {
+//    private fun ingresarNombreArchivo(uri: Uri, esImagen: Boolean) {
+//
+//        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
+//        val input = dialogView.findViewById<EditText>(R.id.nameEditText)
+//        Log.d("TEST", "Se llamó ingresarNombreArchivo")
+//
+//        AlertDialog.Builder(this)
+//            .setTitle(if (esImagen) "Sonido de la imagen" else "Sonido del video")
+//            .setView(dialogView)
+//            .setPositiveButton("OK") { _, _ ->
+//
+//                val nombre = input.text.toString().trim()
+//                if (nombre.isEmpty()) {
+//                    Toast.makeText(this, "Nombre vacío", Toast.LENGTH_SHORT).show()
+//                    return@setPositiveButton
+//                }
+//
+//                guardarArchivo(uri, nombre, esImagen)
+//            }
+//            .setNegativeButton("Cancelar", null)
+//            .show()
+//    }
+    private fun ingresarNombreArchivo(mediaUri: Uri, isImage: Boolean) {
 
-        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
-        val input = dialogView.findViewById<EditText>(R.id.nameEditText)
+        Log.d("DIALOG_FLOW", "Mostrando dialog desde MainActivity")
 
-        AlertDialog.Builder(this)
-            .setTitle(if (esImagen) "Sonido de la imagen" else "Sonido del video")
-            .setView(dialogView)
-            .setPositiveButton("OK") { _, _ ->
+        val view = layoutInflater.inflate(R.layout.dialog_ingresar_sonido, null)
 
-                val nombre = input.text.toString().trim()
-                if (nombre.isEmpty()) {
-                    Toast.makeText(this, "Nombre vacío", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
+        val imagePreview = view.findViewById<ImageView>(R.id.imagePreview)
+        val editNombre = view.findViewById<EditText>(R.id.editNombre)
+        val btnGuardar = view.findViewById<MaterialButton>(R.id.btnGuardar)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
 
-                guardarArchivo(uri, nombre, esImagen)
+        // Preview
+        Picasso.get().load(mediaUri).into(imagePreview)
+
+        val dialog = AlertDialog.Builder(
+            this,
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setView(view)
+            .create()
+
+        btnGuardar.setOnClickListener {
+            val nombre = editNombre.text.toString().trim()
+
+            if (nombre.isNotEmpty()) {
+
+                guardarArchivo(mediaUri, nombre, isImage)
+                dialog.dismiss()
+
+                mostrarSnackbar(
+                    if (isImage) "Tu imagen se guardó con éxito" else "Tu video se guardó con éxito",
+                    true
+                )
+
+            } else {
+                editNombre.error = "Ingresá un nombre"
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        dialog.setCancelable(false)
+    }
+    private fun mostrarSnackbar(mensaje: String, esExito: Boolean) {
+
+        val rootView = findViewById<View>(android.R.id.content)
+
+        val snackbar = Snackbar
+            .make(rootView, mensaje, Snackbar.LENGTH_SHORT)
+
+        val color = if (esExito) {
+            ContextCompat.getColor(this, R.color.color_success)
+        } else {
+            ContextCompat.getColor(this, com.google.android.material.R.color.design_default_color_error)
+        }
+
+        snackbar.setBackgroundTint(color)
+        snackbar.setTextColor(ContextCompat.getColor(this, android.R.color.white))
+        snackbar.show()
     }
 
 

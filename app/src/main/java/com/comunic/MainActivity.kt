@@ -201,7 +201,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
 
         menuItem.isChecked = false // desmarcar el ítem seleccionado
-        drawerLayout.closeDrawer(GravityCompat.END) // Cierra el menú después de seleccionar un ítem
+        //drawerLayout.closeDrawer(GravityCompat.END) // Cierra el menú después de seleccionar un ítem
+        drawerLayout.closeDrawer(GravityCompat.START) // Cierra el menú después de seleccionar un ítem desde izq
         return false
     }
 

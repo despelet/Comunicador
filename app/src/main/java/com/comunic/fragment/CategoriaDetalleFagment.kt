@@ -3,10 +3,15 @@ package com.comunic.fragment
 
 
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.text.InputType
 import android.util.Log
 import android.view.ActionMode
@@ -53,6 +58,8 @@ class CategoriaDetalleFragment :
 
     private lateinit var tts: TextToSpeech
     private var ttsReady = false
+    private lateinit var audioManager: AudioManager
+    private var volumenOriginal = -1
 
     private lateinit var db: AppDatabase
     private lateinit var mediaAdapter: MediaAdapter
@@ -145,6 +152,9 @@ class CategoriaDetalleFragment :
         super.onViewCreated(view, savedInstanceState)
 
         tts = TextToSpeech(requireContext(), this)
+        audioManager =
+            requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
         db = AppDatabase.getDatabase(requireContext())
 
         categoryId = requireArguments().getString("categoryId")!!
@@ -226,9 +236,55 @@ class CategoriaDetalleFragment :
     }
 
     override fun onInit(status: Int) {
+
         if (status == TextToSpeech.SUCCESS) {
-            val res = tts.setLanguage(Locale("es","AR"))
-            ttsReady = (res != TextToSpeech.LANG_MISSING_DATA && res != TextToSpeech.LANG_NOT_SUPPORTED)
+
+            val idioma = tts.setLanguage(Locale("es", "AR"))
+
+            if (
+                idioma == TextToSpeech.LANG_MISSING_DATA ||
+                idioma == TextToSpeech.LANG_NOT_SUPPORTED
+            ) {
+                Log.e("TextToSpeech", "Error con el idioma")
+            } else {
+                ttsReady = true
+            }
+
+            tts.setOnUtteranceProgressListener(
+                object : UtteranceProgressListener() {
+
+                    override fun onStart(utteranceId: String?) {
+                    }
+
+                    override fun onDone(utteranceId: String?) {
+
+                        Handler(Looper.getMainLooper()).post {
+
+                            try {
+
+                                if (volumenOriginal >= 0) {
+
+                                    audioManager.setStreamVolume(
+                                        AudioManager.STREAM_MUSIC,
+                                        volumenOriginal,
+                                        0
+                                    )
+                                }
+
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+
+                    override fun onError(utteranceId: String?) {
+                    }
+                }
+            )
+
+        } else {
+
+            Log.e("TextToSpeech", "Error al inicializar")
         }
     }
 
@@ -303,13 +359,58 @@ class CategoriaDetalleFragment :
     }
 
     private fun reproducirAudioPorItemKey(itemKeyOrId: String) {
+
         if (!ttsReady) return
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+
             val texto = SpeechTextResolver.resolve(db, itemKeyOrId)
 
             withContext(Dispatchers.Main) {
-                tts.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
+
+                try {
+
+                    // Guardar volumen actual solo si no estaba hablando
+                    if (!tts.isSpeaking) {
+
+                        volumenOriginal = audioManager.getStreamVolume(
+                            AudioManager.STREAM_MUSIC
+                        )
+                    }
+
+                    // Desmutear multimedia
+                    audioManager.adjustStreamVolume(
+                        AudioManager.STREAM_MUSIC,
+                        AudioManager.ADJUST_UNMUTE,
+                        0
+                    )
+
+                    // Volumen máximo
+                    val maxVolumen = audioManager.getStreamMaxVolume(
+                        AudioManager.STREAM_MUSIC
+                    )
+
+                    audioManager.setStreamVolume(
+                        AudioManager.STREAM_MUSIC,
+                        maxVolumen,
+                        0
+                    )
+
+                    // pequeño delay
+                    Handler(Looper.getMainLooper()).postDelayed({
+
+                        tts.speak(
+                            texto,
+                            TextToSpeech.QUEUE_FLUSH,
+                            null,
+                            "BICOM_TTS"
+                        )
+
+                    }, 80)
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }

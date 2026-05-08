@@ -8,12 +8,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.text.InputType
 import android.transition.TransitionManager
 import android.util.Log
@@ -97,6 +101,8 @@ class Recientes : Fragment(),
     private lateinit var mediaAdapter: MediaAdapter
     private val listaDeArchivos: MutableList<ItemLista> = mutableListOf()
     lateinit var escucharPalabra: TextToSpeech
+    private lateinit var audioManager: AudioManager
+    private var volumenOriginal = -1
     //private lateinit var googleSignInClient: GoogleSignInClient
     //private lateinit var driveServiceHelper: DriveServiceHelper
     private lateinit var selectionPanel: LinearLayout
@@ -124,6 +130,8 @@ class Recientes : Fragment(),
 //        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { nombre ->
 //            audio(nombre)
 //        }
+        escucharPalabra = TextToSpeech(requireContext(), this)
+        audioManager = requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
         escucharPalabra = TextToSpeech(requireContext(), this)
 
 
@@ -244,21 +252,109 @@ class Recientes : Fragment(),
 
 
     override fun onInit(status: Int) {
+
         if (status == TextToSpeech.SUCCESS) {
+
             val idioma = escucharPalabra.setLanguage(Locale("es","AR"))
-            if (idioma == TextToSpeech.LANG_MISSING_DATA || idioma == TextToSpeech.LANG_NOT_SUPPORTED)
+
+            if (idioma == TextToSpeech.LANG_MISSING_DATA ||
+                idioma == TextToSpeech.LANG_NOT_SUPPORTED
+            ) {
                 Log.e("TextToSpeech", "Error con el idioma")
-        } else { Log.e("TextToSpeech", "Error al inicializar") }
+            }
+
+            escucharPalabra.setOnUtteranceProgressListener(
+                object : UtteranceProgressListener() {
+
+                    override fun onStart(utteranceId: String?) {
+                    }
+
+                    override fun onDone(utteranceId: String?) {
+
+                        Handler(Looper.getMainLooper()).post {
+
+                            try {
+
+                                if (volumenOriginal >= 0) {
+
+                                    audioManager.setStreamVolume(
+                                        AudioManager.STREAM_MUSIC,
+                                        volumenOriginal,
+                                        0
+                                    )
+                                }
+
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+
+                    override fun onError(utteranceId: String?) {
+                    }
+                }
+            )
+
+        } else {
+
+            Log.e("TextToSpeech", "Error al inicializar")
+        }
     }
 
     private fun audio(itemKeyOrId: String) {
+
         if (!::escucharPalabra.isInitialized) return
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+
             val texto = SpeechTextResolver.resolve(db, itemKeyOrId)
 
             withContext(Dispatchers.Main) {
-                escucharPalabra.speak(texto, TextToSpeech.QUEUE_FLUSH, null, null)
+
+                try {
+
+                    // Guardar volumen actual SOLO si no estaba hablando
+                    if (!escucharPalabra.isSpeaking) {
+
+                        volumenOriginal = audioManager.getStreamVolume(
+                            AudioManager.STREAM_MUSIC
+                        )
+                    }
+
+                    // Desmutear multimedia
+                    audioManager.adjustStreamVolume(
+                        AudioManager.STREAM_MUSIC,
+                        AudioManager.ADJUST_UNMUTE,
+                        0
+                    )
+
+                    // Volumen máximo
+                    val maxVolumen = audioManager.getStreamMaxVolume(
+                        AudioManager.STREAM_MUSIC
+                    )
+
+                    // Subir volumen
+                    audioManager.setStreamVolume(
+                        AudioManager.STREAM_MUSIC,
+                        maxVolumen,
+                        0
+                    )
+
+                    // Pequeño delay para asegurar aplicación
+                    Handler(Looper.getMainLooper()).postDelayed({
+
+                        escucharPalabra.speak(
+                            texto,
+                            TextToSpeech.QUEUE_FLUSH,
+                            null,
+                            "BICOM_TTS"
+                        )
+
+                    }, 80)
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }

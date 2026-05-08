@@ -76,8 +76,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         drawerLayout = findViewById(R.id.drawer_layout) // inicializacion del drawer layout y navigation view
         navigationView = findViewById(R.id.navigation_view) // inicializacion del drawer layout y navigation view
         navigationView.setNavigationItemSelectedListener(this) // Configurar NavigationView y su listener
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, GravityCompat.START)
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, GravityCompat.END)
+//        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, GravityCompat.START)
+//        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, GravityCompat.END)
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, GravityCompat.END)
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, GravityCompat.START)
 
         // BARRA INFERIOR
         bottomNav = findViewById(R.id.bottom_nav)
@@ -85,7 +87,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         val menuButton: ImageButton = findViewById(R.id.menu)
         menuButton.setOnClickListener {                     // Abrir el menú lateral al presionar el botón
-            drawerLayout.openDrawer(GravityCompat.END)        }
+            drawerLayout.openDrawer(GravityCompat.START)        }
 
         // Listener para la barra inferior
         setupBottomNav()

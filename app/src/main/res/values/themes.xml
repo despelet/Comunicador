@@ -8,6 +8,18 @@
         <item name="colorPrimary">@color/color1</item>
     </style>
 
+    <style name="Theme.Comunic.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="colorPrimary">@color/color1</item>
+        <item name="android:statusBarColor">@color/color5</item>
+        <item name="windowSplashScreenAnimatedIcon">
+            @drawable/bicom_logo2
+        </item>
+
+        <item name="postSplashScreenTheme">
+            @style/Theme.Comunic
+        </item>
+    </style>
 </resources>
 
 

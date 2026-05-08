@@ -47,6 +47,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -62,6 +63,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     var pendingCategoryId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 

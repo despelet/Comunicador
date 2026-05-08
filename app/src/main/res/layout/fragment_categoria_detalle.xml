@@ -112,12 +112,25 @@
             android:minWidth="40dp"
             android:minHeight="40dp"
             android:layout_marginStart="8dp"
-            android:background="@android:color/transparent"
+            android:background="@color/color5"
             android:contentDescription="Eliminar lista"
             android:src="@android:drawable/ic_menu_delete"
             app:tint="@color/color1" />
 
     </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnHabilitarPack"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="HABILITAR"
+        android:textStyle="bold"
+        android:visibility="gone"
+        android:minHeight="56dp"
+        app:cornerRadius="16dp"
+        android:backgroundTint="@color/color5"
+        android:textColor="@color/color1"/>
 
     <!-- PANEL DE SELECCIÓN -->
     <LinearLayout
@@ -173,166 +186,3 @@
 
 </LinearLayout>
 
-<!--<?xml version="1.0" encoding="utf-8"?>-->
-<!--<LinearLayout-->
-<!--    xmlns:android="http://schemas.android.com/apk/res/android"-->
-<!--    xmlns:app="http://schemas.android.com/apk/res-auto"-->
-<!--    android:layout_width="match_parent"-->
-<!--    android:layout_height="match_parent"-->
-<!--    android:orientation="vertical"-->
-<!--    android:background="@color/color5"-->
-<!--    android:padding="12dp">-->
-
-<!--    &lt;!&ndash; TÍTULO DE LA CATEGORÍA &ndash;&gt;-->
-<!--    <TextView-->
-<!--        android:id="@+id/txtTitulo"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:text="Categoría"-->
-<!--        android:background="@color/color5"-->
-<!--        android:textSize="22sp"-->
-<!--        android:textStyle="bold"-->
-<!--        android:textAlignment="center"-->
-<!--        android:padding="8dp"-->
-<!--        android:layout_marginBottom="12dp" />-->
-
-<!--    &lt;!&ndash; LISTA / GRILLA DE PICTOGRAMAS &ndash;&gt;-->
-
-<!--    &lt;!&ndash; ACCIONES &ndash;&gt;-->
-<!--    <LinearLayout-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:orientation="horizontal"-->
-<!--        android:gravity="center_vertical"-->
-<!--        android:layout_marginBottom="8dp">-->
-
-<!--        &lt;!&ndash; 🔹 GRUPO IZQUIERDO &ndash;&gt;-->
-<!--        <LinearLayout-->
-<!--            android:layout_width="wrap_content"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:orientation="horizontal"-->
-<!--            android:gravity="start|center_vertical">-->
-
-<!--            &lt;!&ndash; AGREGAR &ndash;&gt;-->
-<!--            <com.google.android.material.button.MaterialButton-->
-<!--                android:id="@+id/btnAgregarElemento"-->
-<!--                style="@style/Widget.MaterialComponents.Button.OutlinedButton"-->
-<!--                android:layout_width="56dp"-->
-<!--                android:layout_height="56dp"-->
-<!--                app:icon="@android:drawable/ic_input_add"-->
-<!--                app:iconSize="32dp"-->
-<!--                app:iconPadding="10dp"-->
-<!--                app:iconTint="@color/color1"-->
-<!--                app:strokeColor="@color/color5" />-->
-
-
-<!--            <Space android:layout_width="8dp" android:layout_height="1dp" />-->
-
-<!--            &lt;!&ndash; CAMARA &ndash;&gt;-->
-<!--            <com.google.android.material.button.MaterialButton-->
-<!--                android:id="@+id/btnCamera"-->
-<!--                style="@style/Widget.MaterialComponents.Button.OutlinedButton"-->
-<!--                android:layout_width="56dp"-->
-<!--                android:layout_height="56dp"-->
-<!--                app:icon="@drawable/ic_camera"-->
-<!--                app:iconSize="32dp"-->
-<!--                app:iconPadding="10dp"-->
-<!--                app:iconTint="@color/color1"-->
-<!--                app:strokeColor="@color/color5" />-->
-
-<!--            <Space android:layout_width="8dp" android:layout_height="1dp" />-->
-
-<!--            &lt;!&ndash; VIDEO &ndash;&gt;-->
-<!--            <com.google.android.material.button.MaterialButton-->
-<!--                android:id="@+id/btnVideo"-->
-<!--                style="@style/Widget.MaterialComponents.Button.OutlinedButton"-->
-<!--                android:layout_width="56dp"-->
-<!--                android:layout_height="56dp"-->
-<!--                app:icon="@drawable/ic_videocam"-->
-<!--                app:iconSize="32dp"-->
-<!--                app:iconPadding="10dp"-->
-<!--                app:iconTint="@color/color1"-->
-<!--                app:strokeColor="@color/color5" />-->
-
-<!--            <Space android:layout_width="8dp" android:layout_height="1dp" />-->
-
-<!--            &lt;!&ndash; GALERIA &ndash;&gt;-->
-<!--            <com.google.android.material.button.MaterialButton-->
-<!--                android:id="@+id/btnGallery"-->
-<!--                style="@style/Widget.MaterialComponents.Button.OutlinedButton"-->
-<!--                android:layout_width="56dp"-->
-<!--                android:layout_height="56dp"-->
-<!--                app:icon="@drawable/ic_gallery"-->
-<!--                app:iconSize="32dp"-->
-<!--                app:iconPadding="10dp"-->
-<!--                app:iconTint="@color/color1"-->
-<!--                app:strokeColor="@color/color5" />-->
-
-<!--        </LinearLayout>-->
-
-<!--        &lt;!&ndash; 🔹 EMPUJA EL BOTÓN A LA DERECHA &ndash;&gt;-->
-<!--        <Space-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="1dp"-->
-<!--            android:layout_weight="1" />-->
-
-<!--        &lt;!&ndash; 🔴 BOTÓN ELIMINAR (más chico) &ndash;&gt;-->
-<!--        <ImageButton-->
-<!--            android:id="@+id/btnEliminarCategoria"-->
-<!--            android:layout_width="35dp"-->
-<!--            android:layout_height="35dp"-->
-<!--            android:background="@android:color/transparent"-->
-<!--            android:contentDescription="Eliminar lista"-->
-<!--            android:src="@android:drawable/ic_menu_delete"-->
-<!--            app:tint="@color/color1" />-->
-
-<!--    </LinearLayout>-->
-
-
-<!--    <LinearLayout-->
-<!--        android:id="@+id/selectionPanel"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:orientation="horizontal"-->
-<!--        android:background="@color/color5"-->
-<!--        android:padding="8dp"-->
-<!--        android:gravity="center_vertical"-->
-<!--        android:visibility="gone"-->
-<!--        android:layout_marginBottom="8dp">-->
-
-<!--        <Button-->
-<!--            android:id="@+id/cancelSelectionButton"-->
-<!--            android:layout_width="45dp"-->
-<!--            android:layout_height="45dp"-->
-<!--            android:drawableBottom="@android:drawable/ic_menu_revert"-->
-<!--            android:layout_marginEnd="8dp"-->
-<!--            android:backgroundTint="@color/color5"-->
-<!--            android:textColor="@android:color/white" />-->
-
-<!--        <TextView-->
-<!--            android:id="@+id/selectionCountText"-->
-<!--            android:layout_width="0dp"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:layout_weight="1"-->
-<!--            android:text="0 elementos seleccionados"-->
-<!--            android:textColor="@android:color/black" />-->
-
-<!--        <Button-->
-<!--            android:id="@+id/deleteSelectedButton"-->
-<!--            android:layout_width="wrap_content"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:text="Quitar"-->
-<!--            android:backgroundTint="@android:color/holo_red_dark"-->
-<!--            android:textColor="@android:color/white" />-->
-<!--    </LinearLayout>-->
-
-<!--    <androidx.recyclerview.widget.RecyclerView-->
-<!--        android:id="@+id/recyclerPictos"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="0dp"-->
-<!--        android:layout_weight="1"-->
-<!--        android:background="@color/color5"-->
-<!--        android:clipToPadding="false"/>-->
-
-
-<!--</LinearLayout>-->

@@ -197,17 +197,14 @@ class CategoriaDetalleFragment :
         // ✅ Config Recycler + adapter (tu código)
         binding.recyclerPictos.layoutManager = GridLayoutManager(requireContext(), 3)
 
-//        mediaAdapter = MediaAdapter(
-//            mediaList = listaDeArchivos,
-//            eliminar = { itemKey -> eliminarDeCategoria(categoryId, itemKey) },
-//            palabraAudio = { itemKey -> reproducirAudioPorItemKey(itemKey) }
-//        )
+
         mediaAdapter = MediaAdapter(
             mediaList = listaDeArchivos,
             eliminar = { itemKey -> eliminarDeCategoria(categoryId, itemKey) },
             palabraAudio = { itemKey -> reproducirAudioPorItemKey(itemKey) },
             grayscaleMode = { previewEnabled },
-            mostrarMenuEnDialog = false   // desactiva botone de 3 puntos y acciones asociadas (porque no queremos eliminar ni editar desde ahí en este caso
+            mostrarMenuEnDialog = false ,  // desactiva botone de 3 puntos y acciones asociadas (porque no queremos eliminar ni editar desde ahí en este caso
+            bloquearClicks = { previewEnabled }
         )
 
         mediaAdapter.eliminarSeleccionListener = object : MediaAdapter.OnEliminarSeleccionListener {
@@ -591,21 +588,52 @@ class CategoriaDetalleFragment :
         }
     }
 
-    private fun configurarBotonSegunEstado() {
+//    private fun configurarBotonSegunEstado() {
+//
+//        val habilitado = !(isSystemCategory && !isPackEnabled)
+//
+//        binding.btnAgregarElemento.isEnabled = habilitado
+//        binding.btnCamera.isEnabled = habilitado
+//        binding.btnVideo.isEnabled = habilitado
+//        binding.btnGallery.isEnabled = habilitado
+//
+//        if (!habilitado) {
+//            binding.btnAgregarElemento.setOnClickListener {
+//                habilitarPack(packId)
+//            }
+//        }
+//    }
+private fun configurarBotonSegunEstado() {
 
-        val habilitado = !(isSystemCategory && !isPackEnabled)
+    val habilitado = !(isSystemCategory && !isPackEnabled)
 
-        binding.btnAgregarElemento.isEnabled = habilitado
-        binding.btnCamera.isEnabled = habilitado
-        binding.btnVideo.isEnabled = habilitado
-        binding.btnGallery.isEnabled = habilitado
+    if (habilitado) {
 
-        if (!habilitado) {
-            binding.btnAgregarElemento.setOnClickListener {
-                habilitarPack(packId)
-            }
+        // mostrar botones normales
+        binding.btnAgregarElemento.visibility = View.VISIBLE
+        binding.btnCamera.visibility = View.VISIBLE
+        binding.btnVideo.visibility = View.VISIBLE
+        binding.btnGallery.visibility = View.VISIBLE
+
+        // ocultar botón habilitar
+        binding.btnHabilitarPack.visibility = View.GONE
+
+    } else {
+
+        // ocultar botones normales
+        binding.btnAgregarElemento.visibility = View.GONE
+        binding.btnCamera.visibility = View.GONE
+        binding.btnVideo.visibility = View.GONE
+        binding.btnGallery.visibility = View.GONE
+
+        // mostrar habilitar
+        binding.btnHabilitarPack.visibility = View.VISIBLE
+
+        binding.btnHabilitarPack.setOnClickListener {
+            habilitarPack(packId)
         }
     }
+}
 
     private fun habilitarPack(packId: String) {
         if (packId.isBlank()) return

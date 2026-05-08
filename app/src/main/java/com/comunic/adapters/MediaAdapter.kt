@@ -36,7 +36,8 @@ open class MediaAdapter(
     private val palabraAudio: (String) -> Unit,
     private val onLongClick: ((ItemLista) -> Unit)? = null,
     private val grayscaleMode: (ItemLista) -> Boolean = { false },
-    private val mostrarMenuEnDialog: Boolean = true
+    private val mostrarMenuEnDialog: Boolean = true,
+    private val bloquearClicks: () -> Boolean = { false }
 ) : RecyclerView.Adapter<MediaAdapter.MediaViewHolder>() {
 
     private var edicion = false // estado del modo edicion
@@ -118,19 +119,13 @@ open class MediaAdapter(
             holder.imageView.contentDescription = mediaItem.nombre
 
             holder.itemView.setOnClickListener {
-//                if (modoEliminacion) {
-//                    if (seleccionados.contains(mediaItem.id)) {
-//                        seleccionados.remove(mediaItem.id)
-//                        holder.itemView.setBackgroundColor(Color.TRANSPARENT)
-//                        onSeleccionCambio?.invoke(seleccionados.size)
-//                    } else {
-//                        seleccionados.add(mediaItem.id)     // agrego a la lista de seleccionados
-//                        holder.itemView.setBackgroundColor(Color.LTGRAY)
-//                        onSeleccionCambio?.invoke(seleccionados.size)
-//
-//                    }
 
-                    if (modoEliminacion) {
+                // PACK DESHABILITADO
+                if (bloquearClicks()) {
+                    return@setOnClickListener
+                }
+
+                if (modoEliminacion) {
                         toggleSeleccion(holder, mediaItem)
                         return@setOnClickListener
 
@@ -153,10 +148,18 @@ open class MediaAdapter(
                             mostrarMenu = mostrarMenuEnDialog
                         )
 
+//                    fragmento.listener = object : CuadroImagen.PalabraListener {
+//                        override fun reproducirPalabra(palabra: String) {
+//                            //Log.d("TTS_DBG", "MediaAdapter speak id=${mediaItem.id}")
+//                            palabraAudio(palabra) // palabra == itemKey (PIC:/MED:)
+//                        }
+//                    }
                     fragmento.listener = object : CuadroImagen.PalabraListener {
                         override fun reproducirPalabra(palabra: String) {
-                            //Log.d("TTS_DBG", "MediaAdapter speak id=${mediaItem.id}")
-                            palabraAudio(palabra) // palabra == itemKey (PIC:/MED:)
+
+                            if (bloquearClicks()) return
+
+                            palabraAudio(palabra)
                         }
                     }
 
@@ -192,21 +195,11 @@ open class MediaAdapter(
 
             holder.itemView.setOnClickListener {
 
-//                if (modoEliminacion) {
-//                    if (seleccionados.contains(mediaItem.id)) {
-//                        seleccionados.remove(mediaItem.id)
-//                        holder.itemView.setBackgroundColor(Color.TRANSPARENT)
-//                        onSeleccionCambio?.invoke(seleccionados.size)
-//
-//                    } else {
-//                        seleccionados.add(mediaItem.id)     // agrego a la lista de seleccionados
-//                        holder.itemView.setBackgroundColor(Color.LTGRAY)
-//                        onSeleccionCambio?.invoke(seleccionados.size)
-//
-//                    }
-//
-//                }
-                //
+                // PACK DESHABILITADO
+                if (bloquearClicks()) {
+                    return@setOnClickListener
+                }
+
                 if (modoEliminacion) {
                     toggleSeleccion(holder, mediaItem)
                     return@setOnClickListener
@@ -228,10 +221,18 @@ open class MediaAdapter(
                         mostrarMenu = mostrarMenuEnDialog
                     )
 
+//                    fragmento.listener = object : CuadroImagen.PalabraListener {
+//                        override fun reproducirPalabra(palabra: String) {
+//                            //Log.d("TTS_DBG", "MediaAdapter speak id=${mediaItem.id}")
+//                            palabraAudio(palabra) // palabra == itemKey (PIC:/MED:)
+//                        }
+//                    }
                     fragmento.listener = object : CuadroImagen.PalabraListener {
                         override fun reproducirPalabra(palabra: String) {
-                            //Log.d("TTS_DBG", "MediaAdapter speak id=${mediaItem.id}")
-                            palabraAudio(palabra) // palabra == itemKey (PIC:/MED:)
+
+                            if (bloquearClicks()) return
+
+                            palabraAudio(palabra)
                         }
                     }
 

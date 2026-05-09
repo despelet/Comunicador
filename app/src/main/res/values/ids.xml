@@ -13,4 +13,7 @@
     <item name="txtTitulo" type="id"/>
     <item name="btnEliminarCategoria" type="id"/>
     <item name="recyclerPictos" type="id"/>
+    <item name="btnSeleccionarTodos" type="id"/>
+    <item name="btnDeseleccionarTodos" type="id"/>
+    <item name="btnExportar" type="id"/>
 </resources>

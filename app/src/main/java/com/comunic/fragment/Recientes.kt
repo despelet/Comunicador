@@ -1,21 +1,15 @@
 package com.comunic.fragment
 
 import android.Manifest
-import android.app.Activity
-import android.app.Activity.RESULT_OK
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.text.InputType
@@ -25,12 +19,10 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
 import android.webkit.MimeTypeMap
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ListView
 import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
@@ -52,24 +44,18 @@ import com.comunic.adapters.MediaAdapter
 import com.comunic.MenuHandler
 import com.comunic.R
 import com.comunic.SpeechTextResolver
+import com.comunic.adapters.ExportItemsAdapter
 import com.comunic.adapters.SimpleListCheckAdapter
 import com.comunic.databinding.FragmentRecientesBinding
-import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
-import com.comunic.fragment.HomeFragment.Companion.CAPTURE_VIDEO_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.PERMISSION_REQUEST_CODE
-import com.comunic.fragment.HomeFragment.Companion.PICK_MEDIA_REQUEST
-import com.comunic.fragment.HomeFragment.Companion.UCROP_REQUEST_CODE
 import com.comunic.data.db.AppDatabase
 import com.comunic.data.db.PackRepository
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.mappers.toItemLista
-import com.comunic.fragment.HomeFragment.Companion.REQUEST_CODE_IMPORTAR_ZIP
 import com.comunic.interfaces.MediaResultListener
 import com.comunic.interfaces.OnNuevoItemListener
-import com.comunic.interfaces.RecientesProvider
 import com.google.android.material.button.MaterialButton
-import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -78,7 +64,6 @@ import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.util.Locale
 import java.util.UUID
 import java.util.zip.ZipEntry
@@ -633,83 +618,226 @@ class Recientes : Fragment(),
     }
 
     // EXPORTAR ELEMENTOS
-    fun mostrarDialogoSeleccionarElementos() {
-        val nombres = listaDeArchivos.map { it.nombre }
-        val seleccionados = BooleanArray(nombres.size)
 
-        val dialogView = layoutInflater.inflate(R.layout.dialogo_seleccion, null)
-        val listView = dialogView.findViewById<ListView>(R.id.listaItems)
-        val btnSeleccionarTodos = dialogView.findViewById<Button>(R.id.btnSeleccionarTodos)
-        val btnDeseleccionarTodos = dialogView.findViewById<Button>(R.id.btnDeseleccionarTodos)
 
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_multiple_choice, nombres)
-        listView.adapter = adapter
+     fun mostrarDialogoSeleccionarElementos() {
 
-        listView.setOnItemClickListener { _, _, position, _ ->
-            seleccionados[position] = listView.isItemChecked(position)
+        val checked = BooleanArray(listaDeArchivos.size)
+
+        val dialogView = layoutInflater.inflate(
+            R.layout.exp_dialogo_seleccion,
+            null
+        )
+
+        val recycler =
+            dialogView.findViewById<RecyclerView>(R.id.recyclerItems)
+
+        val btnSeleccionarTodos =
+            dialogView.findViewById<MaterialButton>(R.id.btnSeleccionarTodos)
+
+        val btnDeseleccionarTodos =
+            dialogView.findViewById<MaterialButton>(R.id.btnDeseleccionarTodos)
+
+        val btnExportar =
+            dialogView.findViewById<MaterialButton>(R.id.btnExportar)
+
+         val btnCancelar =
+             dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+
+        val adapter = ExportItemsAdapter(
+            items = listaDeArchivos,
+            checked = checked
+        ) { index, isChecked ->
+
+            checked[index] = isChecked
         }
 
+        recycler.layoutManager =
+            GridLayoutManager(requireContext(), 2)
+
+        recycler.adapter = adapter
+
         btnSeleccionarTodos.setOnClickListener {
-            for (i in nombres.indices) {
-                listView.setItemChecked(i, true)
-                seleccionados[i] = true
+
+            for (i in checked.indices) {
+                checked[i] = true
             }
+
+            adapter.notifyDataSetChanged()
         }
 
         btnDeseleccionarTodos.setOnClickListener {
-            for (i in nombres.indices) {
-                listView.setItemChecked(i, false)
-                seleccionados[i] = false
+
+            for (i in checked.indices) {
+                checked[i] = false
             }
+
+            adapter.notifyDataSetChanged()
         }
 
-        AlertDialog.Builder(requireContext(),
+        val dialog = AlertDialog.Builder(
+            requireContext(),
             R.style.ThemeOverlay_Comunic_AlertDialog
         )
-            .setTitle("Selecciona elementos para exportar")
             .setView(dialogView)
-            .setPositiveButton("Continuar") { _, _ ->
-                val elementosSeleccionados = listaDeArchivos.filterIndexed { index, _ -> seleccionados[index] }
-                if (elementosSeleccionados.isEmpty()) {
-                    Toast.makeText(requireContext(), "No seleccionaste ningún elemento", Toast.LENGTH_SHORT).show()
-                } else {
-                    mostrarResumenSeleccion(elementosSeleccionados)
+            .create()
+
+        btnExportar.setOnClickListener {
+
+            val elementosSeleccionados =
+                listaDeArchivos.filterIndexed { index, _ ->
+                    checked[index]
                 }
+
+            if (elementosSeleccionados.isEmpty()) {
+
+                Toast.makeText(
+                    requireContext(),
+                    "No seleccionaste ningún elemento",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return@setOnClickListener
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+
+            dialog.dismiss()
+
+            mostrarResumenSeleccion(elementosSeleccionados)
+        }
+         btnCancelar.setOnClickListener {
+             dialog.dismiss()
+         }
+
+        dialog.show()
     }
 
-    private fun mostrarResumenSeleccion(elementosSeleccionados: List<ItemLista>) {
-        val cantidad = elementosSeleccionados.size
-        val nombres = elementosSeleccionados.joinToString("\n") { "- ${it.nombre}" }
+//    private fun mostrarResumenSeleccion(elementosSeleccionados: List<ItemLista>) {
+//        val cantidad = elementosSeleccionados.size
+//        val nombres = elementosSeleccionados.joinToString("\n") { "- ${it.nombre}" }
+//
+//        AlertDialog.Builder(requireContext(),
+//            R.style.ThemeOverlay_Comunic_AlertDialog
+//        )
+//            .setTitle("Resumen de selección")
+//            .setMessage("Seleccionaste $cantidad elementos:\n\n$nombres")
+//            .setPositiveButton("Exportar") { _, _ ->
+//                mostrarDialogoTipoExportacion(elementosSeleccionados)
+//            }
+//            .setNegativeButton("Cancelar", null)
+//            .show()
+//    }
+ fun mostrarResumenSeleccion(
+    elementosSeleccionados: List<ItemLista>
+) {
 
-        AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog
+    val dialogView = layoutInflater.inflate(
+        R.layout.exp_dialogo_resumen_exportacion,
+        null
+    )
+
+    val txtCantidad =
+        dialogView.findViewById<TextView>(R.id.txtCantidad)
+
+    val txtNombres =
+        dialogView.findViewById<TextView>(R.id.txtNombres)
+
+    val btnContinuar =
+        dialogView.findViewById<MaterialButton>(R.id.btnContinuar)
+
+    val btnCancelar =
+        dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+
+    val nombres = elementosSeleccionados.joinToString("\n") {
+        "• ${it.nombre}"
+    }
+
+    txtCantidad.text =
+        "ELEMENTOS SELECCIONADOS: ${elementosSeleccionados.size}"
+
+    txtNombres.text = nombres
+
+    val dialog = AlertDialog.Builder(
+        requireContext(),
+        R.style.ThemeOverlay_Comunic_AlertDialog
+    )
+        .setView(dialogView)
+        .create()
+
+    btnContinuar.setOnClickListener {
+
+        dialog.dismiss()
+
+        mostrarDialogoTipoExportacion(
+            elementosSeleccionados
         )
-            .setTitle("Resumen de selección")
-            .setMessage("Seleccionaste $cantidad elementos:\n\n$nombres")
-            .setPositiveButton("Exportar") { _, _ ->
-                mostrarDialogoTipoExportacion(elementosSeleccionados)
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
     }
 
-
-    private fun mostrarDialogoTipoExportacion(elementosSeleccionados: List<ItemLista>) {
-        AlertDialog.Builder(requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog
-        )
-            .setTitle("¿Cómo querés exportarlos?")
-            .setItems(arrayOf("Compartir archivos sueltos", "Exportar como ZIP")) { _, which ->
-                when (which) {
-                    0 -> exportarElementos(elementosSeleccionados) // Sueltos
-                    1 -> exportarElementosComoZip(elementosSeleccionados) // Como ZIP
-                }
-            }
-            .show()
+    btnCancelar.setOnClickListener {
+        dialog.dismiss()
     }
+
+    dialog.show()
+}
+
+
+//    private fun mostrarDialogoTipoExportacion(elementosSeleccionados: List<ItemLista>) {
+//        AlertDialog.Builder(requireContext(),
+//            R.style.ThemeOverlay_Comunic_AlertDialog
+//        )
+//            .setTitle("¿Cómo querés exportarlos?")
+//            .setItems(arrayOf("Compartir archivos sueltos", "Exportar como ZIP")) { _, which ->
+//                when (which) {
+//                    0 -> exportarElementos(elementosSeleccionados) // Sueltos
+//                    1 -> exportarElementosComoZip(elementosSeleccionados) // Como ZIP
+//                }
+//            }
+//            .show()
+//    }
+ fun mostrarDialogoTipoExportacion(
+    elementosSeleccionados: List<ItemLista>
+) {
+
+    val dialogView = layoutInflater.inflate(
+        R.layout.exp_dialogo_tipo_exportacion,
+        null
+    )
+
+    val btnArchivos =
+        dialogView.findViewById<MaterialButton>(R.id.btnArchivos)
+
+    val btnZip =
+        dialogView.findViewById<MaterialButton>(R.id.btnZip)
+
+    val btnCancelar =
+        dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+
+    val dialog = AlertDialog.Builder(
+        requireContext(),
+        R.style.ThemeOverlay_Comunic_AlertDialog
+    )
+        .setView(dialogView)
+        .create()
+
+    btnArchivos.setOnClickListener {
+
+        dialog.dismiss()
+
+        exportarElementos(elementosSeleccionados)
+    }
+
+    btnZip.setOnClickListener {
+
+        dialog.dismiss()
+
+        exportarElementosComoZip(elementosSeleccionados)
+    }
+
+    btnCancelar.setOnClickListener {
+        dialog.dismiss()
+    }
+
+    dialog.show()
+}
 
     private fun exportarElementos(elementos: List<ItemLista>) {
         if (elementos.isEmpty()) {

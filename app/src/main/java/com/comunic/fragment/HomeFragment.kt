@@ -66,6 +66,7 @@ import com.comunic.MenuHandler
 import com.comunic.R
 import com.comunic.SpeechTextResolver
 import com.comunic.adapters.ExportItemsAdapter
+import com.comunic.adapters.ResumenExportacionAdapter
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
@@ -1205,9 +1206,12 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
         startActivity(Intent.createChooser(intent, "Compartir archivo"))
     }
 
-    fun mostrarDialogoSeleccionarElementos() {
+    fun mostrarDialogoSeleccionarElementos(
+        checkedInicial: BooleanArray? = null
+    ) {
 
-        val checked = BooleanArray(listaDeArchivos.size)
+        val checked = checkedInicial
+            ?: BooleanArray(listaDeArchivos.size)
 
         val dialogView = layoutInflater.inflate(
             R.layout.exp_dialogo_seleccion,
@@ -1287,8 +1291,12 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 
             dialog.dismiss()
 
-            mostrarResumenSeleccion(elementosSeleccionados)
+            mostrarResumenSeleccion(
+                elementosSeleccionados,
+                checked
+            )
         }
+
         btnCancelar.setOnClickListener {
             dialog.dismiss()
         }
@@ -1296,94 +1304,70 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
         dialog.show()
     }
 
+    fun mostrarResumenSeleccion(
+        elementosSeleccionados: List<ItemLista>,
+        checked: BooleanArray
+    ) {
 
-//    private fun mostrarResumenSeleccion(elementosSeleccionados: List<ItemLista>) {
-//        val cantidad = elementosSeleccionados.size
-//        val nombres = elementosSeleccionados.joinToString("\n") { "- ${it.nombre}" }
-//
-//        AlertDialog.Builder(requireContext(),
-//            R.style.ThemeOverlay_Comunic_AlertDialog
-//        )
-//            .setTitle("Resumen de selección")
-//            .setMessage("Seleccionaste $cantidad elementos:\n\n$nombres")
-//            .setPositiveButton("Exportar") { _, _ ->
-//                mostrarDialogoTipoExportacion(elementosSeleccionados)
-//            }
-//            .setNegativeButton("Cancelar", null)
-//            .show()
-////        val dialog = AlertDialog.Builder(requireContext())
-////            .setTitle("Resumen de selección")
-////            .setMessage("Seleccionaste $cantidad elementos:\n\n$nombres")
-////            .setPositiveButton("Exportar", null)   // listener después
-////            .setNegativeButton("Cancelar", null)
-////            .create()
-////
-////        dialog.show()
-////
-////        dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-////            .setTextColor(ContextCompat.getColor(requireContext(), R.color.color1))
-////
-////        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-////            .setTextColor(ContextCompat.getColor(requireContext(), R.color.color1))
-////
-////        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-////            mostrarDialogoTipoExportacion(elementosSeleccionados)
-////            dialog.dismiss()
-////        }
-//
-//    }
-fun mostrarResumenSeleccion(
-    elementosSeleccionados: List<ItemLista>
-) {
-
-    val dialogView = layoutInflater.inflate(
-        R.layout.exp_dialogo_resumen_exportacion,
-        null
-    )
-
-    val txtCantidad =
-        dialogView.findViewById<TextView>(R.id.txtCantidad)
-
-    val txtNombres =
-        dialogView.findViewById<TextView>(R.id.txtNombres)
-
-    val btnContinuar =
-        dialogView.findViewById<MaterialButton>(R.id.btnContinuar)
-
-    val btnCancelar =
-        dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
-
-    val nombres = elementosSeleccionados.joinToString("\n") {
-        "• ${it.nombre}"
-    }
-
-    txtCantidad.text =
-        "ELEMENTOS SELECCIONADOS: ${elementosSeleccionados.size}"
-
-    txtNombres.text = nombres
-
-    val dialog = AlertDialog.Builder(
-        requireContext(),
-        R.style.ThemeOverlay_Comunic_AlertDialog
-    )
-        .setView(dialogView)
-        .create()
-
-    btnContinuar.setOnClickListener {
-
-        dialog.dismiss()
-
-        mostrarDialogoTipoExportacion(
-            elementosSeleccionados
+        val dialogView = layoutInflater.inflate(
+            R.layout.exp_dialogo_resumen_exportacion,
+            null
         )
+
+        val txtCantidad =
+            dialogView.findViewById<TextView>(R.id.txtCantidad)
+
+        val btnAgregarMas =
+            dialogView.findViewById<MaterialButton>(R.id.btnAgregarMas)
+
+        val btnContinuar =
+            dialogView.findViewById<MaterialButton>(R.id.btnContinuar)
+
+        val btnCancelar =
+            dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+
+        txtCantidad.text =
+            "ELEMENTOS SELECCIONADOS: ${elementosSeleccionados.size}"
+
+        val recyclerResumen =
+            dialogView.findViewById<RecyclerView>(R.id.recyclerResumen)
+
+        recyclerResumen.layoutManager =
+            GridLayoutManager(requireContext(), 3)
+
+        recyclerResumen.adapter =
+            ResumenExportacionAdapter(elementosSeleccionados)
+
+        val dialog = AlertDialog.Builder(
+            requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setView(dialogView)
+            .create()
+
+        btnAgregarMas.setOnClickListener {
+
+            dialog.dismiss()
+
+            mostrarDialogoSeleccionarElementos(checked)
+        }
+
+        btnContinuar.setOnClickListener {
+
+            dialog.dismiss()
+
+            mostrarDialogoTipoExportacion(
+                elementosSeleccionados
+            )
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
-    btnCancelar.setOnClickListener {
-        dialog.dismiss()
-    }
-
-    dialog.show()
-}
 
 
 //    private fun mostrarDialogoTipoExportacion(elementosSeleccionados: List<ItemLista>) {

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="16dp"
     android:background="@color/color5">
@@ -26,17 +26,23 @@
         android:textColor="@color/color1"
         android:textStyle="bold"/>
 
-    <TextView
-        android:id="@+id/txtNombres"
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAgregarMas"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:padding="10dp"
-        android:background="@drawable/rounded_border_agregar"
+        android:text="AGREGAR MÁS"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/color1"
+        app:backgroundTint="@color/color5"
         android:textColor="@color/color1"
-        android:textAllCaps="true"
+        android:textAllCaps="true"/>
 
-        android:scrollbars="vertical"/>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerResumen"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginTop="12dp"/>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnContinuar"

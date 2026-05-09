@@ -36,6 +36,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -63,6 +64,7 @@ import com.comunic.data.db.PackRepository
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.mappers.toItemLista
+import com.comunic.fragment.HomeFragment.Companion.REQUEST_CODE_IMPORTAR_ZIP
 import com.comunic.interfaces.MediaResultListener
 import com.comunic.interfaces.OnNuevoItemListener
 import com.comunic.interfaces.RecientesProvider
@@ -82,13 +84,15 @@ import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import com.comunic.interfaces.ZipImportListener
+
 
 class Recientes : Fragment(),
     TextToSpeech.OnInitListener,
     MediaAdapter.OnEliminarSeleccionListener,
     MenuHandler,
     AddToListHost,
-    MediaResultListener {
+    ZipImportListener, MediaResultListener {
 
     private var _binding: FragmentRecientesBinding? = null
     private val binding get() = _binding!!
@@ -229,11 +233,15 @@ class Recientes : Fragment(),
     override fun onResume() {
         super.onResume()
         (activity as? MainActivity)?.setMediaResultListener(this)
+        (activity as? MainActivity)
+            ?.setZipImportListener(this)
     }
 
     override fun onPause() {
         super.onPause()
         (activity as? MainActivity)?.setMediaResultListener(null)
+        (activity as? MainActivity)
+            ?.setZipImportListener(null)
     }
 
     private fun checkReadPermissionIfNeeded() {
@@ -744,16 +752,26 @@ class Recientes : Fragment(),
                     val inputStream = requireContext().contentResolver.openInputStream(item.uri) ?: continue
 
                     // obtener mime y extension
-                    val mimeType = requireContext().contentResolver.getType(item.uri)
-                    var extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
+                    var extension = File(item.uri.path ?: "")
+                        .extension
+                        .lowercase(Locale.ROOT)
 
-                    // fallback: intenta extraerla de la URL si no se pudo obtener desde el MIME
-                    if (extension == null) {
-                        extension = MimeTypeMap.getFileExtensionFromUrl(item.uri.toString())
+                    if (extension.isBlank()) {
+
+                        val mimeType = requireContext().contentResolver.getType(item.uri)
+
+                        extension = MimeTypeMap
+                            .getSingleton()
+                            .getExtensionFromMimeType(mimeType)
+                            ?.lowercase(Locale.ROOT)
+                            ?: ""
                     }
 
                     // añade extensión si no está
-                    val fileName = if (extension != null && !item.nombre.endsWith(".$extension")) {
+                    val fileName = if (
+                        extension.isNotBlank() &&
+                        !item.nombre.endsWith(".$extension")
+                    ) {
                         "${item.nombre}.$extension"
                     } else {
                         item.nombre
@@ -794,10 +812,9 @@ class Recientes : Fragment(),
             type = "application/zip"
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivityForResult(intent, HomeFragment.REQUEST_CODE_IMPORTAR_ZIP)
-    }
+        startActivityForResult(intent, REQUEST_CODE_IMPORTAR_ZIP)    }
 
-    fun importarElementosDesdeZip(uri: Uri) {
+    override fun importarElementosDesdeZip(uri: Uri) {
         try {
             // Abrir el archivo ZIP
             val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return
@@ -809,65 +826,97 @@ class Recientes : Fragment(),
             }
 
             var entry: ZipEntry?
-
             while (zipInputStream.nextEntry.also { entry = it } != null) {
-
-                val entryName = entry!!.name
-
-                // Si el ZIP trae carpetas, entryName puede incluir "carpeta/archivo.png" Nos quedamos solo con el nombre del archivo.
-                val baseName = entryName.substringAfterLast("/").substringAfterLast("\\")
-
-                val nombreSinExtension = baseName.substringBeforeLast(".")
-                val extension = baseName.substringAfterLast(".", "").lowercase(Locale.ROOT)
-
-                val esImagen = extension in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp")
-                val esVideo  = extension in listOf("mp4", "mkv", "avi", "mov", "webm")
-
-                if (!esImagen && !esVideo) {
-                    Toast.makeText(requireContext(), "Archivo no soportado: .$extension", Toast.LENGTH_SHORT).show()
-                    zipInputStream.closeEntry()
-                    continue
+                val extension = entry!!.name.substringAfterLast(".", "").lowercase(Locale.ROOT) // valido extension de archivo
+                val esImagen = when (extension) {
+                    in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> true
+                    in listOf("mp4", "mkv", "avi", "mov", "webm") -> false
+                    else -> {
+                        Toast.makeText(requireContext(), "Archivo no soportado: $extension", Toast.LENGTH_SHORT).show()
+                        continue
+                    }
                 }
 
-                val nombreFinal = "$nombreSinExtension.$extension"
+                val nombreSinExtension = entry!!.name.substringBeforeLast(".")
+                val nombreFinal = "$nombreSinExtension.${if (esImagen) "jpg" else "mp4"}" // le doy la extension final, el nombre es el q levanta sin la extension
+
                 val archivoDestino = File(mediaDir, nombreFinal)
 
-                if (archivoDestino.exists()) {
+                if (archivoDestino.exists()) { // para evitar sobreescribir archivos
                     Toast.makeText(requireContext(), "Ya existe un archivo llamado $nombreSinExtension", Toast.LENGTH_SHORT).show()
-                    zipInputStream.closeEntry()
                     continue
                 }
-
-                // Extraigo ZIP y guardo en /files/media/
-                FileOutputStream(archivoDestino).use { outputStream ->
-                    zipInputStream.copyTo(outputStream)
-                }
+                // extraigo zip y lo guardo en la carpeta media (archivoDestino me lleva a mediaDir)
+                val outputStream = FileOutputStream(archivoDestino)
+                zipInputStream.copyTo(outputStream)
                 zipInputStream.closeEntry()
+                outputStream.close()
 
                 val uriGuardado = Uri.fromFile(archivoDestino)
-                val base = nombreSinExtension.trim()
+//                val item = ItemLista(
+//                    nombre = nombreSinExtension,
+//                    uri = uriGuardado,
+//                    esImagen = esImagen,
+//                    timestamp = System.currentTimeMillis()
+//                )
+//                val item = ItemLista(
+//                    id = nombreSinExtension,
+//                    nombre = nombreSinExtension,
+//                    uri = uriGuardado,
+//                    esImagen = esImagen,
+//                    timestamp = System.currentTimeMillis()
+//                )
                 val item = ItemLista(
-                    id = ItemKey.media(base),
-                    nombre = base,
+                    id = ItemKey.media(nombreSinExtension),
+                    nombre = nombreSinExtension,
                     uri = uriGuardado,
                     esImagen = esImagen,
                     timestamp = System.currentTimeMillis()
                 )
 
-
-                listaDeArchivos.add(item)
-                (activity as? MainActivity)?.saveMediaData(nombreSinExtension, uriGuardado, esImagen)
+                listaDeArchivos.add(item) // agrego archivos a la lista actual
+                saveMediaData(nombreSinExtension, uriGuardado, esImagen) // guardo en el almacenamiento persistente (sharedPreferences)
+                mediaAdapter.notifyDataSetChanged()
             }
 
-
-            zipInputStream.close() // cierro zip y aviso que se importo bien
-            Toast.makeText(requireContext(), "Importación exitosa", Toast.LENGTH_SHORT).show()
-            //mediaAdapter.notifyDataSetChanged()
+            zipInputStream.close()
+            mediaAdapter.notifyDataSetChanged()
             aplicarOrdenActual()
+            Toast.makeText(
+                requireContext(),
+                "Importación exitosa",
+                Toast.LENGTH_SHORT
+            ).show()
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(requireContext(), "Error al importar ZIP", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?
+    ) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (
+            requestCode == REQUEST_CODE_IMPORTAR_ZIP &&
+            resultCode == AppCompatActivity.RESULT_OK
+        ) {
+
+            val uri = data?.data ?: return
+
+            importarElementosDesdeZip(uri)
+        }
+    }
+
+    private fun saveMediaData(nombreArchivo: String, mediaUri: Uri, isImage: Boolean) {
+        val sharedPreferences = requireContext().getSharedPreferences("media_data", Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+        editor.putString(nombreArchivo, mediaUri.toString())
+        editor.putBoolean("$nombreArchivo|type", isImage) // Guardar si es imagen o video
+        editor.apply()
     }
 
     private fun saveOrdenSeleccionado(itemId: Int) {
@@ -1110,8 +1159,6 @@ class Recientes : Fragment(),
 
 
     override fun onMediaCreated(item: ItemLista) {
-//        listaDeArchivos.add(item)
-//        mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
         listaDeArchivos.add(item)
         aplicarOrdenActual()
     }
@@ -1137,250 +1184,12 @@ class Recientes : Fragment(),
     companion object {
         private const val PREFS_NAME = "recientes_prefs"
         private const val KEY_ORDEN_RECENTES = "orden_recientes"
+        private const val REQUEST_CODE_IMPORTAR_ZIP = 1001
     }
 
 
 }
 
 
-//    //para subir un archivo solo
-//    override fun openGallery() {
-//        val intent = Intent(Intent.ACTION_PICK).apply {
-//            type = "image/* video/*" // imagenes o videos
-//            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
-//        }
-//        startActivityForResult(intent, PICK_MEDIA_REQUEST)
-//    }
-
-
-//    /* inicializo */
-//    //private lateinit var lastCapturedUri: Uri
-//    private var lastCapturedUri: Uri? = null
-//
-//
-//     override fun launchImageCapture() {
-//        val photoUri: Uri = createImageUri()
-//        lastCapturedUri = photoUri
-//
-//        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-//        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
-//
-//        startActivityForResult(intent, CAPTURE_IMAGE_REQUEST)
-//    }
-//
-//     override fun launchVideoCapture() {
-//        val videoUri: Uri = createVideoUri()
-//        lastCapturedUri = videoUri
-//
-//        val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
-//        intent.putExtra(MediaStore.EXTRA_OUTPUT, videoUri)
-//
-//        startActivityForResult(intent, CAPTURE_VIDEO_REQUEST)
-//    }
-//
-//     fun createImageUri(): Uri {
-//        val contentValues = ContentValues().apply {
-//            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-//            put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
-//        }
-//        return requireContext().contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)!!
-//    }
-//
-//     fun createVideoUri(): Uri {
-//        val contentValues = ContentValues().apply {
-//            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-//            put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
-//        }
-//        return requireContext().contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)!!
-//    }
-//
-//    // EDICION ucrop
-//    fun startCrop(uri: Uri) {
-//        val destinationUri = Uri.fromFile(File(requireContext().cacheDir, "imagen_editada_${System.currentTimeMillis()}.jpg"))
-//
-//        val options = UCrop.Options().apply {
-//            setCompressionFormat(Bitmap.CompressFormat.JPEG)
-//            setCompressionQuality(90)
-//            setFreeStyleCropEnabled(true) // Permite mover y redimensionar libremente
-//
-//            setToolbarColor(ContextCompat.getColor(requireContext(), R.color.color5))      // barra superior
-//            setStatusBarColor(ContextCompat.getColor(requireContext(), R.color.color5))     // barra de estado
-//            setToolbarWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // texto/iconos
-//            setActiveControlsWidgetColor(ContextCompat.getColor(requireContext(), R.color.color1)) // botones activos
-//            setRootViewBackgroundColor(ContextCompat.getColor(requireContext(), R.color.color5))   // fondo general
-//
-//            setToolbarTitle("Editar imagen") // título personalizado
-//        }
-//
-//        UCrop.of(uri, destinationUri)
-//            .withOptions(options)
-//            .withAspectRatio(1f, 1f)
-//            .start(requireContext(), this@Recientes) // 👈 IMPORTANTE: que el Fragment reciba el resultado
-//
-//    }
-//
-//
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        super.onActivityResult(requestCode, resultCode, data)
-//
-//        // devolucion para el ucrop
-//        if (requestCode == UCROP_REQUEST_CODE) {
-//            if (resultCode == RESULT_OK) {
-//                val resultUri = UCrop.getOutput(data!!)
-//                if (resultUri != null) {
-//                    ingresarNombreArchivo(resultUri, true)
-//                } else {
-//                    Toast.makeText(requireContext(), "Error al recortar la imagen. Usando imagen original.", Toast.LENGTH_SHORT).show()
-//                    lastCapturedUri?.let { ingresarNombreArchivo(it, true) }
-//                }
-//            } else {
-//                // Si el usuario canceló el crop, usamos la imagen original
-//                lastCapturedUri?.let {
-//                    ingresarNombreArchivo(it, true)
-//                }
-//            }
-//            return
-//        }
-
-//        // devolucion para la captura de imagen o video
-//        if (resultCode == RESULT_OK) {
-//            val mediaUri = when (requestCode) {
-//                PICK_MEDIA_REQUEST -> data?.data
-//                CAPTURE_IMAGE_REQUEST -> lastCapturedUri
-//                CAPTURE_VIDEO_REQUEST -> lastCapturedUri
-//                else -> null
-//            }
-//
-//            if (mediaUri != null) {
-//                val mimeType = requireContext().contentResolver.getType(mediaUri)
-//                if (mimeType != null) {
-//                    if (mimeType.startsWith("image/")) {
-//                        if (requestCode == CAPTURE_IMAGE_REQUEST) {
-//                            startCrop(mediaUri) // 👉 Editamos antes de continuar
-//                        } else {
-//                            // ingresarNombreArchivo(mediaUri, true)
-//                            startCrop(mediaUri) // 👉 Editamos antes de continuar
-//                        }
-//                    } else if (mimeType.startsWith("video/")) {
-//                        Log.d("CapturedMedia", "Video capturado URI: $mediaUri")
-//                        ingresarNombreArchivo(mediaUri, false)
-//                    }
-//                }
-//            } else {
-//                Log.e("CaptureError", "Media URI is null")
-//            }
-//        }
-//
-//        // devolucion para el importar archivos
-//        if (requestCode == HomeFragment.REQUEST_CODE_IMPORTAR_ZIP && resultCode == Activity.RESULT_OK) {
-//            val uri = data?.data ?: return
-//            importarElementosDesdeZip(uri)
-//        }
-//    }
-//
-//
-//    private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
-//        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
-//        val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
-//
-//        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-//            .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
-//            .setView(dialogView)
-//            .setPositiveButton("OK") { _, _ ->
-//                val nombreRaw = nameEditText.text?.toString().orEmpty()
-//                val nombreLimpio = normalizarNombre(nombreRaw)
-//
-//                if (mediaUri != null && nombreLimpio.isNotEmpty()) {
-//                    guardarArchivo(mediaUri, nombreLimpio, isImage)
-//                } else {
-//                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
-//                }
-//            }
-//            .setNegativeButton("Cancelar", null)
-//            .show()
-//    }
-//
-//    /**
-//     * Normaliza para que:
-//     * - no haya espacios adelante/atrás
-//     * - no haya dobles espacios
-//     * - (opcional) evita caracteres problemáticos para nombres de archivo
-//     */
-//    private fun normalizarNombre(input: String): String {
-//        // 1) trim + colapsar espacios internos
-//        var s = input.trim().replace(Regex("\\s+"), " ")
-//
-//        // 2) opcional: eliminar caracteres inválidos en nombres de archivo (recomendado)
-//        // Windows/Android suelen romper con / \ : * ? " < > |
-//        s = s.replace(Regex("""[\\/:*?"<>|]"""), "")
-//
-//        return s
-//    }
-//
-//    private fun guardarArchivo(mediaUri: Uri, nombreLimpio: String, esImagen: Boolean) {
-//        // Guardar SIEMPRE usando el nombre limpio (archivo y todo)
-//        val savedUri = guardarEnAlmacenamientoInterno(requireContext(), mediaUri, nombreLimpio, esImagen)
-//        if (savedUri == null) return
-//
-//        // Si ya existía un item con ese nombre, lo reemplazamos
-//        val index = listaDeArchivos.indexOfFirst { it.nombre == nombreLimpio }
-//        if (index != -1) {
-//            listaDeArchivos.removeAt(index)
-//            mediaAdapter.notifyItemRemoved(index)
-//        }
-//
-//        // Importante: id y nombre coherentes (sin trims extra, ya está limpio)
-//        val item = ItemLista(
-//            id = ItemKey.media(nombreLimpio),
-//            nombre = nombreLimpio,
-//            uri = savedUri,
-//            esImagen = esImagen,
-//            timestamp = System.currentTimeMillis()
-//        )
-//
-//        listaDeArchivos.add(item)
-//        saveMediaData(nombreLimpio, savedUri, esImagen)
-//
-//        mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
-//
-//        Toast.makeText(
-//            requireContext(),
-//            if (esImagen) "Imagen guardada como $nombreLimpio" else "Video guardado como $nombreLimpio",
-//            Toast.LENGTH_SHORT
-//        ).show()
-//    }
-//
-//    private fun guardarEnAlmacenamientoInterno(
-//        context: Context,
-//        mediaUri: Uri,
-//        nombreArchivoLimpio: String,
-//        esImagen: Boolean
-//    ): Uri? {
-//        val directorio = File(context.filesDir, "media")
-//        if (!directorio.exists()) directorio.mkdirs()
-//
-//        val extension = if (esImagen) "jpg" else "mp4"
-//        val archivo = File(directorio, "$nombreArchivoLimpio.$extension")
-//
-//        return try {
-//            context.contentResolver.openInputStream(mediaUri)?.use { inputStream ->
-//                FileOutputStream(archivo).use { outputStream ->
-//                    inputStream.copyTo(outputStream)
-//                }
-//            }
-//            Uri.fromFile(archivo)
-//        } catch (e: IOException) {
-//            e.printStackTrace()
-//            null
-//        }
-//    }
-//
-//    private fun saveMediaData(nombreArchivoLimpio: String, mediaUri: Uri, isImage: Boolean) {
-//        val sharedPreferences = requireContext().getSharedPreferences("media_data", Context.MODE_PRIVATE)
-//        sharedPreferences.edit()
-//            .putString(nombreArchivoLimpio, mediaUri.toString())
-//            .putBoolean("$nombreArchivoLimpio|type", isImage)
-//            .apply()
-//    }
 
 

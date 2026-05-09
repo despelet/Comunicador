@@ -48,6 +48,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.comunic.interfaces.ZipImportListener
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -60,7 +61,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     private var lastCapturedUri: Uri? = null
 
     private var mediaResultListener: MediaResultListener? = null
+    private var zipImportListener: ZipImportListener? = null
     var pendingCategoryId: String? = null
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -284,18 +288,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     fun setMediaResultListener(listener: MediaResultListener?) {
         mediaResultListener = listener
     }
-
-
-
-
-
-
-
-
-
-
-
-
+    fun setZipImportListener(listener: ZipImportListener?) {
+        zipImportListener = listener
+    }
 
     fun launchImageCapture() {
         val photoUri = createImageUri()
@@ -359,39 +354,87 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             .withAspectRatio(1f, 1f)
             .start(this)
     }
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?
+    ) {
+
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (requestCode == UCROP_REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                val resultUri = UCrop.getOutput(data!!)
-                resultUri?.let { ingresarNombreArchivo(it, true) }
-            } else {
-                lastCapturedUri?.let { ingresarNombreArchivo(it, true) }
+        // =========================
+        // IMPORTAR ZIP
+        // =========================
+        if (
+            requestCode == HomeFragment.REQUEST_CODE_IMPORTAR_ZIP &&
+            resultCode == RESULT_OK
+        ) {
+
+            val zipUri = data?.data
+
+            Log.d("ZIP_IMPORT", "ZIP seleccionado: $zipUri")
+
+            zipUri?.let {
+                zipImportListener?.importarElementosDesdeZip(it)
             }
+
             return
         }
 
+        // =========================
+        // UCROP
+        // =========================
+        if (requestCode == UCROP_REQUEST_CODE) {
+
+            if (resultCode == RESULT_OK) {
+
+                val resultUri = UCrop.getOutput(data!!)
+
+                resultUri?.let {
+                    ingresarNombreArchivo(it, true)
+                }
+
+            } else {
+
+                lastCapturedUri?.let {
+                    ingresarNombreArchivo(it, true)
+                }
+            }
+
+            return
+        }
+
+        // =========================
+        // GALERIA / CAMARA
+        // =========================
         if (resultCode == RESULT_OK) {
+
             val mediaUri = when (requestCode) {
+
                 PICK_MEDIA_REQUEST -> data?.data
+
                 CAPTURE_IMAGE_REQUEST -> lastCapturedUri
+
                 CAPTURE_VIDEO_REQUEST -> lastCapturedUri
+
                 else -> null
             }
 
             mediaUri?.let {
+
                 val mime = contentResolver.getType(it)
 
                 if (mime?.startsWith("image/") == true) {
+
                     startCrop(it)
+
                 } else if (mime?.startsWith("video/") == true) {
+
                     ingresarNombreArchivo(it, false)
                 }
             }
         }
     }
-
 //    private fun ingresarNombreArchivo(uri: Uri, esImagen: Boolean) {
 //
 //        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
@@ -500,7 +543,19 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         saveMediaData(nombre, savedUri, esImagen)
 
-        mediaResultListener?.onMediaCreated(item)
+        //mediaResultListener?.onMediaCreated(item)
+        val currentFragment =
+            supportFragmentManager.findFragmentById(
+                R.id.fragment_container
+            )
+        if (currentFragment is MediaResultListener) {
+            Log.d( "MEDIA_NOTIFY","Notificando a: ${currentFragment.javaClass.simpleName}"
+            )
+            currentFragment.onMediaCreated(item)
+        } else {
+            Log.e("MEDIA_NOTIFY", "Fragment actual no implementa MediaResultListener"
+            )
+        }
 
         pendingCategoryId?.let { catId ->
             lifecycleScope.launch(Dispatchers.IO) {

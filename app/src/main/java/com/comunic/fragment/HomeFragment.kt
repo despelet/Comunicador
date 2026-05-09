@@ -72,11 +72,12 @@ import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.squareup.picasso.Picasso
+import com.comunic.interfaces.ZipImportListener
 
 
 class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     MediaAdapter.OnEliminarSeleccionListener,
-    MenuHandler {
+    MenuHandler, ZipImportListener {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -636,27 +637,6 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     }
 
 
-//    private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
-//        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
-//        val nameEditText = dialogView.findViewById<EditText>(R.id.nameEditText)
-//        AlertDialog.Builder(requireContext(),
-//            R.style.ThemeOverlay_Comunic_AlertDialog
-//        )
-//            .setTitle(if (isImage) "Sonido de la imagen" else "Sonido del video")
-//            .setView(dialogView)
-//            .setPositiveButton("OK") { _, _ ->
-//                val nombreArchivo = nameEditText.text.toString()
-//                if (mediaUri != null && nombreArchivo.isNotBlank()) {
-//                    guardarArchivo(mediaUri, nombreArchivo, isImage)
-//
-//                } else {
-//                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT)
-//                        .show()
-//                }
-//            }
-//            .setNegativeButton("Cancelar", null)
-//            .show()
-//    }
     private fun ingresarNombreArchivo(mediaUri: Uri?, isImage: Boolean) {
     Log.d("DIALOG_FLOW", "Intentando mostrar dialog desde: ${this::class.java.simpleName}")
         if (!isAdded || activity == null || requireActivity().isFinishing) {
@@ -1207,34 +1187,7 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
         Toast.makeText(requireContext(), "Modo eliminación cancelado", Toast.LENGTH_SHORT).show()
     }
 
-/*
-//    fun abrirSelectorArchivos() {
-//        val intent = Intent(Intent.ACTION_GET_CONTENT)
-//        intent.type = "*" // Permitir seleccionar cualquier tipo de archivo
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true) // Permitir selección múltiple
 
-        startActivityForResult(intent, SELECT_FILES_REQUEST_CODE )
-    }
-
-    fun comprimirArchivos(files: List<Uri>, destinationPath: String) {
-        try {
-            val zipFile = ZipFile(destinationPath)
-
-            // Convertir URIs a archivos y añadirlos al archivo ZIP
-            for (uri in files) {
-                val file = File(getRealPathFromURI(uri)) // Obtener el archivo real desde la URI
-                zipFile.addFile(file)
-            }
-
-            // Si todo fue bien, el archivo ZIP está creado
-            Toast.makeText(requireContext(), "Archivos comprimidos exitosamente", Toast.LENGTH_SHORT).show()
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(requireContext(), "Error al comprimir los archivos", Toast.LENGTH_SHORT).show()
-        }
-    }
-*/
     fun getRealPathFromURI(uri: Uri): String {
         val cursor = requireContext().contentResolver.query(uri, null, null, null, null)
         cursor?.moveToFirst()
@@ -1475,7 +1428,7 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
         startActivityForResult(intent, REQUEST_CODE_IMPORTAR_ZIP)
     }
 
-    fun importarElementosDesdeZip(uri: Uri) {
+    override  fun importarElementosDesdeZip(uri: Uri) {
         try {
             // Abrir el archivo ZIP
             val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return
@@ -1520,8 +1473,15 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 //                    esImagen = esImagen,
 //                    timestamp = System.currentTimeMillis()
 //                )
+//                val item = ItemLista(
+//                    id = nombreSinExtension,
+//                    nombre = nombreSinExtension,
+//                    uri = uriGuardado,
+//                    esImagen = esImagen,
+//                    timestamp = System.currentTimeMillis()
+//                )
                 val item = ItemLista(
-                    id = nombreSinExtension,
+                    id = ItemKey.media(nombreSinExtension),
                     nombre = nombreSinExtension,
                     uri = uriGuardado,
                     esImagen = esImagen,
@@ -1640,7 +1600,16 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     override fun onResume() {
         super.onResume()
         cargarPreviewCategorias()
+        (activity as? MainActivity)
+            ?.setZipImportListener(this)
     }
+    override fun onPause() {
+        super.onPause()
+
+        (activity as? MainActivity)
+            ?.setZipImportListener(null)
+    }
+
 
     companion object {
         const val PERMISSION_REQUEST_CODE = 123
@@ -1657,101 +1626,3 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     }
 
 }
-
-
-
-/* para ver si esta inicializada la variable lastcaptureduri
-override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-    super.onActivityResult(requestCode, resultCode, data)
-
-    if (resultCode == RESULT_OK) {
-        val mediaUri = when (requestCode) {
-            PICK_MEDIA_REQUEST -> data?.data
-            CAPTURE_IMAGE_REQUEST -> lastCapturedUri
-            CAPTURE_VIDEO_REQUEST -> lastCapturedUri
-            else -> null
-        }
-        if (mediaUri != null) {
-            val mimeType = contentResolver.getType(mediaUri)
-            if (mimeType != null) {
-
-//                    if (mimeType.startsWith("image/")) {
-//                        Log.d("CapturedMedia", "Imagen capturada. URI: $mediaUri")
-//                        ingresarNombreArchivo(mediaUri, true)
-
-                if (mimeType.startsWith("image/")) {
-                    if (requestCode == CAPTURE_IMAGE_REQUEST) {
-                        startCrop(mediaUri) // 👉 Editamos antes de continuar
-                    } else {
-                        ingresarNombreArchivo(mediaUri, true)
-                    }
-                } else if (mimeType.startsWith("video/")) {
-                    Log.d("CapturedMedia", "Video capturado URI: $mediaUri")
-                    ingresarNombreArchivo(mediaUri, false)
-                }
-            }
-        } else {
-            Log.e("CaptureError", "Media URI is null")
-        }
-
-        if (requestCode == UCROP_REQUEST_CODE && resultCode == RESULT_OK) {
-            val resultUri = UCrop.getOutput(data!!)
-            if (resultUri != null) {
-                ingresarNombreArchivo(resultUri, true) // Usamos imagen recortada
-            } else {
-                Toast.makeText(this, "Error al recortar la imagen", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-
-
-
-    /*
-    if (requestCode == REQUEST_CODE_SIGN_IN && resultCode == RESULT_OK) {
-        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            if (account != null) {
-                val email = account.email ?: "Correo no disponible"
-                // Inicializa el servicio de Google Drive después de la autenticación en un hilo en segundo plano
-                val executorService = Executors.newSingleThreadExecutor()
-                executorService.execute {
-                    driveServiceHelper = DriveServiceHelper(this, getGoogleDriveService(account))
-
-                    // Ahora que tienes el helper, puedes cargar las imágenes
-                    loadImageData()
-
-                    // Mostrar mensaje de éxito en el hilo principal
-                    runOnUiThread {
-                        Toast.makeText(this, "Conectado a Google Drive.\n Email: $email", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
-                Log.e("GoogleDrive", "Cuenta de Google es nula después del inicio de sesión")
-            }
-        } catch (e: ApiException) {
-            Log.e("GoogleDrive", "Error en la autenticación de Google Drive: ${e.statusCode}")
-            Toast.makeText(this, "Error en la autenticación", Toast.LENGTH_SHORT).show()
-        }
-    }*/
-
-    if (requestCode == SELECT_FILES_REQUEST_CODE && resultCode == RESULT_OK) {
-        val archivosSeleccionados = mutableListOf<Uri>()
-        data?.data?.let { archivosSeleccionados.add(it) }
-        data?.clipData?.let {
-            for (i in 0 until it.itemCount) {
-                archivosSeleccionados.add(it.getItemAt(i).uri)
-            }
-        }
-
-        val archivoComprimido = File(getExternalFilesDir(null), "exported_files.zip") // Comprimir los archivos seleccionados
-        comprimirArchivos(archivosSeleccionados, archivoComprimido.absolutePath)
-
-        compartirArchivo(archivoComprimido) // Compartir el archivo comprimido
-    }
-    if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_CODE_IMPORTAR_ZIP) {
-        val uri = data?.data
-        uri?.let { importarElementosDesdeZip(it) }
-    }
-}*/

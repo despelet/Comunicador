@@ -66,12 +66,18 @@ import com.comunic.MenuHandler
 import com.comunic.R
 import com.comunic.SpeechTextResolver
 import com.comunic.adapters.ExportItemsAdapter
+import com.comunic.adapters.ExportManager
 import com.comunic.adapters.ResumenExportacionAdapter
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.squareup.picasso.Picasso
 import com.comunic.interfaces.ZipImportListener
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
+import java.text.SimpleDateFormat
+import java.util.Date
 
 
 class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
@@ -1206,16 +1212,50 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
         startActivity(Intent.createChooser(intent, "Compartir archivo"))
     }
 
+    // EXPORTAR ELEMENTOS
     fun mostrarDialogoSeleccionarElementos(
         checkedInicial: BooleanArray? = null
     ) {
 
         val checked = checkedInicial
             ?: BooleanArray(listaDeArchivos.size)
-
         val dialogView = layoutInflater.inflate(
             R.layout.exp_dialogo_seleccion,
             null
+        )
+        // TABS
+        val tabs =
+            dialogView.findViewById<TabLayout>(R.id.tabExportacion)
+
+        val layoutElementos =
+            dialogView.findViewById<LinearLayout>(R.id.layoutExportarElementos)
+
+        val layoutListas =
+            dialogView.findViewById<LinearLayout>(R.id.layoutExportarListas)
+
+        tabs.addOnTabSelectedListener(
+            object : TabLayout.OnTabSelectedListener {
+
+                override fun onTabSelected(tab: TabLayout.Tab?) {
+
+                    when (tab?.position) {
+
+                        0 -> {
+                            layoutElementos.visibility = View.VISIBLE
+                            layoutListas.visibility = View.GONE
+                        }
+
+                        1 -> {
+                            layoutElementos.visibility = View.GONE
+                            layoutListas.visibility = View.VISIBLE
+                        }
+                    }
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab?) {}
+
+                override fun onTabReselected(tab: TabLayout.Tab?) {}
+            }
         )
 
         val recycler =
@@ -1368,68 +1408,52 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
         dialog.show()
     }
 
+    fun mostrarDialogoTipoExportacion(
+        elementosSeleccionados: List<ItemLista>
+    ) {
 
+        val dialogView = layoutInflater.inflate(
+            R.layout.exp_dialogo_tipo_exportacion,
+            null
+        )
 
-//    private fun mostrarDialogoTipoExportacion(elementosSeleccionados: List<ItemLista>) {
-//        AlertDialog.Builder(requireContext(),
-//            R.style.ThemeOverlay_Comunic_AlertDialog
-//        )
-//            .setTitle("¿Cómo querés exportarlos?")
-//            .setItems(arrayOf("Compartir archivos sueltos", "Exportar como ZIP")) { _, which ->
-//                when (which) {
-//                    0 -> exportarElementos(elementosSeleccionados) // Sueltos
-//                    1 -> exportarElementosComoZip(elementosSeleccionados) // Como ZIP
-//                }
-//            }
-//            .show()
-//    }
- fun mostrarDialogoTipoExportacion(
-    elementosSeleccionados: List<ItemLista>
-) {
+        val btnArchivos =
+            dialogView.findViewById<MaterialButton>(R.id.btnArchivos)
 
-    val dialogView = layoutInflater.inflate(
-        R.layout.exp_dialogo_tipo_exportacion,
-        null
-    )
+        val btnZip =   dialogView.findViewById<MaterialButton>(R.id.btnZip)
 
-    val btnArchivos =
-        dialogView.findViewById<MaterialButton>(R.id.btnArchivos)
+        val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
 
-    val btnZip =
-        dialogView.findViewById<MaterialButton>(R.id.btnZip)
-
-    val btnCancelar =
-        dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
-
-    val dialog = AlertDialog.Builder(
-        requireContext(),
-        R.style.ThemeOverlay_Comunic_AlertDialog
-    )
-        .setView(dialogView)
-        .create()
-
-    btnArchivos.setOnClickListener {
-
-        dialog.dismiss()
-
-        exportarElementos(elementosSeleccionados)
+        val dialog = AlertDialog.Builder( requireContext(),R.style.ThemeOverlay_Comunic_AlertDialog )
+            .setView(dialogView)
+            .create()
+        btnArchivos.setOnClickListener {
+            dialog.dismiss()
+//            exportarElementos(elementosSeleccionados)
+            ExportManager.exportarElementos(
+                this,
+                elementosSeleccionados
+            )
+        }
+//        btnZip.setOnClickListener {
+//            dialog.dismiss()
+//            exportarElementosComoZip(elementosSeleccionados)
+//        }
+        btnZip.setOnClickListener {
+            dialog.dismiss()
+//            pedirNombreZip { nombreZip ->
+            ExportManager.pedirNombreZip(this) { nombreZip ->
+                //exportarElementosComoZip(
+                ExportManager.exportarElementosComoZip(   this, elementosSeleccionados,nombreZip )
+            }
+        }
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
     }
 
-    btnZip.setOnClickListener {
-
-        dialog.dismiss()
-
-        exportarElementosComoZip(elementosSeleccionados)
-    }
-
-    btnCancelar.setOnClickListener {
-        dialog.dismiss()
-    }
-
-    dialog.show()
-}
-
-    private fun exportarElementos(elementos: List<ItemLista>) {
+    /*private fun exportarElementos(elementos: List<ItemLista>) {
         if (elementos.isEmpty()) {
             Toast.makeText(requireContext(), "No seleccionaste elementos", Toast.LENGTH_SHORT).show()
             return
@@ -1449,20 +1473,20 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
         }
 
         val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-            type = "*/*"
+            type = "**"
             putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(Intent.createChooser(intent, "Compartir archivos"))
     }
 
-    private fun exportarElementosComoZip(elementos: List<ItemLista>) {
+    private fun exportarElementosComoZip(elementos: List<ItemLista>, nombreZip: String  ) {
         if (elementos.isEmpty()) {
             Toast.makeText(requireContext(), "No seleccionaste elementos", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val zipFile = File(requireContext().cacheDir, "archivos_exportados.zip")
+        val zipFile = File(requireContext().cacheDir, nombreZip)
 
         try {
             ZipOutputStream(BufferedOutputStream(FileOutputStream(zipFile))).use { zos ->
@@ -1470,16 +1494,26 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
                     val inputStream = requireContext().contentResolver.openInputStream(item.uri) ?: continue
 
                     // obtener mime y extension
-                    val mimeType = requireContext().contentResolver.getType(item.uri)
-                    var extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
+                    var extension = File(item.uri.path ?: "")
+                        .extension
+                        .lowercase(Locale.ROOT)
 
-                    // fallback: intenta extraerla de la URL si no se pudo obtener desde el MIME
-                    if (extension == null) {
-                        extension = MimeTypeMap.getFileExtensionFromUrl(item.uri.toString())
+                    if (extension.isBlank()) {
+
+                        val mimeType = requireContext().contentResolver.getType(item.uri)
+
+                        extension = MimeTypeMap
+                            .getSingleton()
+                            .getExtensionFromMimeType(mimeType)
+                            ?.lowercase(Locale.ROOT)
+                            ?: ""
                     }
 
                     // añade extensión si no está
-                    val fileName = if (extension != null && !item.nombre.endsWith(".$extension")) {
+                    val fileName = if (
+                        extension.isNotBlank() &&
+                        !item.nombre.endsWith(".$extension")
+                    ) {
                         "${item.nombre}.$extension"
                     } else {
                         item.nombre
@@ -1510,6 +1544,56 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
             Toast.makeText(requireContext(), "Error al crear ZIP", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun pedirNombreZip(
+        onNombreListo: (String) -> Unit
+    ) {
+
+        val inputLayout = TextInputLayout(requireContext())
+        val editText = TextInputEditText(requireContext())
+
+        val fecha = SimpleDateFormat("yyyy_MM_dd",Locale.getDefault()).format(Date())
+
+        editText.setText("bicom_$fecha")
+
+        inputLayout.hint = "Nombre del ZIP"
+        inputLayout.addView(editText)
+
+        AlertDialog.Builder(
+            requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setTitle("Nombre del archivo ZIP")
+            .setView(inputLayout)
+            .setPositiveButton("Continuar") { _, _ ->
+
+                val texto = editText.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+
+                val nombreBase =
+                    if (texto.isBlank()) {
+                        "bicom_$fecha"
+                    } else {
+                        texto.replace(
+                            Regex("[^a-zA-Z0-9._-]"),
+                            "_"
+                        )
+                    }
+
+                val nombreFinal =  if (nombreBase.endsWith(".zip")) {  nombreBase
+                    } else {
+                        "$nombreBase.zip"
+                    }
+
+                onNombreListo(nombreFinal)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }*/
+
+    // EXPORTAR ELEMENTOS - hasta aca
 
     // IMPORTAR PAQUETES
     fun importarArchivos() {

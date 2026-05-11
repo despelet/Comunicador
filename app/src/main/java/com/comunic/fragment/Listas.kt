@@ -461,5 +461,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
         }
     }
 
+
+
 }
 

@@ -48,6 +48,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.comunic.fragment.CategoriaDetalleFragment
 import com.comunic.interfaces.ZipImportListener
 
 
@@ -180,8 +181,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 when (fragment) {
                     is HomeFragment -> fragment.mostrarDialogoSeleccionarElementos()
                     is Recientes -> fragment.mostrarDialogoSeleccionarElementos()
-                    //is FavoritosFragment -> fragment.mostrarDialogoSeleccionarElementos() // AGREGAR MAS PESTAÑAS
-                    else -> Toast.makeText(this, "Fragmento no compatible", Toast.LENGTH_SHORT).show()
+                    is CategoriaDetalleFragment -> fragment.mostrarDialogoSeleccionarElementos()
+                    //else -> Toast.makeText(this, "Fragmento no compatible", Toast.LENGTH_SHORT).show()
                 }
 
             }

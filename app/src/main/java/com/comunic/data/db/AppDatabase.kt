@@ -30,7 +30,7 @@ import com.comunic.data.entity.PictogramOverrideEntity
         CategoryItemEntity::class,
         PictogramOverrideEntity::class
     ],
-    version = 7
+    version = 9
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -51,7 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "items_usados_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)                    .build()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)                    .build()
                 INSTANCE = instance
                 instance
             }
@@ -230,6 +230,16 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // 4) Ahora sí: borrar el pack viejo (ya no lo necesitás)
                 db.execSQL("DELETE FROM installed_packs WHERE packId='basic'")
+            }
+        }
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // no-op
+            }
+        }
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // no-op
             }
         }
     }

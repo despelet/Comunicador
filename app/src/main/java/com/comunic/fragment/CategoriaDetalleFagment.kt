@@ -643,7 +643,7 @@ private fun configurarBotonSegunEstado() {
                 val dao = db.installedPackDao()
                 val existing = dao.get(packId)
                 if (existing == null) {
-                    dao.upsert(
+                    dao.insert(
                         InstalledPackEntity(
                             packId = packId,
                             version = 1,

@@ -77,14 +77,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             dao.getAllItemsUsados() // o cualquier consulta mínima
         }
 
-
-
         // MENU LATERAL
         drawerLayout = findViewById(R.id.drawer_layout) // inicializacion del drawer layout y navigation view
         navigationView = findViewById(R.id.navigation_view) // inicializacion del drawer layout y navigation view
         navigationView.setNavigationItemSelectedListener(this) // Configurar NavigationView y su listener
-//        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, GravityCompat.START)
-//        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, GravityCompat.END)
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, GravityCompat.END)
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, GravityCompat.START)
 
@@ -223,6 +219,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
     }
 
+    // funcion para abrir el selector de archivos desde homefragment.
     private fun setupBottomNav() {
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
@@ -263,6 +260,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         navigateTo(R.id.menu_home, HomeFragment())
     }
 
+    // funcion para pedir a los fragments que soporten "Agregar a lista" que muestren el dialog correspondiente
     fun pedirAgregarAListaDesdeCuadro(item: ItemLista) {
         val current = supportFragmentManager.findFragmentById(R.id.fragment_container)
 
@@ -354,6 +352,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             .withAspectRatio(1f, 1f)
             .start(this)
     }
+
+    // funcion para manejar los resultados de las actividades de captura, selección e importación
     override fun onActivityResult(
         requestCode: Int,
         resultCode: Int,
@@ -457,6 +457,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 //            .setNegativeButton("Cancelar", null)
 //            .show()
 //    }
+
+    // funcion para mostrar un dialog personalizado para ingresar el nombre del archivo, con preview de la imagen/video y validación de campo vacío
     private fun ingresarNombreArchivo(mediaUri: Uri, isImage: Boolean) {
 
         Log.d("DIALOG_FLOW", "Mostrando dialog desde MainActivity")
@@ -509,6 +511,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         dialog.setCancelable(false)
     }
+    // funcion para mostrar un snackbar con mensaje personalizado y colores distintos para éxito o error, usado después de guardar un archivo o al ocurrir un error
     private fun mostrarSnackbar(mensaje: String, esExito: Boolean) {
 
         val rootView = findViewById<View>(android.R.id.content)
@@ -527,7 +530,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         snackbar.show()
     }
 
-
+    // funcion para guardar el archivo en almacenamiento interno, registrar su metadata en SharedPreferences y notificar a los fragments interesados, además de agregarlo a la categoría pendiente si corresponde. Se llama desde ingresarNombreArchivo después de que el usuario ingresa el nombre y confirma guardar.
     private fun guardarArchivo(uri: Uri, nombre: String, esImagen: Boolean) {
 
         val savedUri = guardarEnAlmacenamientoInterno(uri, nombre, esImagen)
@@ -578,7 +581,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         Toast.makeText(this, "Guardado: $nombre", Toast.LENGTH_SHORT).show()
     }
 
-
+    // funcion para copiar el archivo desde su ubicación original (galería o cámara) a una carpeta privada de la app, con un nombre basado en el input del usuario y extensión según el tipo de media. Retorna el URI del nuevo archivo o null si hubo un error. Se llama desde guardarArchivo para hacer la copia física del archivo antes de registrar su metadata y notificar a los fragments.
     fun guardarEnAlmacenamientoInterno(
         mediaUri: Uri,
         nombre: String,
@@ -603,6 +606,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             null
         }
     }
+
+    // funcion para guardar en SharedPreferences la relación entre el nombre del archivo, su URI y si es imagen o video, usando un esquema de claves que permite recuperar esta info fácilmente. Se llama desde guardarArchivo después de copiar el archivo a almacenamiento interno, para registrar su metadata localmente.
     fun saveMediaData(nombre: String, uri: Uri, isImage: Boolean) {
         val prefs = getSharedPreferences("media_data", MODE_PRIVATE)
         prefs.edit()

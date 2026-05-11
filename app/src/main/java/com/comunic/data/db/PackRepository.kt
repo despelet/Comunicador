@@ -1,6 +1,7 @@
 package com.comunic.data.db
 
 import android.content.Context
+import android.util.Log
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.entity.InstalledPackEntity
@@ -9,36 +10,23 @@ import java.io.File
 import java.util.UUID
 import com.comunic.ItemKey
 
+private const val BASIC_CORE_VERSION = 3
+private const val BASIC_FOOD_VERSION = 3
+
 class PackRepository(
     private val context: Context,
     private val db: AppDatabase
+
 ) {
+
+
     suspend fun ensureBasicPackInstalled() {
         val now = System.currentTimeMillis()
 
-        ensurePackRow("basic_core", now)
-        ensurePackRow("basic_food", now)
-
-//        // ✅ 0) Asegurar fila installed_packs SIN pisar enabled
-//        val installed = db.installedPackDao().get("basic")
-//        if (installed == null) {
-//            db.installedPackDao().upsert(
-//                InstalledPackEntity(
-//                    packId = "basic",
-//                    version = 3,
-//                    installedAt = now,
-//                    enabled = true,   // primera vez sí
-//                    isSystem = true
-//                )
-//            )
-//        } else {
-//            // NO tocar enabled: respetar lo que eligió el usuario
-//            db.installedPackDao().upsert(
-//                installed.copy(
-//                    isSystem = true
-//                )
-//            )
-//        }
+//        ensurePackRow("basic_core", now)
+//        ensurePackRow("basic_food", now)
+        ensurePackRow( packId = "basic_core", version = BASIC_CORE_VERSION,  now = now )
+        ensurePackRow( packId = "basic_food",  version = BASIC_FOOD_VERSION, now = now)
 
         // ✅ 1) REPAIR SIEMPRE: categorías del pack basic deben ser system + packId=basic
         db.categoryDao().upsert(
@@ -66,8 +54,20 @@ class PackRepository(
         )
 
         // ✅ 2) Si ya está instalado en versión 3+, acá podés cortar para no reinsertar pictos/placements
-        val installed2 = db.installedPackDao().get("basic")
-        if (installed2 != null && installed2.version >= 3) return
+//        val installed2 = db.installedPackDao().get("basic")
+//        if (installed2 != null && installed2.version >= 3) return
+
+        val corePack = db.installedPackDao().get("basic_core")
+        val foodPack = db.installedPackDao().get("basic_food")
+
+        if (
+            corePack != null &&
+            foodPack != null &&
+            corePack.version >= 3 &&
+            foodPack.version >= 3
+        ) {
+            return
+        }
 
         // 2) Copiar imágenes desde assets a filesDir (una vez)
         val baseDir = File(context.filesDir, "packs/basic/images")
@@ -162,32 +162,87 @@ class PackRepository(
         }
         db.pictogramDao().insertPlacements(foodPlacements)
 
-//        db.installedPackDao().upsert(
-//            InstalledPackEntity(
-//                packId = "basic",
-//                version = 3,
-//                installedAt = installed?.installedAt ?: now,
-//                enabled = installed?.enabled ?: true,  // ✅ respetar
-//                isSystem = true
-//            )
-//        )
     }
 
-    private suspend fun ensurePackRow(packId: String, now: Long) {
+//    private suspend fun ensurePackRow(packId: String, now: Long) {
+//        val dao = db.installedPackDao()
+//        val existing = dao.get(packId)
+//        if (existing == null) {
+//            dao.upsert(
+//                InstalledPackEntity(
+//                    packId = packId,
+//                    version = 1,
+//                    installedAt = now,
+//                    enabled = true,
+//                    isSystem = true
+//                )
+//            )
+//        } else {
+//            dao.upsert(existing.copy(isSystem = true)) // no lo fuerces a enabled=true acá
+//        }
+//    }
+
+//    private suspend fun ensurePackRow(packId: String, now: Long) {
+//
+//        val dao = db.installedPackDao()
+//        val existing = dao.get(packId)
+//
+//        if (existing == null) {
+//            dao.insert(
+//                InstalledPackEntity(
+//                    packId = packId,
+//                    version = 1,
+//                    installedAt = now,
+//                    enabled = true,
+//                    isSystem = true
+//                )
+//            )
+//        } else {
+//            // mantener preferencias del usuario
+//            dao.update(
+//                existing.copy(
+//                    isSystem = true
+//                )
+//            )
+//        }
+//    }
+
+    private suspend fun ensurePackRow(
+        packId: String,
+        version: Int,
+        now: Long
+    ) {
+
         val dao = db.installedPackDao()
+
         val existing = dao.get(packId)
+        Log.d("PACK_TEST", "existing=$existing")
+        Log.d("PACK_TEST", "enabled=${existing?.enabled}")
+
+
         if (existing == null) {
-            dao.upsert(
+
+            dao.insert(
                 InstalledPackEntity(
                     packId = packId,
-                    version = 1,
+                    version = version,
                     installedAt = now,
                     enabled = true,
                     isSystem = true
                 )
             )
         } else {
-            dao.upsert(existing.copy(isSystem = true)) // no lo fuerces a enabled=true acá
+
+            // IMPORTANTE:
+            // conservar preferencias del usuario
+            dao.update(
+                existing.copy(
+                    version = version,
+                    isSystem = true
+                )
+            )
         }
     }
+
+
 }

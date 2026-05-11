@@ -8,8 +8,14 @@ interface InstalledPackDao {
     @Query("SELECT * FROM installed_packs WHERE packId = :packId LIMIT 1")
     suspend fun get(packId: String): InstalledPackEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(pack: InstalledPackEntity)
+    // funcion para insertar o actualizar un pack instalado, dependiendo de si ya existe o no
+//    @Insert(onConflict = OnConflictStrategy.REPLACE)
+//    suspend fun upsert(pack: InstalledPackEntity)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(pack: InstalledPackEntity)
+
+    @Update
+    suspend fun update(pack: InstalledPackEntity)
 
     @Query("UPDATE installed_packs SET enabled = :enabled WHERE packId = :packId")
     suspend fun setEnabled(packId: String, enabled: Boolean)

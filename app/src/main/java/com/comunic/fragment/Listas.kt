@@ -169,10 +169,19 @@ class Listas : Fragment(), MenuHandler {
                 val dao = db.installedPackDao()
                 val existing = dao.get(cat.packId)
                 if (existing == null) {
-                    dao.upsert(
+//                    dao.upsert(
+//                        InstalledPackEntity(
+//                            packId = cat.packId,
+//                            version = 1,
+//                            installedAt = System.currentTimeMillis(),
+//                            enabled = true,
+//                            isSystem = true
+//                        )
+//                    )
+                    dao.insert(
                         InstalledPackEntity(
                             packId = cat.packId,
-                            version = 1,
+                            version = 3,
                             installedAt = System.currentTimeMillis(),
                             enabled = true,
                             isSystem = true
@@ -380,10 +389,19 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 val dao = db.installedPackDao()
                 val existing = dao.get(packId)
                 if (existing == null) {
-                    dao.upsert(
+//                    dao.upsert(
+//                        InstalledPackEntity(
+//                            packId = packId,
+//                            version = 1,
+//                            installedAt = System.currentTimeMillis(),
+//                            enabled = false,
+//                            isSystem = true
+//                        )
+//                    )
+                    dao.insert(
                         InstalledPackEntity(
                             packId = packId,
-                            version = 1,
+                            version = 3,
                             installedAt = System.currentTimeMillis(),
                             enabled = false,
                             isSystem = true
@@ -405,12 +423,21 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 val dao = db.installedPackDao()
                 val existing = dao.get(packId)
                 if (existing == null) {
-                    dao.upsert(
+//                    dao.upsert(
+//                        InstalledPackEntity(
+//                            packId = packId,
+//                            version = 1,
+//                            installedAt = System.currentTimeMillis(),
+//                            enabled = true,
+//                            isSystem = true
+//                        )
+//                    )
+                    dao.insert(
                         InstalledPackEntity(
                             packId = packId,
-                            version = 1,
+                            version = 3,
                             installedAt = System.currentTimeMillis(),
-                            enabled = true,
+                            enabled = false,
                             isSystem = true
                         )
                     )

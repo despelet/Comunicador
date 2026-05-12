@@ -9,6 +9,7 @@ import androidx.fragment.app.DialogFragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.comunic.adapters.PickItemsAdapter
+import com.comunic.fragment.MainActivity
 
 class PickItemsDialogFragment(
     private val items: List<ItemLista>,

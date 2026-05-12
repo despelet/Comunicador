@@ -131,6 +131,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.androidx.core.splashscreen.v101)
+    implementation(libs.gson) // json para exportar listas
 }
 
 

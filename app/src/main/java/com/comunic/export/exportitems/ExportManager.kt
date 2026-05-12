@@ -1,4 +1,4 @@
-package com.comunic.adapters
+package com.comunic.export.exportitems
 
 import android.content.Intent
 import android.net.Uri
@@ -6,12 +6,18 @@ import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.R
+import com.comunic.data.db.AppDatabase
+import com.comunic.data.entity.CategoryEntity
+import com.comunic.data.mappers.resolveItemKeyToItemLista
+import com.comunic.export.exportlista.ExportCategoryItem
+import com.comunic.export.exportlista.ExportCategoryMetadata
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
+import com.google.gson.Gson
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -235,6 +241,86 @@ object ExportManager {
         return nombre.replace(
             Regex("[^a-zA-Z0-9._-]"),
             "_"
+        )
+    }
+
+    suspend fun exportarListasComoZip(
+        fragment: Fragment,
+        categorias: List<CategoryEntity>
+    ) {
+        val context = fragment.requireContext()
+        val db = AppDatabase.getDatabase(context)
+
+        val zipFile = File(
+            context.cacheDir,
+            "listas_export.zip"
+        )
+        val gson = Gson()
+
+        ZipOutputStream(
+            BufferedOutputStream(
+                FileOutputStream(zipFile)
+            )
+        ).use { zos ->
+            for (categoria in categorias) {
+                val itemKeys =
+                    db.categoryDao()
+                        .getItemKeysForCategory(categoria.categoryId)
+                val exportItems =
+                    itemKeys.mapIndexed { index, key ->
+                        ExportCategoryItem(
+                            itemKey = key,
+                            orderIndex = index
+                        )
+                    }
+                val metadata =
+                    ExportCategoryMetadata(
+                        categoryId = categoria.categoryId,
+                        name = categoria.name,
+                        createdAt = categoria.createdAt,
+                        items = exportItems
+                    )
+
+                val metadataJson = gson.toJson(metadata)
+                val safeFolderName = sanitizarNombreArchivo(categoria.name)
+
+                val metadataEntry = ZipEntry("$safeFolderName/metadata.json")
+
+                zos.putNextEntry(metadataEntry)
+                zos.write(metadataJson.toByteArray())
+                zos.closeEntry()
+
+                for (itemKey in itemKeys) {
+                    if (!ItemKey.isMedia(itemKey)) continue
+                    val item =
+                        resolveItemKeyToItemLista(
+                            context,
+                            itemKey
+                        ) ?: continue
+                    val inputStream =context.contentResolver.openInputStream(item.uri)?: continue
+                    val extension =File(item.uri.path ?: "").extension
+                    val fileName =
+                        itemKey .replace(":", "_") + ".$extension"
+                    val mediaEntry = ZipEntry("$safeFolderName/media/$fileName")
+                    zos.putNextEntry(mediaEntry)
+                    inputStream.copyTo(zos)
+                    zos.closeEntry()
+                    inputStream.close()
+                }
+            }
+        }
+        val uriZip = FileProvider.getUriForFile(
+            context,
+            "com.comunic.fileprovider",
+            zipFile
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(Intent.EXTRA_STREAM, uriZip)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        fragment.startActivity(
+            Intent.createChooser(intent, "Compartir ZIP")
         )
     }
 }

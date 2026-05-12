@@ -4,9 +4,7 @@ package com.comunic.fragment
 
 import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
 import android.media.AudioManager
-import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -14,10 +12,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.text.InputType
 import android.util.Log
-import android.view.ActionMode
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -28,18 +23,19 @@ import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.comunic.data.db.AppDatabase
 import com.comunic.databinding.FragmentCategoriaDetalleBinding
 import kotlinx.coroutines.launch
 import com.comunic.ItemLista
-import com.comunic.MainActivity
 import com.comunic.adapters.MediaAdapter
 import com.comunic.PickItemsDialogFragment
 import com.comunic.R
 import com.comunic.SpeechTextResolver
 import com.comunic.adapters.ExportItemsAdapter
-import com.comunic.adapters.ExportManager
+import com.comunic.adapters.ExportListasAdapter
+import com.comunic.export.exportitems.ExportManager
 import com.comunic.adapters.ResumenExportacionAdapter
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.entity.InstalledPackEntity
@@ -48,8 +44,6 @@ import kotlinx.coroutines.withContext
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.data.mappers.resolveItemKeyToItemListaAllowDisabled
 import com.comunic.interfaces.MediaResultListener
-import com.comunic.interfaces.OnNuevoItemListener
-import com.comunic.interfaces.RecientesProvider
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import java.util.Locale
@@ -698,27 +692,18 @@ class CategoriaDetalleFragment :
             null
         )
         // TABS
-        val tabs =
-            dialogView.findViewById<TabLayout>(R.id.tabExportacion)
-
-        val layoutElementos =
-            dialogView.findViewById<LinearLayout>(R.id.layoutExportarElementos)
-
-        val layoutListas =
-            dialogView.findViewById<LinearLayout>(R.id.layoutExportarListas)
+        val tabs = dialogView.findViewById<TabLayout>(R.id.tabExportacion)
+        val layoutElementos = dialogView.findViewById<LinearLayout>(R.id.layoutExportarElementos)
+        val layoutListas = dialogView.findViewById<LinearLayout>(R.id.layoutExportarListas)
 
         tabs.addOnTabSelectedListener(
             object : TabLayout.OnTabSelectedListener {
-
                 override fun onTabSelected(tab: TabLayout.Tab?) {
-
                     when (tab?.position) {
-
                         0 -> {
                             layoutElementos.visibility = View.VISIBLE
                             layoutListas.visibility = View.GONE
                         }
-
                         1 -> {
                             layoutElementos.visibility = View.GONE
                             layoutListas.visibility = View.VISIBLE
@@ -732,20 +717,11 @@ class CategoriaDetalleFragment :
             }
         )
 
-        val recycler =
-            dialogView.findViewById<RecyclerView>(R.id.recyclerItems)
-
-        val btnSeleccionarTodos =
-            dialogView.findViewById<MaterialButton>(R.id.btnSeleccionarTodos)
-
-        val btnDeseleccionarTodos =
-            dialogView.findViewById<MaterialButton>(R.id.btnDeseleccionarTodos)
-
-        val btnExportar =
-            dialogView.findViewById<MaterialButton>(R.id.btnExportar)
-
-        val btnCancelar =
-            dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+        val recycler = dialogView.findViewById<RecyclerView>(R.id.recyclerItems)
+        val btnSeleccionarTodos = dialogView.findViewById<MaterialButton>(R.id.btnSeleccionarTodos)
+        val btnDeseleccionarTodos = dialogView.findViewById<MaterialButton>(R.id.btnDeseleccionarTodos)
+        val btnExportar = dialogView.findViewById<MaterialButton>(R.id.btnExportar)
+        val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
 
         val adapter = ExportItemsAdapter(
             items = listaDeArchivos,
@@ -755,29 +731,22 @@ class CategoriaDetalleFragment :
             checked[index] = isChecked
         }
 
-        recycler.layoutManager =
-            GridLayoutManager(requireContext(), 2)
-
+        recycler.layoutManager =         GridLayoutManager(requireContext(), 2)
         recycler.adapter = adapter
 
         btnSeleccionarTodos.setOnClickListener {
-
             for (i in checked.indices) {
                 checked[i] = true
             }
-
             adapter.notifyDataSetChanged()
         }
 
         btnDeseleccionarTodos.setOnClickListener {
-
             for (i in checked.indices) {
                 checked[i] = false
             }
-
             adapter.notifyDataSetChanged()
         }
-
         val dialog = androidx.appcompat.app.AlertDialog.Builder(
             requireContext(),
             R.style.ThemeOverlay_Comunic_AlertDialog
@@ -786,25 +755,20 @@ class CategoriaDetalleFragment :
             .create()
 
         btnExportar.setOnClickListener {
-
             val elementosSeleccionados =
                 listaDeArchivos.filterIndexed { index, _ ->
                     checked[index]
                 }
-
             if (elementosSeleccionados.isEmpty()) {
-
                 Toast.makeText(
                     requireContext(),
                     "No seleccionaste ningún elemento",
                     Toast.LENGTH_SHORT
                 ).show()
-
                 return@setOnClickListener
             }
 
             dialog.dismiss()
-
             mostrarResumenSeleccion(
                 elementosSeleccionados,
                 checked
@@ -815,8 +779,93 @@ class CategoriaDetalleFragment :
             dialog.dismiss()
         }
 
+
+        // =========================
+        // EXPORTAR LISTAS
+        // =========================
+
+        val recyclerListas =  dialogView.findViewById<RecyclerView>(R.id.recyclerListas)
+        val btnExportarListas =      dialogView.findViewById<MaterialButton>(R.id.btnExportarListas)
+        val btnSeleccionarTodas = dialogView.findViewById<MaterialButton>(R.id.btnSeleccionarTodas)
+        val btnDeseleccionarTodas = dialogView.findViewById<MaterialButton>(R.id.btnDeseleccionarTodas)
+
+        viewLifecycleOwner.lifecycleScope.launch { val categorias = db.categoryDao().getUserActive()
+            val cantidades = categorias.associate { categoria ->
+                categoria.categoryId to
+                        db.categoryDao()
+                            .getItemKeysForCategory(categoria.categoryId)
+                            .size
+            }
+
+            val checkedListas = BooleanArray(categorias.size)
+            val previews =
+                categorias.associate { categoria ->
+                    val itemKeys =
+                        db.categoryDao()
+                            .getItemKeysForCategory(categoria.categoryId)
+                    val previewItems =
+                        itemKeys.mapNotNull { key ->
+                            resolveItemKeyToItemLista(
+                                requireContext(),
+                                key
+                            )
+                        }
+
+                    categoria.categoryId to previewItems
+                }
+            val adapterListas = ExportListasAdapter(
+                context = requireContext(),
+                items = categorias,
+                cantidades = cantidades,
+                previews = previews,
+                checked = checkedListas
+            ) { index, isChecked ->
+
+                checkedListas[index] = isChecked
+            }
+
+            recyclerListas.layoutManager = LinearLayoutManager(requireContext())
+            recyclerListas.adapter = adapterListas
+
+            btnExportarListas.setOnClickListener {
+                val seleccionadas =
+                    categorias.filterIndexed { index, _ ->
+                        checkedListas[index]
+                    }
+
+                if (seleccionadas.isEmpty()) {
+                    Toast.makeText(
+                        requireContext(),
+                        "No seleccionaste listas",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
+                viewLifecycleOwner.lifecycleScope.launch {
+                    ExportManager.exportarListasComoZip(
+                        this@CategoriaDetalleFragment,
+                        seleccionadas
+                    )
+                }
+            }
+            btnSeleccionarTodas.setOnClickListener {
+                for (i in checkedListas.indices) {
+                    checkedListas[i] = true
+                }
+                adapterListas.notifyDataSetChanged()
+            }
+
+            btnDeseleccionarTodas.setOnClickListener {
+                for (i in checkedListas.indices) {
+                    checkedListas[i] = false
+                }
+                adapterListas.notifyDataSetChanged()
+            }
+        }
         dialog.show()
     }
+
 
     private fun mostrarResumenSeleccion(
         elementosSeleccionados: List<ItemLista>,

@@ -1,4 +1,4 @@
-package com.comunic
+package com.comunic.fragment
 
 //import android.os.Build.VERSION_CODES.R
 import android.os.Bundle
@@ -11,15 +11,11 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.comunic.data.db.AppDatabase
-import com.comunic.fragment.HomeFragment
-import com.comunic.fragment.Listas
-import com.comunic.fragment.Recientes
 import com.comunic.interfaces.MediaResultListener
 import com.comunic.interfaces.RecientesProvider
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.launch
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.ContentValues
 import android.content.Intent
@@ -48,7 +44,11 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.comunic.fragment.CategoriaDetalleFragment
+import com.comunic.AddToListHost
+import com.comunic.ItemKey
+import com.comunic.ItemLista
+import com.comunic.R
+import com.comunic.Sugeridos
 import com.comunic.interfaces.ZipImportListener
 
 

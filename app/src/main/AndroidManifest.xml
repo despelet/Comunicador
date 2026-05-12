@@ -33,7 +33,7 @@
 
         tools:targetApi="31">
         <activity
-            android:name="com.comunic.MainActivity"
+            android:name="com.comunic.fragment.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.Comunic.Splash">
             <intent-filter>

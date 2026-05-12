@@ -12,7 +12,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
-import android.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
@@ -23,7 +22,6 @@ import com.comunic.CarouselPageTransformer
 import com.comunic.CarruselAdapter
 import com.comunic.ItemKey
 import com.comunic.ItemLista
-import com.comunic.MainActivity
 import com.comunic.R
 import com.comunic.data.dao.CategoryDao
 import com.comunic.data.db.AppDatabase

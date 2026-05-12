@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.GridLayoutManager
 import com.comunic.adapters.CategoriasCuadriculaAdapter
 import com.comunic.CategoryPreview
-import com.comunic.MainActivity
 import com.comunic.MenuHandler
 import com.comunic.PickItemsDialogFragment
 import com.comunic.R

@@ -51,31 +51,6 @@ interface CategoryDao {
     suspend fun deletePlacement(placementId: String)
 
 
-    // ===== Preview de categorías =====
-    // Para mostrar el nombre de la categoría y la imagen del primer item, trayendo solo las categorías que tienen items
-    // ===== Preview de categorías =====
-//    @Query("""
-//SELECT
-//  c.categoryId AS categoryId,
-//  c.name AS name,
-//  COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
-//FROM categories c
-//LEFT JOIN installed_packs ip ON ip.packId = c.packId
-//JOIN category_items ci ON ci.categoryId = c.categoryId
-//JOIN pictograms p ON p.pictogramId = SUBSTR(ci.itemKey, 5)
-//LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
-//WHERE c.isDeleted = 0
-//  AND (c.isSystem = 0 OR COALESCE(ip.enabled, 1) = 1)
-//  AND ci.itemKey LIKE 'PIC:%'
-//  AND ci.orderIndex = (
-//      SELECT MIN(ci2.orderIndex)
-//      FROM category_items ci2
-//      WHERE ci2.categoryId = c.categoryId
-//        AND ci2.itemKey LIKE 'PIC:%'
-//  )
-//ORDER BY c.orderIndex ASC
-//""")
-//    suspend fun getAllCategoryPreviewRows(): List<CategoryPreviewRow>
 
     // Para mostrar el nombre de la categoría aunque no tenga items, trayendo el itemKey del primer item para usarlo en el detalle de la categoría
     @Query("""
@@ -127,19 +102,6 @@ ORDER BY c.orderIndex ASC
         val name: String
     )
 
-//    // Traer categorías a las que pertenece un item para mostrar en el detalle del item
-//    @Query("""
-//SELECT c.categoryId AS categoryId,
-//       c.name       AS name
-//FROM categories c
-//LEFT JOIN installed_packs ip ON ip.packId = c.packId
-//INNER JOIN category_items ci ON ci.categoryId = c.categoryId
-//WHERE ci.itemKey = :itemKey
-//  AND c.isDeleted = 0
-//  AND (c.isSystem = 0 OR COALESCE(ip.enabled, 1) = 1)
-//ORDER BY c.orderIndex ASC
-//""")
-//    suspend fun getCategoriesForItemKey(itemKey: String): List<CategoryMiniRow>
 
     // para que e actualice en el momento el litado de listas al agregar o quitar un item
     @Query("""
@@ -164,24 +126,6 @@ ORDER BY c.orderIndex ASC
 
     @Query("UPDATE categories SET isDeleted = 1 WHERE categoryId = :categoryId AND isSystem = 0")
     suspend fun softDeleteUserCategory(categoryId: String)
-
-//    @Query("""
-//SELECT
-//  c.categoryId AS categoryId,
-//  c.name AS name,
-//  c.orderIndex AS orderIndex,
-//  c.packId AS packId,
-//  c.isSystem AS isSystem,
-//  COALESCE(ip.enabled, 1) AS packEnabled
-//FROM categories c
-//LEFT JOIN installed_packs ip ON ip.packId = c.packId
-//WHERE (c.isSystem = 1) OR (c.isSystem = 0 AND c.isDeleted = 0)
-//ORDER BY
-//  CASE WHEN c.isSystem = 1 AND COALESCE(ip.enabled, 1) = 0 THEN 1 ELSE 0 END ASC,
-//  c.orderIndex ASC,
-//  c.name COLLATE NOCASE ASC
-//""")
-//    suspend fun getCategoriesForListScreen(): List<CategoryListRow>
 
     data class CategoryPreviewKeyRowList(
         val categoryId: String,
@@ -262,5 +206,30 @@ LIMIT 1
 """)
     suspend fun getCategoryStatus(categoryId: String): CategoryStatusRow?
 
+    @Query("""
+SELECT * FROM categories
+WHERE name = :name
+AND isDeleted = 0
+LIMIT 1
+""")
+    suspend fun getCategoryByName(
+        name: String
+    ): CategoryEntity?
 
+
+    @Query("""
+UPDATE categories
+SET isDeleted = 1
+WHERE categoryId = :categoryId
+""")
+    suspend fun softDeleteCategory(
+        categoryId: String
+    )
+
+    @Query("""
+SELECT * FROM categories
+WHERE isDeleted = 0
+ORDER BY orderIndex
+""")
+    fun getAllCategoriesFlow(): Flow<List<CategoryEntity>>
 }

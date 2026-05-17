@@ -16,4 +16,5 @@
     <item name="btnSeleccionarTodos" type="id"/>
     <item name="btnDeseleccionarTodos" type="id"/>
     <item name="btnExportar" type="id"/>
+    <item name="editText" type="id"/>
 </resources>

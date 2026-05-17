@@ -165,7 +165,6 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 withHomeFragment { solicitarContrasena() }
                 val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
                 when (fragment) {
-
                     is Recientes -> fragment.solicitarContrasena()
                     //is FavoritosFragment -> fragment.solicitarContrasena() // AGREGAR MAS PESTAÑAS
                     else -> Toast.makeText(this, "Fragmento no compatible", Toast.LENGTH_SHORT).show()
@@ -196,6 +195,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 when (fragment) {
                     is HomeFragment -> fragment.importarArchivos()
                     is Recientes -> fragment.importarArchivos()
+                    is Listas -> fragment.importarArchivos()
                     //is FavoritosFragment -> fragment.importarArchivos() // AGREGAR MAS PESTAÑAS
                     else -> Toast.makeText(this, "Fragmento no compatible", Toast.LENGTH_SHORT).show()
                 }

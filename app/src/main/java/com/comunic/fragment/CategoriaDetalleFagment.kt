@@ -154,8 +154,7 @@ class CategoriaDetalleFragment :
         super.onViewCreated(view, savedInstanceState)
 
         tts = TextToSpeech(requireContext(), this)
-        audioManager =
-            requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        audioManager =  requireContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
         db = AppDatabase.getDatabase(requireContext())
 

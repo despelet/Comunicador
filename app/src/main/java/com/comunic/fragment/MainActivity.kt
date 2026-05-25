@@ -49,7 +49,9 @@ import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.R
 import com.comunic.Sugeridos
+import com.comunic.data.entity.MediaEntity
 import com.comunic.interfaces.ZipImportListener
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -532,7 +534,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     }
 
     // funcion para guardar el archivo en almacenamiento interno, registrar su metadata en SharedPreferences y notificar a los fragments interesados, además de agregarlo a la categoría pendiente si corresponde. Se llama desde ingresarNombreArchivo después de que el usuario ingresa el nombre y confirma guardar.
-    private fun guardarArchivo(uri: Uri, nombre: String, esImagen: Boolean) {
+    /*private fun guardarArchivo(uri: Uri, nombre: String, esImagen: Boolean) {
 
         val savedUri = guardarEnAlmacenamientoInterno(uri, nombre, esImagen)
             ?: return
@@ -580,6 +582,82 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         pendingCategoryId = null
 
         Toast.makeText(this, "Guardado: $nombre", Toast.LENGTH_SHORT).show()
+    }*/
+
+    private fun guardarArchivo(uri: Uri, nombre: String, esImagen: Boolean) {
+
+        val savedUri = guardarEnAlmacenamientoInterno(uri, nombre, esImagen)
+            ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+
+            val db = AppDatabase.getDatabase(applicationContext)
+            val now = System.currentTimeMillis()
+
+            val media = MediaEntity(
+                mediaId = UUID.randomUUID().toString(),
+                displayName = nombre,
+                localUri = savedUri.toString(),
+                mediaType = if (esImagen) "image" else "video",
+                createdAt = now,
+                updatedAt = now,
+                isDeleted = false
+            )
+
+            db.mediaDao().upsert(media)
+
+            val item = ItemLista(
+                id = ItemKey.media(media.mediaId),
+                nombre = media.displayName,
+                uri = savedUri,
+                esImagen = esImagen,
+                timestamp = media.createdAt
+            )
+
+            saveMediaData(nombre, savedUri, esImagen)
+
+            withContext(Dispatchers.Main) {
+                val currentFragment =
+                    supportFragmentManager.findFragmentById(
+                        R.id.fragment_container
+                    )
+
+                if (currentFragment is MediaResultListener) {
+                    Log.d(
+                        "MEDIA_NOTIFY",
+                        "Notificando a: ${currentFragment.javaClass.simpleName}"
+                    )
+                    currentFragment.onMediaCreated(item)
+                } else {
+                    Log.e(
+                        "MEDIA_NOTIFY",
+                        "Fragment actual no implementa MediaResultListener"
+                    )
+                }
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "Guardado: $nombre",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            pendingCategoryId?.let { catId ->
+
+                val next = db.categoryDao().getMaxOrderIndex(catId) + 1
+
+                db.categoryDao().insertCategoryItem(
+                    CategoryItemEntity(
+                        placementId = UUID.randomUUID().toString(),
+                        categoryId = catId,
+                        itemKey = item.id,
+                        orderIndex = next
+                    )
+                )
+            }
+
+            pendingCategoryId = null
+        }
     }
 
     // funcion para copiar el archivo desde su ubicación original (galería o cámara) a una carpeta privada de la app, con un nombre basado en el input del usuario y extensión según el tipo de media. Retorna el URI del nuevo archivo o null si hubo un error. Se llama desde guardarArchivo para hacer la copia física del archivo antes de registrar su metadata y notificar a los fragments.

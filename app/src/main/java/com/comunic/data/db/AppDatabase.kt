@@ -11,12 +11,14 @@ import com.comunic.data.dao.CategoryDao
 import com.comunic.data.dao.InstalledPackDao
 import com.comunic.data.dao.ItemUsadoBucketDao
 import com.comunic.data.dao.ItemUsadoDao
+import com.comunic.data.dao.MediaDao
 import com.comunic.data.dao.PictogramDao
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.entity.InstalledPackEntity
 import com.comunic.data.entity.ItemUsado
 import com.comunic.data.entity.ItemUsadoBucket
+import com.comunic.data.entity.MediaEntity
 import com.comunic.data.entity.PictogramEntity
 import com.comunic.data.entity.PictogramOverrideEntity
 
@@ -28,18 +30,21 @@ import com.comunic.data.entity.PictogramOverrideEntity
         CategoryEntity::class,
         PictogramEntity::class,
         CategoryItemEntity::class,
-        PictogramOverrideEntity::class
+        PictogramOverrideEntity::class,
+        MediaEntity::class
     ],
-    version = 9
+    version = 10
 )
 abstract class AppDatabase : RoomDatabase() {
 
-    abstract fun itemUsadoDao(): ItemUsadoDao
-    abstract fun itemUsadoBucketDao(): ItemUsadoBucketDao
+    abstract fun itemUsadoDao(): ItemUsadoDao // Agregado el DAO para ItemUsadoEntity
+    abstract fun itemUsadoBucketDao(): ItemUsadoBucketDao // Agregado el DAO para ItemUsadoBucketEntity
 
-    abstract fun installedPackDao(): InstalledPackDao
-    abstract fun categoryDao(): CategoryDao
-    abstract fun pictogramDao(): PictogramDao
+    abstract fun installedPackDao(): InstalledPackDao // Agregado el DAO para InstalledPackEntity
+    abstract fun categoryDao(): CategoryDao // Agregado el DAO para CategoryEntity
+    abstract fun pictogramDao(): PictogramDao // Agregado el DAO para PictogramEntity
+
+    abstract fun mediaDao(): MediaDao // Agregado el DAO para MediaEntity
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -51,7 +56,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "items_usados_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)                    .build()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)                    .build()
                 INSTANCE = instance
                 instance
             }
@@ -240,6 +245,37 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // no-op
+            }
+        }
+
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS media_items (
+                mediaId TEXT NOT NULL PRIMARY KEY,
+                displayName TEXT NOT NULL,
+                localUri TEXT NOT NULL,
+                mediaType TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                isDeleted INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent())
+
+                db.execSQL("""
+            CREATE INDEX IF NOT EXISTS index_media_items_isDeleted
+            ON media_items(isDeleted)
+        """.trimIndent())
+
+                db.execSQL("""
+            CREATE INDEX IF NOT EXISTS index_media_items_createdAt
+            ON media_items(createdAt)
+        """.trimIndent())
+
+                db.execSQL("""
+            CREATE INDEX IF NOT EXISTS index_media_items_displayName
+            ON media_items(displayName)
+        """.trimIndent())
             }
         }
     }

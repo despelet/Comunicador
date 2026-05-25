@@ -66,8 +66,10 @@ import com.comunic.adapters.ExportItemsAdapter
 import com.comunic.adapters.ExportListasAdapter
 import com.comunic.export.exportitems.ExportManager
 import com.comunic.adapters.ResumenExportacionAdapter
+import com.comunic.data.db.MediaRepository
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
+import com.comunic.data.entity.MediaEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.fragment.Recientes.Companion
 import com.google.android.material.button.MaterialButton
@@ -761,7 +763,7 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     }
 
 
-    private fun guardarArchivo(mediaUri: Uri, nombre: String, esImagen: Boolean): Boolean {
+    /*private fun guardarArchivo(mediaUri: Uri, nombre: String, esImagen: Boolean): Boolean {
 
         val savedUri = guardarEnAlmacenamientoInterno(requireContext(), mediaUri, nombre, esImagen)
 
@@ -790,6 +792,64 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
         }
 
         return false
+    }*/
+    private fun guardarArchivo(
+        mediaUri: Uri,
+        nombre: String,
+        esImagen: Boolean
+    ): Boolean {
+
+        val savedUri =
+            guardarEnAlmacenamientoInterno(
+                requireContext(),
+                mediaUri,
+                nombre,
+                esImagen
+            ) ?: return false
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+
+            val now = System.currentTimeMillis()
+
+            val media = MediaEntity(
+                mediaId = UUID.randomUUID().toString(),
+                displayName = nombre,
+                localUri = savedUri.toString(),
+                mediaType = if (esImagen) "image" else "video",
+                createdAt = now,
+                updatedAt = now,
+                isDeleted = false
+            )
+
+            db.mediaDao().upsert(media)
+
+            val item = ItemLista(
+                id = ItemKey.media(media.mediaId),
+                nombre = media.displayName,
+                uri = savedUri,
+                esImagen = esImagen,
+                timestamp = media.createdAt
+            )
+
+            saveMediaData(nombre, savedUri, esImagen)
+
+            withContext(Dispatchers.Main) {
+
+                val index = listaDeArchivos.indexOfFirst {
+                    it.nombre == nombre
+                }
+
+                if (index != -1) {
+                    listaDeArchivos.removeAt(index)
+                    mediaAdapter.notifyItemRemoved(index)
+                }
+
+                listaDeArchivos.add(item)
+                mediaAdapter.notifyItemInserted(listaDeArchivos.size - 1)
+            }
+        }
+
+        return true
     }
 
     private fun guardarEnAlmacenamientoInterno(
@@ -1060,36 +1120,52 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
             listaDeArchivos.clear()
 
             // 2) Cargar USER media desde /files/media (tu lógica original)
-            val mediaDir = File(requireContext().filesDir, "media")
-
-            if (mediaDir.exists()) {
-                mediaDir.listFiles()?.forEach { file ->
-                    val esImagen = file.extension.equals("jpg", ignoreCase = true)
-                    val esVideo  = file.extension.equals("mp4", ignoreCase = true)
-
-                    if (!esImagen && !esVideo) return@forEach
-                    val base = file.nameWithoutExtension
-                    listaDeArchivos.add(
+//            val mediaDir = File(requireContext().filesDir, "media")
+//
+//            if (mediaDir.exists()) {
+//                mediaDir.listFiles()?.forEach { file ->
+//                    val esImagen = file.extension.equals("jpg", ignoreCase = true)
+//                    val esVideo  = file.extension.equals("mp4", ignoreCase = true)
+//
+//                    if (!esImagen && !esVideo) return@forEach
+//                    val base = file.nameWithoutExtension
+//                    listaDeArchivos.add(
+////                        ItemLista(
+////                            nombre = file.nameWithoutExtension,
+////                            uri = Uri.fromFile(file),
+////                            esImagen = esImagen, // si esVideo => false
+////                            timestamp = file.lastModified()
+////                        )
+//
+//                        //ItemLista(
+//                            //id = base,
 //                        ItemLista(
-//                            nombre = file.nameWithoutExtension,
+//                            id = ItemKey.media(base),
+//                            nombre = base,
 //                            uri = Uri.fromFile(file),
-//                            esImagen = esImagen, // si esVideo => false
+//                            esImagen = esImagen,
 //                            timestamp = file.lastModified()
 //                        )
+//
+//                    )
+//                }
+//            }
 
-                        //ItemLista(
-                            //id = base,
-                        ItemLista(
-                            id = ItemKey.media(base),
-                            nombre = base,
-                            uri = Uri.fromFile(file),
-                            esImagen = esImagen,
-                            timestamp = file.lastModified()
-                        )
+            MediaRepository(requireContext(), db).ensureLocalMediaIndexed()
 
-                    )
-                }
+            val mediaItems = db.mediaDao().getActiveMedia()
+
+            val userMediaAsItems = mediaItems.map { media ->
+                ItemLista(
+                    id = ItemKey.media(media.mediaId),
+                    nombre = media.displayName,
+                    uri = Uri.parse(media.localUri),
+                    esImagen = media.mediaType == "image",
+                    timestamp = media.createdAt
+                )
             }
+
+            listaDeArchivos.addAll(userMediaAsItems)
 
             // 3) Cargar pictos de packs habilitados (según installed_packs.enabled)
             val pictos = db.pictogramDao().getEnabledPictosUi()
@@ -1693,76 +1769,114 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     }
 
     override fun importarElementosDesdeZip(uri: Uri) {
-        try {
-            // Abrir el archivo ZIP
-            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return
-            val zipInputStream = ZipInputStream(BufferedInputStream(inputStream))
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
 
-            val mediaDir = File(requireContext().filesDir, "media") // Carpeta "media" en el almacenamiento interno
-            if (!mediaDir.exists()) {
-                mediaDir.mkdirs() // Crear la carpeta si no existe
-            }
+            try {
+                // Abrir el archivo ZIP
+                val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return@launch
+                val zipInputStream = ZipInputStream(BufferedInputStream(inputStream))
 
-            var entry: ZipEntry?
-            while (zipInputStream.nextEntry.also { entry = it } != null) {
-                val extension = entry!!.name.substringAfterLast(".", "").lowercase(Locale.ROOT) // valido extension de archivo
-                val esImagen = when (extension) {
-                    in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> true
-                    in listOf("mp4", "mkv", "avi", "mov", "webm") -> false
-                    else -> {
-                        mostrarSnackbar(
-                            "Archivo no soportado: $extension",
-                            false
-                        )
+                val mediaDir = File(
+                    requireContext().filesDir,
+                    "media"
+                ) // Carpeta "media" en el almacenamiento interno
+                if (!mediaDir.exists()) {
+                    mediaDir.mkdirs() // Crear la carpeta si no existe
+                }
+
+                var entry: ZipEntry?
+                while (zipInputStream.nextEntry.also { entry = it } != null) {
+                    val extension = entry!!.name.substringAfterLast(".", "")
+                        .lowercase(Locale.ROOT) // valido extension de archivo
+                    val esImagen = when (extension) {
+                        in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> true
+                        in listOf("mp4", "mkv", "avi", "mov", "webm") -> false
+                        else -> {
+                            withContext(Dispatchers.Main) {
+                                mostrarSnackbar(
+                                    "Archivo no soportado: $extension",
+                                    false
+                                )
+                            }
+                            continue
+                        }
+                    }
+
+                    val nombreSinExtension = entry!!.name.substringBeforeLast(".")
+                    val nombreFinal = "$nombreSinExtension.${if (esImagen) "jpg" else "mp4"}" // le doy la extension final, el nombre es el q levanta sin la extension
+
+                    val archivoDestino = File(mediaDir, nombreFinal)
+
+                    if (archivoDestino.exists()) { // para evitar sobreescribir archivos
+                        withContext(Dispatchers.Main) {
+                            mostrarSnackbar(
+                                "Ya existe un archivo llamado $nombreSinExtension",
+                                false
+                            )
+                        }
                         continue
                     }
-                }
+                    // extraigo zip y lo guardo en la carpeta media (archivoDestino me lleva a mediaDir)
+                    val outputStream = FileOutputStream(archivoDestino)
+                    zipInputStream.copyTo(outputStream)
+                    zipInputStream.closeEntry()
+                    outputStream.close()
 
-                val nombreSinExtension = entry!!.name.substringBeforeLast(".")
-                val nombreFinal = "$nombreSinExtension.${if (esImagen) "jpg" else "mp4"}" // le doy la extension final, el nombre es el q levanta sin la extension
+                    val uriGuardado = Uri.fromFile(archivoDestino)
 
-                val archivoDestino = File(mediaDir, nombreFinal)
+                    //                val item = ItemLista(
+                    //                    id = ItemKey.media(nombreSinExtension),
+                    //                    nombre = nombreSinExtension,
+                    //                    uri = uriGuardado,
+                    //                    esImagen = esImagen,
+                    //                    timestamp = System.currentTimeMillis()
+                    //                )
 
-                if (archivoDestino.exists()) { // para evitar sobreescribir archivos
-                    mostrarSnackbar(
-                        "Ya existe un archivo llamado $nombreSinExtension",
-                        false
+                    val now =  System.currentTimeMillis()
+
+                    val media = MediaEntity(
+                        mediaId = UUID.randomUUID().toString(),
+                        displayName = nombreSinExtension,
+                        localUri = uriGuardado.toString(),
+                        mediaType =
+                        if (esImagen) "image" else "video",
+                        createdAt = now,
+                        updatedAt = now,
+                        isDeleted = false
                     )
-                    continue
+
+                    db.mediaDao().upsert(media)
+
+                    val item = ItemLista(
+                        id = ItemKey.media(media.mediaId),
+                        nombre = media.displayName,
+                        uri = uriGuardado,
+                        esImagen = esImagen,
+                        timestamp = media.createdAt
+                    )
+
+                    listaDeArchivos.add(item) // agrego archivos a la lista actual
+                    saveMediaData(
+                        nombreSinExtension,
+                        uriGuardado,
+                        esImagen
+                    ) // guardo en el almacenamiento persistente (sharedPreferences)
                 }
-                // extraigo zip y lo guardo en la carpeta media (archivoDestino me lleva a mediaDir)
-                val outputStream = FileOutputStream(archivoDestino)
-                zipInputStream.copyTo(outputStream)
-                zipInputStream.closeEntry()
-                outputStream.close()
 
-                val uriGuardado = Uri.fromFile(archivoDestino)
-
-                val item = ItemLista(
-                    id = ItemKey.media(nombreSinExtension),
-                    nombre = nombreSinExtension,
-                    uri = uriGuardado,
-                    esImagen = esImagen,
-                    timestamp = System.currentTimeMillis()
-                )
-
-                listaDeArchivos.add(item) // agrego archivos a la lista actual
-                saveMediaData(nombreSinExtension, uriGuardado, esImagen) // guardo en el almacenamiento persistente (sharedPreferences)
+                zipInputStream.close()
                 mediaAdapter.notifyDataSetChanged()
+                mostrarSnackbar(
+                    "Importación exitosa",
+                    true
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                mostrarSnackbar(
+                    "Error al importar ZIP",
+                    false
+                )
             }
-
-            zipInputStream.close()
-            mediaAdapter.notifyDataSetChanged()
-            mostrarSnackbar(
-                "Importación exitosa",
-                true
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            mostrarSnackbar(
-                "Error al importar ZIP",
-                false
-            )        }
+        }
     }
 
     private fun importarListaDesdeZip(uri: Uri) {
@@ -2147,24 +2261,54 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 
                     val archivoDestino = File(mediaDir, nombreFinal)
 
+//                    if (archivoDestino.exists()) {
+//
+//                        val itemExistente = ItemLista(
+//                            id = ItemKey.media(nombreSinExtension),
+//                            nombre = nombreSinExtension,
+//                            uri = Uri.fromFile(archivoDestino),
+//                            esImagen = esImagen,
+//                            timestamp = archivoDestino.lastModified()
+//                        )
                     if (archivoDestino.exists()) {
 
+                        val uriExistente =  Uri.fromFile(archivoDestino)
+
+                        var mediaExistente =db.mediaDao() .getActiveByDisplayName(  nombreSinExtension )
+                        if (mediaExistente == null) {
+
+                            val now =  System.currentTimeMillis()
+
+                            mediaExistente = MediaEntity(
+                                mediaId = UUID.randomUUID().toString(),
+                                displayName = nombreSinExtension,
+                                localUri = uriExistente.toString(),
+                                mediaType =if (esImagen) "image" else "video",
+                                createdAt =archivoDestino.lastModified()  .takeIf { it > 0L } ?: now,
+                                updatedAt = now,
+                                isDeleted = false
+                            )
+
+                            db.mediaDao().upsert( mediaExistente )
+                        }
+
                         val itemExistente = ItemLista(
-                            id = ItemKey.media(nombreSinExtension),
-                            nombre = nombreSinExtension,
-                            uri = Uri.fromFile(archivoDestino),
+                            id = ItemKey.media(
+                                mediaExistente.mediaId
+                            ),
+                            nombre =mediaExistente.displayName,
+                            uri = uriExistente,
                             esImagen = esImagen,
-                            timestamp = archivoDestino.lastModified()
+                            timestamp = mediaExistente.createdAt
                         )
 
                         val nextOrder =
-                            db.categoryDao()
-                                .getMaxOrderIndex(categoria.categoryId) + 1
+                            db.categoryDao() .getMaxOrderIndex( categoria.categoryId ) + 1
 
                         db.categoryDao().insertCategoryItem(
                             CategoryItemEntity(
-                                placementId = UUID.randomUUID().toString(),
-                                categoryId = categoria.categoryId,
+                                placementId =UUID.randomUUID().toString(),
+                                categoryId =  categoria.categoryId,
                                 itemKey = itemExistente.id,
                                 orderIndex = nextOrder
                             )
@@ -2182,12 +2326,38 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
 
                     val uriGuardado = Uri.fromFile(archivoDestino)
 
+//                    val item = ItemLista(
+//                        id = ItemKey.media(nombreSinExtension),
+//                        nombre = nombreSinExtension,
+//                        uri = uriGuardado,
+//                        esImagen = esImagen,
+//                        timestamp = System.currentTimeMillis()
+//                    )
+                    val now = System.currentTimeMillis()
+
+                    val media = MediaEntity(
+                        mediaId = UUID.randomUUID().toString(),
+                        displayName = nombreSinExtension,
+                        localUri = uriGuardado.toString(),
+                        mediaType =
+                        if (esImagen) "image" else "video",
+                        createdAt = now,
+                        updatedAt = now,
+                        isDeleted = false
+                    )
+
+                    db.mediaDao().upsert(media)
+
                     val item = ItemLista(
-                        id = ItemKey.media(nombreSinExtension),
-                        nombre = nombreSinExtension,
+                        id = ItemKey.media(
+                            media.mediaId
+                        ),
+                        nombre =
+                        media.displayName,
                         uri = uriGuardado,
                         esImagen = esImagen,
-                        timestamp = System.currentTimeMillis()
+                        timestamp =
+                        media.createdAt
                     )
 
                     itemsImportados.add(item)
@@ -2224,11 +2394,8 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
                 }
 
             } catch (e: Exception) {
-
                 e.printStackTrace()
-
                 withContext(Dispatchers.Main) {
-
                     mostrarSnackbar(
                         "Error al importar Listas",
                         false

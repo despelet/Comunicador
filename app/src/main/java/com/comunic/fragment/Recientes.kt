@@ -50,9 +50,11 @@ import com.comunic.adapters.SimpleListCheckAdapter
 import com.comunic.databinding.FragmentRecientesBinding
 import com.comunic.fragment.HomeFragment.Companion.PERMISSION_REQUEST_CODE
 import com.comunic.data.db.AppDatabase
+import com.comunic.data.db.MediaRepository
 import com.comunic.data.db.PackRepository
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
+import com.comunic.data.entity.MediaEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.data.mappers.toItemLista
 import com.comunic.fragment.HomeFragment.Companion
@@ -302,12 +304,17 @@ class Recientes : Fragment(),
     }
 
     private fun audio(itemKeyOrId: String) {
+        Log.d(
+            "AUDIO_DEBUG",
+            "audio() recibido -> $itemKeyOrId"
+        )
 
         if (!::escucharPalabra.isInitialized) return
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
 
             val texto = SpeechTextResolver.resolve(db, itemKeyOrId)
+
 
             withContext(Dispatchers.Main) {
 
@@ -434,7 +441,8 @@ class Recientes : Fragment(),
 
             // 0) Asegurar que el pack básico exista (idempotente)
             val db = AppDatabase.getDatabase(requireContext())
-            PackRepository(requireContext(), db).ensureBasicPackInstalled()
+            PackRepository(requireContext(), db).ensureBasicPackInstalled() // idempotente, no hace nada si ya está
+            MediaRepository(requireContext(), db).ensureLocalMediaIndexed() // sincronizar carpeta interna
             withContext(Dispatchers.IO) {
                 val dao = db.pictogramDao()
                 val ipDao = db.installedPackDao()
@@ -453,28 +461,44 @@ class Recientes : Fragment(),
             listaDeArchivos.clear()
 
             // 2) Cargar USER media desde /files/media (tu lógica original)
-            val mediaDir = File(requireContext().filesDir, "media")
+//            val mediaDir = File(requireContext().filesDir, "media")
+//
+//            if (mediaDir.exists()) {
+//                mediaDir.listFiles()?.forEach { file ->
+//                    val esImagen = file.extension.equals("jpg", ignoreCase = true)
+//                    val esVideo  = file.extension.equals("mp4", ignoreCase = true)
+//
+//                    if (!esImagen && !esVideo) return@forEach
+//                    val base = file.nameWithoutExtension.trim()
+//                    listaDeArchivos.add(
+//
+//                            ItemLista(
+//                                id = ItemKey.media(base),
+//                                nombre = base,
+//                                uri = Uri.fromFile(file),
+//                                esImagen = esImagen,
+//                                timestamp = file.lastModified()
+//                            )
+//
+//                    )
+//                }
+//            }
 
-            if (mediaDir.exists()) {
-                mediaDir.listFiles()?.forEach { file ->
-                    val esImagen = file.extension.equals("jpg", ignoreCase = true)
-                    val esVideo  = file.extension.equals("mp4", ignoreCase = true)
 
-                    if (!esImagen && !esVideo) return@forEach
-                    val base = file.nameWithoutExtension.trim()
-                    listaDeArchivos.add(
+            // Tu carpeta interna "media" ya está sincronizada con la base de datos gracias a MediaRepository.ensureLocalMediaIndexed()
+            val mediaItems = db.mediaDao().getActiveMedia()
 
-                            ItemLista(
-                                id = ItemKey.media(base),
-                                nombre = base,
-                                uri = Uri.fromFile(file),
-                                esImagen = esImagen,
-                                timestamp = file.lastModified()
-                            )
-
-                    )
-                }
+            val userMediaAsItems = mediaItems.map { media ->
+                ItemLista(
+                    id = ItemKey.media(media.displayName), // temporal: compatibilidad con listas existentes
+                    nombre = media.displayName,
+                    uri = Uri.parse(media.localUri),
+                    esImagen = media.mediaType == "image",
+                    timestamp = media.createdAt
+                )
             }
+
+            listaDeArchivos.addAll(userMediaAsItems)
 
             // 3) Cargar pictos de packs habilitados
             val pictos = db.pictogramDao().getEnabledPictosUi()
@@ -1182,7 +1206,7 @@ class Recientes : Fragment(),
 
                 val uriGuardado = Uri.fromFile(archivoDestino)
 
-                val item = ItemLista(
+               /* val item = ItemLista(
                     id = ItemKey.media(nombreSinExtension),
                     nombre = nombreSinExtension,
                     uri = uriGuardado,
@@ -1192,6 +1216,33 @@ class Recientes : Fragment(),
 
                 listaDeArchivos.add(item) // agrego archivos a la lista actual
                 saveMediaData(nombreSinExtension, uriGuardado, esImagen) // guardo en el almacenamiento persistente (sharedPreferences)
+                mediaAdapter.notifyDataSetChanged()*/
+                val now = System.currentTimeMillis()
+
+                val media = MediaEntity(
+                    mediaId = UUID.randomUUID().toString(),
+                    displayName = nombreSinExtension,
+                    localUri = uriGuardado.toString(),
+                    mediaType = if (esImagen) "image" else "video",
+                    createdAt = now,
+                    updatedAt = now,
+                    isDeleted = false
+                )
+
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    db.mediaDao().upsert(media)
+                }
+
+                val item = ItemLista(
+                    id = ItemKey.media(media.mediaId),
+                    nombre = media.displayName,
+                    uri = uriGuardado,
+                    esImagen = esImagen,
+                    timestamp = media.createdAt
+                )
+
+                listaDeArchivos.add(item)
+                saveMediaData(nombreSinExtension, uriGuardado, esImagen)
                 mediaAdapter.notifyDataSetChanged()
             }
 
@@ -1664,13 +1715,42 @@ class Recientes : Fragment(),
 
                     if (archivoDestino.exists()) {
 
-                        val itemExistente = ItemLista(
+                        /*val itemExistente = ItemLista(
                             id = ItemKey.media(nombreSinExtension),
                             nombre = nombreSinExtension,
                             uri = Uri.fromFile(archivoDestino),
                             esImagen = esImagen,
-                            timestamp = archivoDestino.lastModified()
+                            timestamp = archivoDestino.lastModified()*/
+
+                        val uriExistente = Uri.fromFile(archivoDestino)
+
+                        var mediaExistente =
+                            db.mediaDao().getActiveByDisplayName(nombreSinExtension)
+
+                        if (mediaExistente == null) {
+                            val now = System.currentTimeMillis()
+
+                            mediaExistente = MediaEntity(
+                                mediaId = UUID.randomUUID().toString(),
+                                displayName = nombreSinExtension,
+                                localUri = uriExistente.toString(),
+                                mediaType = if (esImagen) "image" else "video",
+                                createdAt = archivoDestino.lastModified().takeIf { it > 0L } ?: now,
+                                updatedAt = now,
+                                isDeleted = false
+                            )
+
+                            db.mediaDao().upsert(mediaExistente)
+                        }
+
+                        val itemExistente = ItemLista(
+                            id = ItemKey.media(mediaExistente.mediaId),
+                            nombre = mediaExistente.displayName,
+                            uri = uriExistente,
+                            esImagen = esImagen,
+                            timestamp = mediaExistente.createdAt
                         )
+
 
                         val nextOrder =
                             db.categoryDao()
@@ -1697,12 +1777,34 @@ class Recientes : Fragment(),
 
                     val uriGuardado = Uri.fromFile(archivoDestino)
 
-                    val item = ItemLista(
+                    /*val item = ItemLista(
                         id = ItemKey.media(nombreSinExtension),
                         nombre = nombreSinExtension,
                         uri = uriGuardado,
                         esImagen = esImagen,
                         timestamp = System.currentTimeMillis()
+                    )*/
+
+                    val now = System.currentTimeMillis()
+
+                    val media = MediaEntity(
+                        mediaId = UUID.randomUUID().toString(),
+                        displayName = nombreSinExtension,
+                        localUri = uriGuardado.toString(),
+                        mediaType = if (esImagen) "image" else "video",
+                        createdAt = now,
+                        updatedAt = now,
+                        isDeleted = false
+                    )
+
+                    db.mediaDao().upsert(media)
+
+                    val item = ItemLista(
+                        id = ItemKey.media(media.mediaId),
+                        nombre = media.displayName,
+                        uri = uriGuardado,
+                        esImagen = esImagen,
+                        timestamp = media.createdAt
                     )
 
                     itemsImportados.add(item)

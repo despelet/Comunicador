@@ -35,6 +35,7 @@ import com.comunic.data.dao.CategoryDao
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.entity.InstalledPackEntity
+import com.comunic.data.entity.MediaEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
@@ -596,34 +597,26 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
             try {
 
-                val inputStream =
-                    requireContext().contentResolver.openInputStream(uri)
-                        ?: return@launch
+                val inputStream =  requireContext().contentResolver.openInputStream(uri)  ?: return@launch
 
-                val zipInputStream =
-                    ZipInputStream(BufferedInputStream(inputStream))
+                val zipInputStream =ZipInputStream(BufferedInputStream(inputStream))
 
                 val mediaDir = File(requireContext().filesDir, "media")
                 if (!mediaDir.exists()) mediaDir.mkdirs()
+                    data class CategoriaImportada(
+                        val originalFolder: String,
+                        var nombre: String,
+                        val categoryId: String
+                    )
 
-                data class CategoriaImportada(
-                    val originalFolder: String,
-                    var nombre: String,
-                    val categoryId: String
-                )
+                val categoriasMap =  mutableMapOf<String, CategoriaImportada>()
 
-                val categoriasMap =
-                    mutableMapOf<String, CategoriaImportada>()
-
-                val itemsImportados =
-                    mutableListOf<ItemLista>()
+                val itemsImportados =mutableListOf<ItemLista>()
 
                 var entry: ZipEntry?
 
                 while (zipInputStream.nextEntry.also { entry = it } != null) {
-
                     val entryName = entry!!.name
-
                     if (entry!!.isDirectory) continue
 
                     // =========================
@@ -632,8 +625,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
                     if (entryName.endsWith("metadata.json")) {
 
-                        val folderName =
-                            entryName.substringBefore("/")
+                        val folderName =  entryName.substringBefore("/")
 
                         val json = buildString {
                             val buffer = ByteArray(1024)
@@ -690,15 +682,9 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
                             val deferred = CompletableDeferred<Unit>()
 
-                            val dialogView = layoutInflater.inflate(
-                                R.layout.imp_dialog_input,
-                                null
-                            )
+                            val dialogView = layoutInflater.inflate( R.layout.imp_dialog_input,null)
 
-                            val dialog = androidx.appcompat.app.AlertDialog.Builder(
-                                requireContext(),
-                                R.style.ThemeOverlay_Comunic_AlertDialog
-                            )
+                            val dialog = androidx.appcompat.app.AlertDialog.Builder(  requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog )
                                 .setView(dialogView)
                                 .create()
 
@@ -709,12 +695,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
                             txtTitulo.text = "IMPORTAR LISTA"
                             editText.setText(nombreOriginal)
-                            btnAceptar.setOnClickListener {
-                                nombreFinal =
-                                    editText.text
-                                        ?.toString()
-                                        ?.trim()
-                                        .orEmpty()
+                            btnAceptar.setOnClickListener {nombreFinal =editText.text ?.toString() ?.trim() .orEmpty()
                                 deferred.complete(Unit)
                                 dialog.dismiss()
                             }
@@ -751,128 +732,81 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                     "Renombrar nueva lista",
                                     "Cancelar importación"
                                 )
-                                val dialogView = layoutInflater.inflate(
-                                    R.layout.imp_dialog_acciones_vertical,
-                                    null
-                                )
+                                val dialogView = layoutInflater.inflate(R.layout.imp_dialog_acciones_vertical,null)
 
-                                val dialog = androidx.appcompat.app.AlertDialog.Builder(
-                                    requireContext(),
-                                    R.style.ThemeOverlay_Comunic_AlertDialog
-                                )
+                                val dialog = androidx.appcompat.app.AlertDialog.Builder( requireContext(),  R.style.ThemeOverlay_Comunic_AlertDialog  )
                                     .setView(dialogView)
                                     .create()
 
-                                val txtTitulo =
-                                    dialogView.findViewById<TextView>(R.id.txtTitulo)
-
-                                val btn1 =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnAccion1)
-
-                                val btn2 =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnAccion2)
-
-                                val btn3 =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnAccion3)
-
-                                val btn4 =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnAccion4)
-
-                                val btnCancelar =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
-
-                                txtTitulo.text =
-                                    "La lista \"$nombreFinal\" ya existe"
-
-                                btn1.text =
-                                    "REEMPLAZAR LISTA EXISTENTE"
-
-                                btn2.text =
-                                    "CONSERVAR AMBAS"
-
-                                btn3.text =
-                                    "RENOMBRAR NUEVA LISTA"
-
+                                val txtTitulo = dialogView.findViewById<TextView>(R.id.txtTitulo)
+                                val btn1 =  dialogView.findViewById<MaterialButton>(R.id.btnAccion1)
+                                val btn2 = dialogView.findViewById<MaterialButton>(R.id.btnAccion2)
+                                val btn3 = dialogView.findViewById<MaterialButton>(R.id.btnAccion3)
+                                val btn4 = dialogView.findViewById<MaterialButton>(R.id.btnAccion4)
+                                val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+                                txtTitulo.text ="La lista \"$nombreFinal\" ya existe"
+                                btn1.text =  "REEMPLAZAR LISTA EXISTENTE"
+                                btn2.text = "CONSERVAR AMBAS"
+                                btn3.text ="RENOMBRAR NUEVA LISTA"
                                 btn4.visibility = View.GONE
 
                                 btn1.setOnClickListener {
-
                                     deferred.complete(
                                         Pair(
                                             nombreFinal,
                                             true
                                         )
                                     )
-
                                     dialog.dismiss()
                                 }
 
                                 btn2.setOnClickListener {
-
                                     viewLifecycleOwner.lifecycleScope.launch {
-
                                         var contador = 1
-
                                         var nuevoNombre =
                                             "$nombreFinal ($contador)"
-
                                         while (
                                             db.categoryDao()
                                                 .getCategoryByName(nuevoNombre) != null
                                         ) {
 
                                             contador++
-
                                             nuevoNombre =
                                                 "$nombreFinal ($contador)"
                                         }
-
                                         deferred.complete(
                                             Pair(
                                                 nuevoNombre,
                                                 false
                                             )
                                         )
-
                                         dialog.dismiss()
                                     }
                                 }
 
                                 btn3.setOnClickListener {
-
                                     dialog.dismiss()
-
-                                    val renameView = layoutInflater.inflate(
-                                        R.layout.imp_dialog_input,
-                                        null
-                                    )
-
+                                    val renameView =
+                                        layoutInflater.inflate(R.layout.imp_dialog_input, null)
                                     val renameDialog = androidx.appcompat.app.AlertDialog.Builder(
                                         requireContext(),
                                         R.style.ThemeOverlay_Comunic_AlertDialog
                                     )
                                         .setView(renameView)
                                         .create()
-
                                     val txtTituloRename =
                                         renameView.findViewById<TextView>(R.id.txtTitulo)
-
                                     val editText =
                                         renameView.findViewById<TextInputEditText>(R.id.editText)
-
                                     val btnAceptarRename =
                                         renameView.findViewById<MaterialButton>(R.id.btnAceptar)
-
                                     val btnCancelarRename =
                                         renameView.findViewById<MaterialButton>(R.id.btnCancelar)
-
-                                    txtTituloRename.text =
-                                        "NUEVO NOMBRE"
+                                    txtTituloRename.text = "NUEVO NOMBRE"
 
                                     editText.setText("$nombreFinal copia")
 
                                     btnAceptarRename.setOnClickListener {
-
                                         deferred.complete(
                                             Pair(
                                                 editText.text
@@ -881,42 +815,31 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                                 false
                                             )
                                         )
-
                                         renameDialog.dismiss()
                                     }
 
                                     btnCancelarRename.setOnClickListener {
-
                                         deferred.complete(null)
-
                                         renameDialog.dismiss()
                                     }
-
                                     renameDialog.show()
                                 }
-
                                 btnCancelar.setOnClickListener {
-
                                     deferred.complete(null)
-
                                     dialog.dismiss()
                                 }
-
                                 dialog.setOnCancelListener {
                                     deferred.complete(null)
                                 }
-
                                 dialog.show()
                                 val resultado = deferred.await()
 
                                 if (resultado == null) {
                                     return@withContext
                                 }
-
                                 nombreFinal = resultado.first ?: nombreFinal
                                 reemplazar =resultado.second
                             }
-
                             if (reemplazar) {
                                 db.categoryDao()
                                     .softDeleteCategory(
@@ -926,9 +849,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         }
 
                         val nuevaCategoriaId = "user_" + UUID.randomUUID()
-
                         val order = db.categoryDao().getMaxCategoryOrderIndex() + 1
-
                         db.categoryDao().upsert(
                             CategoryEntity(
                                 categoryId = nuevaCategoriaId,
@@ -937,14 +858,12 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                 createdAt = System.currentTimeMillis()
                             )
                         )
-
                         categoriasMap[folderName] =
                             CategoriaImportada(
                                 originalFolder = folderName,
                                 nombre = nombreFinal,
                                 categoryId = nuevaCategoriaId
                             )
-
                         continue
                     }
 
@@ -973,8 +892,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
                     val archivoDestino = File(mediaDir, nombreFinal)
 
-                    if (archivoDestino.exists()) {
-
+                    /*if (archivoDestino.exists()) {
                         val itemExistente = ItemLista(
                             id = ItemKey.media(nombreSinExtension),
                             nombre = nombreSinExtension,
@@ -997,6 +915,52 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         )
 
                         continue
+                    }*/
+                    if (archivoDestino.exists()) {
+
+                        val uriExistente =  Uri.fromFile(archivoDestino)
+
+                        var mediaExistente =db.mediaDao() .getActiveByDisplayName(  nombreSinExtension )
+                        if (mediaExistente == null) {
+
+                            val now =  System.currentTimeMillis()
+
+                            mediaExistente = MediaEntity(
+                                mediaId = UUID.randomUUID().toString(),
+                                displayName = nombreSinExtension,
+                                localUri = uriExistente.toString(),
+                                mediaType =if (esImagen) "image" else "video",
+                                createdAt =archivoDestino.lastModified()  .takeIf { it > 0L } ?: now,
+                                updatedAt = now,
+                                isDeleted = false
+                            )
+
+                            db.mediaDao().upsert( mediaExistente )
+                        }
+
+                        val itemExistente = ItemLista(
+                            id = ItemKey.media(
+                                mediaExistente.mediaId
+                            ),
+                            nombre =mediaExistente.displayName,
+                            uri = uriExistente,
+                            esImagen = esImagen,
+                            timestamp = mediaExistente.createdAt
+                        )
+
+                        val nextOrder =
+                            db.categoryDao() .getMaxOrderIndex( categoria.categoryId ) + 1
+
+                        db.categoryDao().insertCategoryItem(
+                            CategoryItemEntity(
+                                placementId =UUID.randomUUID().toString(),
+                                categoryId =  categoria.categoryId,
+                                itemKey = itemExistente.id,
+                                orderIndex = nextOrder
+                            )
+                        )
+
+                        continue
                     }
 
                     val outputStream = FileOutputStream(archivoDestino)
@@ -1008,12 +972,39 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
                     val uriGuardado = Uri.fromFile(archivoDestino)
 
+//                    val item = ItemLista(
+//                        id = ItemKey.media(nombreSinExtension),
+//                        nombre = nombreSinExtension,
+//                        uri = uriGuardado,
+//                        esImagen = esImagen,
+//                        timestamp = System.currentTimeMillis()
+//                    )
+
+                    val now = System.currentTimeMillis()
+
+                    val media = MediaEntity(
+                        mediaId = UUID.randomUUID().toString(),
+                        displayName = nombreSinExtension,
+                        localUri = uriGuardado.toString(),
+                        mediaType =
+                        if (esImagen) "image" else "video",
+                        createdAt = now,
+                        updatedAt = now,
+                        isDeleted = false
+                    )
+
+                    db.mediaDao().upsert(media)
+
                     val item = ItemLista(
-                        id = ItemKey.media(nombreSinExtension),
-                        nombre = nombreSinExtension,
+                        id = ItemKey.media(
+                            media.mediaId
+                        ),
+                        nombre =
+                        media.displayName,
                         uri = uriGuardado,
                         esImagen = esImagen,
-                        timestamp = System.currentTimeMillis()
+                        timestamp =
+                        media.createdAt
                     )
 
                     itemsImportados.add(item)
@@ -1041,7 +1032,6 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 zipInputStream.close()
 
                 withContext(Dispatchers.Main) {
-
                     mostrarSnackbar(
                         "Importación exitosa",
                         true
@@ -1049,11 +1039,8 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 }
 
             } catch (e: Exception) {
-
                 e.printStackTrace()
-
                 withContext(Dispatchers.Main) {
-
                     mostrarSnackbar(
                         "Error al importar Listas",
                         false
@@ -1106,74 +1093,115 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
     }
 
     fun importarElementosDesdeZip(uri: Uri) {
-        try {
-            // Abrir el archivo ZIP
-            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return
-            val zipInputStream = ZipInputStream(BufferedInputStream(inputStream))
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
 
-            val mediaDir = File(requireContext().filesDir, "media") // Carpeta "media" en el almacenamiento interno
-            if (!mediaDir.exists()) {
-                mediaDir.mkdirs() // Crear la carpeta si no existe
-            }
+            try {
+                // Abrir el archivo ZIP
+                val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return@launch
+                val zipInputStream = ZipInputStream(BufferedInputStream(inputStream))
 
-            var entry: ZipEntry?
-            while (zipInputStream.nextEntry.also { entry = it } != null) {
-                val extension = entry!!.name.substringAfterLast(".", "").lowercase(Locale.ROOT) // valido extension de archivo
-                val esImagen = when (extension) {
-                    in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> true
-                    in listOf("mp4", "mkv", "avi", "mov", "webm") -> false
-                    else -> {
-                        mostrarSnackbar(
-                            "Archivo no soportado: $extension",
-                            false
-                        )
+                val mediaDir = File(
+                    requireContext().filesDir,
+                    "media"
+                ) // Carpeta "media" en el almacenamiento interno
+                if (!mediaDir.exists()) {
+                    mediaDir.mkdirs() // Crear la carpeta si no existe
+                }
+
+                var entry: ZipEntry?
+                while (zipInputStream.nextEntry.also { entry = it } != null) {
+                    val extension = entry!!.name.substringAfterLast(".", "")
+                        .lowercase(Locale.ROOT) // valido extension de archivo
+                    val esImagen = when (extension) {
+                        in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> true
+                        in listOf("mp4", "mkv", "avi", "mov", "webm") -> false
+                        else -> {
+                            withContext(Dispatchers.Main) {
+                                mostrarSnackbar(
+                                    "Archivo no soportado: $extension",
+                                    false
+                                )
+                            }
+                            continue
+                        }
+                    }
+
+                    val nombreSinExtension = entry!!.name.substringBeforeLast(".")
+                    val nombreFinal = "$nombreSinExtension.${if (esImagen) "jpg" else "mp4"}" // le doy la extension final, el nombre es el q levanta sin la extension
+
+                    val archivoDestino = File(mediaDir, nombreFinal)
+
+                    if (archivoDestino.exists()) { // para evitar sobreescribir archivos
+                        withContext(Dispatchers.Main) {
+                            mostrarSnackbar(
+                                "Ya existe un archivo llamado $nombreSinExtension",
+                                false
+                            )
+                        }
                         continue
                     }
+                    // extraigo zip y lo guardo en la carpeta media (archivoDestino me lleva a mediaDir)
+                    val outputStream = FileOutputStream(archivoDestino)
+                    zipInputStream.copyTo(outputStream)
+                    zipInputStream.closeEntry()
+                    outputStream.close()
+
+                    val uriGuardado = Uri.fromFile(archivoDestino)
+
+//                    val item = ItemLista(
+//                        id = ItemKey.media(nombreSinExtension),
+//                        nombre = nombreSinExtension,
+//                        uri = uriGuardado,
+//                        esImagen = esImagen,
+//                        timestamp = System.currentTimeMillis()
+//                    )
+                    val now =  System.currentTimeMillis()
+
+                    val media = MediaEntity(
+                        mediaId = UUID.randomUUID().toString(),
+                        displayName = nombreSinExtension,
+                        localUri = uriGuardado.toString(),
+                        mediaType =
+                        if (esImagen) "image" else "video",
+                        createdAt = now,
+                        updatedAt = now,
+                        isDeleted = false
+                    )
+
+                    db.mediaDao().upsert(media)
+
+                    val item = ItemLista(
+                        id = ItemKey.media(media.mediaId),
+                        nombre = media.displayName,
+                        uri = uriGuardado,
+                        esImagen = esImagen,
+                        timestamp = media.createdAt
+                    )
+
+                    saveMediaData(
+                        nombreSinExtension,
+                        uriGuardado,
+                        esImagen
+                    ) // guardo en el almacenamiento persistente (sharedPreferences)
                 }
 
-                val nombreSinExtension = entry!!.name.substringBeforeLast(".")
-                val nombreFinal = "$nombreSinExtension.${if (esImagen) "jpg" else "mp4"}" // le doy la extension final, el nombre es el q levanta sin la extension
-
-                val archivoDestino = File(mediaDir, nombreFinal)
-
-                if (archivoDestino.exists()) { // para evitar sobreescribir archivos
+                zipInputStream.close()
+                withContext(Dispatchers.Main) {
                     mostrarSnackbar(
-                        "Ya existe un archivo llamado $nombreSinExtension",
+                        "Importación exitosa",
+                        true
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    mostrarSnackbar(
+                        "Error al importar ZIP",
                         false
                     )
-                    continue
                 }
-                // extraigo zip y lo guardo en la carpeta media (archivoDestino me lleva a mediaDir)
-                val outputStream = FileOutputStream(archivoDestino)
-                zipInputStream.copyTo(outputStream)
-                zipInputStream.closeEntry()
-                outputStream.close()
-
-                val uriGuardado = Uri.fromFile(archivoDestino)
-
-                val item = ItemLista(
-                    id = ItemKey.media(nombreSinExtension),
-                    nombre = nombreSinExtension,
-                    uri = uriGuardado,
-                    esImagen = esImagen,
-                    timestamp = System.currentTimeMillis()
-                )
-
-                saveMediaData(nombreSinExtension, uriGuardado, esImagen) // guardo en el almacenamiento persistente (sharedPreferences)
             }
-
-            zipInputStream.close()
-
-            mostrarSnackbar(
-                "Importación exitosa",
-                true
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            mostrarSnackbar(
-                "Error al importar ZIP",
-                false
-            )        }
+        }
     }
 
     private fun mostrarSnackbar(mensaje: String, esExito: Boolean) {

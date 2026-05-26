@@ -22,10 +22,13 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.text.InputType
 import android.util.Log
 import android.view.Menu
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -76,6 +79,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     // sessions
     private lateinit var sessionManager: SessionManager
     private lateinit var permissionManager: PermissionManager
+    private val tutorTimeoutHandler = Handler(Looper.getMainLooper())
+    private val tutorTimeoutRunnable = Runnable {
+        checkTutorTimeout()
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -331,6 +338,63 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        checkTutorTimeout()
+    }
+
+    private fun checkTutorTimeout() {
+
+        if (
+            sessionManager.isTutor() &&
+            sessionManager.isTutorSessionExpired()
+        ) {
+
+            sessionManager.deactivateTutorMode()
+
+            val current =
+                supportFragmentManager.findFragmentById(
+                    R.id.fragment_container
+                )
+
+            if (current != null) {
+                actualizarMenuLateralParaFragment(current)
+            }
+            drawerLayout.closeDrawer(GravityCompat.START)
+            Toast.makeText(
+                this,
+                "Modo tutor finalizado por inactividad",
+                Toast.LENGTH_SHORT
+            ).show()
+
+        } else {
+            resetTutorTimeoutTimer()
+        }
+    }
+
+    private fun resetTutorTimeoutTimer() {
+
+        tutorTimeoutHandler.removeCallbacks(tutorTimeoutRunnable)
+
+        if (sessionManager.isTutor()) {
+
+            sessionManager.touchTutorAccess()
+
+            tutorTimeoutHandler.postDelayed(
+                tutorTimeoutRunnable,
+                SessionManager.TUTOR_TIMEOUT_MS
+            )
+        }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+
+        resetTutorTimeoutTimer()
+
+        return super.dispatchTouchEvent(ev)
+    }
+
 
 
     // funcion para llamar a las funciones que estan dentro de homefragment.
@@ -423,6 +487,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         startActivityForResult(intent, CAPTURE_IMAGE_REQUEST)
     }
+
     fun launchVideoCapture() {
         val videoUri = createVideoUri()
         lastCapturedUri = videoUri
@@ -432,6 +497,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         startActivityForResult(intent, CAPTURE_VIDEO_REQUEST)
     }
+
     fun openGallery() {
         val intent = Intent(Intent.ACTION_PICK).apply {
             type = "image/* video/*"
@@ -439,6 +505,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
         startActivityForResult(intent, PICK_MEDIA_REQUEST)
     }
+
     private fun createImageUri(): Uri {
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
@@ -454,6 +521,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
         return contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)!!
     }
+
     private fun startCrop(uri: Uri) {
         val destinationUri = Uri.fromFile(
             File(cacheDir, "imagen_editada_${System.currentTimeMillis()}.jpg")

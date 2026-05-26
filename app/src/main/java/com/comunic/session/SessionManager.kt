@@ -79,9 +79,27 @@ class SessionManager(
     fun isTutor(): Boolean =
         getUserMode() == UserMode.TUTOR
 
+    fun isTutorSessionExpired(): Boolean {
+
+        if (!isTutor()) return false
+        val lastAccess = getLastTutorAccess()
+
+        if (lastAccess == 0L) return true
+
+        val elapsed =  System.currentTimeMillis() - lastAccess
+
+        return elapsed > TUTOR_TIMEOUT_MS
+    }
+
+
     companion object {
         private const val KEY_USER_MODE = "user_mode"
         private const val KEY_TUTOR_AUTHENTICATED = "tutor_authenticated"
         private const val KEY_LAST_TUTOR_ACCESS = "last_tutor_access"
+
+//        const val TUTOR_TIMEOUT_MS =
+//            5 * 60 * 1000L // 5 min
+    const val TUTOR_TIMEOUT_MS =
+        10 * 1000L
     }
 }

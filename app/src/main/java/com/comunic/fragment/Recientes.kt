@@ -461,36 +461,19 @@ class Recientes : Fragment(),
             listaDeArchivos.clear()
 
             // 2) Cargar USER media desde /files/media (tu lógica original)
-//            val mediaDir = File(requireContext().filesDir, "media")
-//
-//            if (mediaDir.exists()) {
-//                mediaDir.listFiles()?.forEach { file ->
-//                    val esImagen = file.extension.equals("jpg", ignoreCase = true)
-//                    val esVideo  = file.extension.equals("mp4", ignoreCase = true)
-//
-//                    if (!esImagen && !esVideo) return@forEach
-//                    val base = file.nameWithoutExtension.trim()
-//                    listaDeArchivos.add(
-//
-//                            ItemLista(
-//                                id = ItemKey.media(base),
-//                                nombre = base,
-//                                uri = Uri.fromFile(file),
-//                                esImagen = esImagen,
-//                                timestamp = file.lastModified()
-//                            )
-//
-//                    )
-//                }
-//            }
-
-
             // Tu carpeta interna "media" ya está sincronizada con la base de datos gracias a MediaRepository.ensureLocalMediaIndexed()
             val mediaItems = db.mediaDao().getActiveMedia()
 
             val userMediaAsItems = mediaItems.map { media ->
+//                ItemLista(
+//                    id = ItemKey.media(media.displayName), // temporal: compatibilidad con listas existentes
+//                    nombre = media.displayName,
+//                    uri = Uri.parse(media.localUri),
+//                    esImagen = media.mediaType == "image",
+//                    timestamp = media.createdAt
+//                )
                 ItemLista(
-                    id = ItemKey.media(media.displayName), // temporal: compatibilidad con listas existentes
+                    id = ItemKey.media(media.mediaId), // id consistente con la base de datos: MEDIA:UUID
                     nombre = media.displayName,
                     uri = Uri.parse(media.localUri),
                     esImagen = media.mediaType == "image",
@@ -564,7 +547,7 @@ class Recientes : Fragment(),
             .show()
     }
 
-    private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
+  /*  private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
         val cr = requireContext().contentResolver
         val itemsEliminados = mutableListOf<ItemLista>()
 
@@ -610,6 +593,50 @@ class Recientes : Fragment(),
         //selectionPanel.visibility = View.GONE
        cancelarModoEliminacion()
         Toast.makeText(requireContext(), "${itemsEliminados.size} elementos eliminados", Toast.LENGTH_SHORT).show()
+    }*/
+
+    private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
+        viewLifecycleOwner.lifecycleScope.launch {
+
+            val itemsEliminados = withContext(Dispatchers.IO) {
+
+                val eliminados = mutableListOf<ItemLista>()
+                val now = System.currentTimeMillis()
+
+                lista.forEach { item ->
+
+                    if (!ItemKey.isMedia(item.id)) {
+                        return@forEach
+                    }
+
+                    val mediaId = ItemKey.mediaId(item.id)
+
+                    db.mediaDao().softDelete(
+                        mediaId = mediaId,
+                        updatedAt = now
+                    )
+
+                    eliminados.add(item)
+
+                    Log.d(
+                        "SOFT_DELETE",
+                        "Media enviado a papelera: ${item.nombre} id=${item.id}"
+                    )
+                }
+
+                eliminados
+            }
+
+            mediaAdapter.eliminarItems(itemsEliminados)
+
+            cancelarModoEliminacion()
+
+            Toast.makeText(
+                requireContext(),
+                "${itemsEliminados.size} elementos enviados a papelera",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun cancelarModoEliminacion() {
@@ -954,146 +981,6 @@ class Recientes : Fragment(),
         }
         dialog.show()
     }
-
-    /*private fun exportarElementos(elementos: List<ItemLista>) {
-        if (elementos.isEmpty()) {
-            Toast.makeText(requireContext(), "No seleccionaste elementos", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val uris = ArrayList<Uri>()
-        for (item in elementos) {
-            val uri = if (item.uri.scheme == "content") {
-                // Ya es un content://, lo usamos directamente
-                item.uri
-            } else {
-                // Es un file://, lo pasamos por FileProvider
-                val file = File(item.uri.path!!)
-                FileProvider.getUriForFile(requireContext(), "com.comunic.fileprovider", file)
-            }
-            uris.add(uri)
-        }
-
-        val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-            type = "**"
-            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(Intent.createChooser(intent, "Compartir archivos"))
-    }
-
-    private fun exportarElementosComoZip(elementos: List<ItemLista>, nombreZip: String  ) {
-        if (elementos.isEmpty()) {
-            Toast.makeText(requireContext(), "No seleccionaste elementos", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val zipFile = File(requireContext().cacheDir, nombreZip)
-
-        try {
-            ZipOutputStream(BufferedOutputStream(FileOutputStream(zipFile))).use { zos ->
-                for (item in elementos) {
-                    val inputStream = requireContext().contentResolver.openInputStream(item.uri) ?: continue
-
-                    // obtener mime y extension
-                    var extension = File(item.uri.path ?: "")
-                        .extension
-                        .lowercase(Locale.ROOT)
-
-                    if (extension.isBlank()) {
-
-                        val mimeType = requireContext().contentResolver.getType(item.uri)
-
-                        extension = MimeTypeMap
-                            .getSingleton()
-                            .getExtensionFromMimeType(mimeType)
-                            ?.lowercase(Locale.ROOT)
-                            ?: ""
-                    }
-
-                    // añade extensión si no está
-                    val fileName = if (
-                        extension.isNotBlank() &&
-                        !item.nombre.endsWith(".$extension")
-                    ) {
-                        "${item.nombre}.$extension"
-                    } else {
-                        item.nombre
-                    }
-
-
-                    val entry = ZipEntry(fileName)
-                    zos.putNextEntry(entry)
-
-                    inputStream.copyTo(zos)
-
-                    zos.closeEntry()
-                    inputStream.close()
-                }
-            }
-
-            val uriZip = FileProvider.getUriForFile(requireContext(), "com.comunic.fileprovider", zipFile)
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/zip"
-                putExtra(Intent.EXTRA_STREAM, uriZip)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            startActivity(Intent.createChooser(intent, "Compartir ZIP"))
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(requireContext(), "Error al crear ZIP", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun pedirNombreZip(
-        onNombreListo: (String) -> Unit
-    ) {
-
-        val inputLayout = TextInputLayout(requireContext())
-        val editText = TextInputEditText(requireContext())
-
-        val fecha = SimpleDateFormat("yyyy_MM_dd",Locale.getDefault()).format(Date())
-
-        editText.setText("bicom_$fecha")
-
-        inputLayout.hint = "Nombre del ZIP"
-        inputLayout.addView(editText)
-
-        AlertDialog.Builder(
-            requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog
-        )
-            .setTitle("Nombre del archivo ZIP")
-            .setView(inputLayout)
-            .setPositiveButton("Continuar") { _, _ ->
-
-                val texto = editText.text
-                    ?.toString()
-                    ?.trim()
-                    .orEmpty()
-
-                val nombreBase =
-                    if (texto.isBlank()) {
-                        "bicom_$fecha"
-                    } else {
-                        texto.replace(
-                            Regex("[^a-zA-Z0-9._-]"),
-                            "_"
-                        )
-                    }
-
-                val nombreFinal =  if (nombreBase.endsWith(".zip")) {  nombreBase
-                    } else {
-                        "$nombreBase.zip"
-                    }
-
-                onNombreListo(nombreFinal)
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }*/
 
     // EXPORTAR ELEMENTOS - hasta aca
 

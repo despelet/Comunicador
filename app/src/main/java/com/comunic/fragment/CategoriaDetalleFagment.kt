@@ -13,6 +13,7 @@ import android.speech.tts.UtteranceProgressListener
 import android.text.InputType
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -43,6 +44,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.data.mappers.resolveItemKeyToItemListaAllowDisabled
+import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.MediaResultListener
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
@@ -52,7 +54,8 @@ import java.util.UUID
 class CategoriaDetalleFragment :
     Fragment(),
     TextToSpeech.OnInitListener,
-    MediaResultListener {
+    MediaResultListener ,
+    DrawerMenuConfig {
 
     private var _binding: FragmentCategoriaDetalleBinding? = null
     private val binding get() = _binding!!
@@ -92,6 +95,10 @@ class CategoriaDetalleFragment :
                     putString("categoryName", categoryName)
                 }
             }
+    }
+
+    override fun configureDrawerMenu(menu: Menu) {
+        menu.findItem(R.id.nav_eliminar)?.isVisible = false
     }
 
     override fun onCreateView(

@@ -20,6 +20,7 @@ import android.speech.tts.UtteranceProgressListener
 import android.text.InputType
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -72,6 +73,7 @@ import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.entity.MediaEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.fragment.Recientes.Companion
+import com.comunic.interfaces.DrawerMenuConfig
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.squareup.picasso.Picasso
@@ -83,9 +85,12 @@ import org.json.JSONObject
 import java.util.UUID
 
 
-class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
+class HomeFragment : Fragment(),
+    TextToSpeech.OnInitListener,
     MediaAdapter.OnEliminarSeleccionListener,
-    MenuHandler, ZipImportListener {
+    MenuHandler,
+    ZipImportListener,
+    DrawerMenuConfig {
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -117,6 +122,10 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
     // resumen de listas + adaptador cuadricula
     //private lateinit var categoriasQuickAdapter: CategoriasQuickAdapter
     private lateinit var categoriasAdapter: CategoriasCuadriculaAdapter
+
+    override fun configureDrawerMenu(menu: Menu) {
+        menu.findItem(R.id.nav_eliminar)?.isVisible = false
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -1233,16 +1242,59 @@ class HomeFragment : Fragment(), TextToSpeech.OnInitListener,
             }
             .show()
     }
-    private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
-        for (item in lista) {
-            val archivo = File(requireContext().filesDir, item.nombre)
-            if (archivo.exists()) {
-                archivo.delete()
+//    private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
+//        for (item in lista) {
+//            val archivo = File(requireContext().filesDir, item.nombre)
+//            if (archivo.exists()) {
+//                archivo.delete()
+//            }
+//        }
+////        cargarArchivosDesdeDirectorio() // O actualizá la lista del RecyclerView
+//        cancelarModoEliminacion()
+//    }
+private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
+    viewLifecycleOwner.lifecycleScope.launch {
+
+        val itemsEliminados = withContext(Dispatchers.IO) {
+
+            val eliminados = mutableListOf<ItemLista>()
+            val now = System.currentTimeMillis()
+
+            lista.forEach { item ->
+
+                if (!ItemKey.isMedia(item.id)) {
+                    return@forEach
+                }
+
+                val mediaId = ItemKey.mediaId(item.id)
+
+                db.mediaDao().softDelete(
+                    mediaId = mediaId,
+                    updatedAt = now
+                )
+
+                eliminados.add(item)
+
+                Log.d(
+                    "SOFT_DELETE",
+                    "Home media enviado a papelera: ${item.nombre} id=${item.id}"
+                )
             }
+
+            eliminados
         }
-//        cargarArchivosDesdeDirectorio() // O actualizá la lista del RecyclerView
+
+        mediaAdapter.eliminarItems(itemsEliminados)
+
         cancelarModoEliminacion()
+
+        Toast.makeText(
+            requireContext(),
+            "${itemsEliminados.size} elementos enviados a papelera",
+            Toast.LENGTH_SHORT
+        ).show()
     }
+}
 
     private fun cancelarModoEliminacion() {
         modoEliminacionActivo = false

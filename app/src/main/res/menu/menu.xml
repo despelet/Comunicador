@@ -1,56 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <item
-        android:id="@+id/nav_nosotros"
-        android:icon="@drawable/info"
-        android:title="Sobre BiCom" />
 
-        <item android:title="@string/control_parental"
+
+    <group android:id="@+id/group_control_parental">
+
+<!--        <item-->
+<!--            android:id="@+id/nav_proteger"-->
+<!--            android:textAllCaps="true"-->
+<!--            android:icon="@drawable/proteger"-->
+<!--            android:title="@string/proteger" />-->
+
+<!--        <item-->
+<!--            android:id="@+id/nav_editar"-->
+<!--            android:icon="@drawable/editar"-->
+<!--            android:textAllCaps="true"-->
+<!--            android:title="@string/editar_elemento" />-->
+
+        <item
+            android:id="@+id/nav_eliminar"
+            android:icon="@drawable/eliminar"
             android:textAllCaps="true"
-            android:id="@+id/nav_control_parental"
-            android:icon="@drawable/control_parental">
-            <menu>
-                <group android:checkableBehavior="single">
-                    <item
-                        android:id="@+id/nav_proteger"
-                        android:textAllCaps="true"
-                        android:icon="@drawable/proteger"
-                        android:title="@string/proteger" />
-                </group>
-                <group android:checkableBehavior="single">
-                    <item
-                        android:id="@+id/nav_editar"
-                        android:icon="@drawable/editar"
-                        android:textAllCaps="true"
-                        android:title="@string/editar_elemento" />
-                    <item
-                        android:id="@+id/nav_eliminar"
-                        android:icon="@drawable/eliminar"
-                        android:textAllCaps="true"
-                        android:title="@string/eliminar_elemento" />
-                </group>
-            </menu>
-        </item>
-<!--    <item-->
-<!--        android:id="@+id/drive"-->
-<!--        android:title="@string/Google_Drive">-->
-<!--        <menu>-->
-<!--            <group android:checkableBehavior="single">-->
-<!--                <item-->
-<!--                    android:id="@+id/nav_drive"-->
-<!--                    android:title="@string/conectar_con_google_drive"/>-->
-<!--                <item-->
-<!--                    android:id="@+id/nav_cambiar_cuenta"-->
-<!--                    android:title="@string/cambiar_cuenta"/>-->
-<!--            </group>-->
-<!--        </menu>-->
-<!--    </item>-->
-    <item android:title="@string/contacto">
-        <menu>
+            android:title="@string/eliminar_elemento" />
 
+        <item
+            android:id="@+id/nav_papelera"
+            android:title="Papelera"
+            android:icon="@drawable/ic_bin" />
+
+    </group>
+
+    <item
+        android:id="@+id/Perfiles"
+        android:textAllCaps="true"
+        android:title="Perfiles">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/nav_modo_paciente"
+                    android:title="Paciente"
+                    android:icon="@drawable/ic_person" />
+
+                <item
+                    android:id="@+id/nav_administrar_perfiles"
+                    android:title="Administrar perfiles"
+                    android:icon="@drawable/ic_lock" />
+            </group>
         </menu>
     </item>
+
     <item
         android:id="@+id/compartir"
         android:textAllCaps="true"

@@ -23,7 +23,9 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
+import android.text.InputType
 import android.util.Log
+import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -50,8 +52,12 @@ import com.comunic.ItemLista
 import com.comunic.R
 import com.comunic.Sugeridos
 import com.comunic.data.entity.MediaEntity
+import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.ZipImportListener
+import com.comunic.session.PermissionManager
+import com.comunic.session.SessionManager
 import kotlinx.coroutines.withContext
+import com.comunic.session.UserMode
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -67,6 +73,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     private var zipImportListener: ZipImportListener? = null
     var pendingCategoryId: String? = null
 
+    // sessions
+    private lateinit var sessionManager: SessionManager
+    private lateinit var permissionManager: PermissionManager
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,6 +99,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // BARRA INFERIOR
         bottomNav = findViewById(R.id.bottom_nav)
 
+        // SESSIONS
+        sessionManager = SessionManager(this)
+        permissionManager = PermissionManager(sessionManager)
+
 
         val menuButton: ImageButton = findViewById(R.id.menu)
         menuButton.setOnClickListener {                     // Abrir el menú lateral al presionar el botón
@@ -111,9 +124,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // -------- MENU LATERAL --------
         val drawerMenu = navigationView.menu
 
-        drawerMenu.findItem(R.id.nav_proteger)?.isVisible = false
-        drawerMenu.findItem(R.id.nav_editar)?.isVisible = false
-        drawerMenu.findItem(R.id.nav_nosotros)?.isVisible = false
+//        drawerMenu.findItem(R.id.nav_proteger)?.isVisible = false
+//        drawerMenu.findItem(R.id.nav_editar)?.isVisible = false
+//        drawerMenu.findItem(R.id.nav_nosotros)?.isVisible = false
 
     }
 
@@ -126,6 +139,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment, tag)
             .commit()
+
+        actualizarMenuLateralParaFragment(fragment)
     }
 
     private fun navigateTo(menuId: Int, fragment: Fragment) {
@@ -145,20 +160,20 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 Toast.makeText(this, "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
             }
 
-            R.id.nav_proteger -> {
-                // Acción para control parental
-                Toast.makeText(this, "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
-            }
+//            R.id.nav_proteger -> {
+//                // Acción para control parental
+//                Toast.makeText(this, "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
+//            }
 
-            R.id.nav_control_parental -> {
-                // Acción para control parental
-                Toast.makeText(this, "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
-            }
+//            R.id.nav_control_parental -> {
+//                // Acción para control parental
+//                Toast.makeText(this, "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
+//            }
 
-            R.id.nav_editar -> {
-                // Acción para editar
-                Toast.makeText(this, "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
-            }
+//            R.id.nav_editar -> {
+//                // Acción para editarok
+//                Toast.makeText(this, "Sección no disponible. Próximamente", Toast.LENGTH_SHORT).show()
+//            }
 
             R.id.nav_eliminar -> {
                 // Acción para eliminar
@@ -168,9 +183,54 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
                 when (fragment) {
                     is Recientes -> fragment.solicitarContrasena()
+                    is HomeFragment -> fragment.solicitarContrasena()
                     //is FavoritosFragment -> fragment.solicitarContrasena() // AGREGAR MAS PESTAÑAS
                     else -> Toast.makeText(this, "Fragmento no compatible", Toast.LENGTH_SHORT).show()
                 }
+            }
+
+            R.id.nav_papelera -> {
+                supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, PapeleraFragment())
+                    .addToBackStack(null)
+                    .commit()
+            }
+
+            R.id.nav_administrar_perfiles -> {
+                menuItem.isChecked = false
+
+                if (sessionManager.isTutor()) {
+                    sessionManager.setUserMode(UserMode.PATIENT)
+
+                    val current =
+                        supportFragmentManager.findFragmentById(
+                            R.id.fragment_container
+                        )
+
+                    if (current != null) {
+                        actualizarMenuLateralParaFragment(current)
+                        navigationView.menu.close()
+                        navigationView.invalidate()
+                        navigationView.requestLayout()
+                    }
+
+                    drawerLayout.post {
+                        drawerLayout.closeDrawer(GravityCompat.START)
+                    }
+
+                    Toast.makeText(
+                        this,
+                        "Modo paciente activado",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                } else {
+                    mostrarDialogoAdministrarPerfiles()
+                    drawerLayout.post {
+                        drawerLayout.closeDrawer(GravityCompat.START)
+                    }
+                }
+                return true
             }
 
             R.id.exportar_archivos -> {
@@ -211,6 +271,68 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         drawerLayout.closeDrawer(GravityCompat.START) // Cierra el menú después de seleccionar un ítem desde izq
         return false
     }
+
+    fun actualizarMenuLateralParaFragment(fragment: Fragment) {
+
+        val menu = navigationView.menu
+
+        // =========================
+        // Permisos por rol
+        // =========================
+
+        val canDelete =permissionManager.canDeleteMedia()
+        val canEdit = permissionManager.canEditMedia()
+        val canTrash =permissionManager.canAccessTrash()
+        val canImportExport =permissionManager.canImportExport()
+        val canManageProfiles = permissionManager.canManageProfiles()
+
+        // =========================
+        // CONTROL PARENTAL
+        // =========================
+
+        val canSeeControlParental = canDelete || canEdit || canTrash
+        // padre
+        menu.findItem(R.id.nav_control_parental)?.isVisible =canSeeControlParental
+        // hijos
+        menu.findItem(R.id.nav_proteger)?.isVisible =canSeeControlParental
+        menu.findItem(R.id.nav_editar)?.isVisible =  canEdit
+        menu.findItem(R.id.nav_eliminar)?.isVisible =canDelete
+        menu.findItem(R.id.nav_papelera)?.isVisible =canTrash
+
+        // =========================
+        // IMPORT / EXPORT
+        // =========================
+
+        menu.findItem(R.id.exportar_archivos)?.isVisible = canImportExport
+        menu.findItem(R.id.importar_archivos)?.isVisible = canImportExport
+
+        // =========================
+        // PERFILES
+        // =========================
+
+        menu.findItem(R.id.nav_administrar_perfiles)?.isVisible =canManageProfiles
+
+        menu.findItem(R.id.nav_administrar_perfiles)?.title =
+            if (sessionManager.isTutor()) {
+                "Volver a modo paciente"
+            } else {
+                "Administrar perfiles"
+            }
+
+        // =========================
+        // Configuración específica
+        // del fragment
+        // =========================
+
+        if (fragment is DrawerMenuConfig) {
+            fragment.configureDrawerMenu(menu)
+        }
+
+
+
+    }
+
+
 
     // funcion para llamar a las funciones que estan dentro de homefragment.
     private fun withHomeFragment(action: HomeFragment.() -> Unit) {
@@ -695,5 +817,59 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             .apply()
     }
 
+    private fun mostrarDialogoAdministrarPerfiles() {
+
+        val input = EditText(this).apply {
+            inputType =
+                InputType.TYPE_CLASS_TEXT or
+                        InputType.TYPE_TEXT_VARIATION_PASSWORD
+            hint = "Contraseña"
+        }
+
+        AlertDialog.Builder(
+            this,
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setTitle("ADMINISTRAR PERFILES")
+            .setMessage("Ingresá la contraseña de tutor")
+            .setView(input)
+            .setPositiveButton("INGRESAR") { _, _ ->
+
+                val password = input.text.toString()
+
+                if (password == "1234") {
+                    sessionManager.setUserMode(UserMode.TUTOR)
+
+                    val current =
+                        supportFragmentManager.findFragmentById(
+                            R.id.fragment_container
+                        )
+
+                    if (current != null) {
+                        actualizarMenuLateralParaFragment(current)
+                    }
+
+                    navigationView.menu.findItem(R.id.nav_administrar_perfiles)?.isChecked = false
+                    navigationView.menu.close()
+                    navigationView.invalidate()
+                    navigationView.requestLayout()
+
+                    Toast.makeText(
+                        this,
+                        "Modo tutor activado",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                } else {
+                    Toast.makeText(
+                        this,
+                        "Contraseña incorrecta",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton("CANCELAR", null)
+            .show()
+    }
 
 }

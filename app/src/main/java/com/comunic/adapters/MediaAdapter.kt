@@ -37,7 +37,8 @@ open class MediaAdapter(
     private val onLongClick: ((ItemLista) -> Unit)? = null,
     private val grayscaleMode: (ItemLista) -> Boolean = { false },
     private val mostrarMenuEnDialog: Boolean = true,
-    private val bloquearClicks: () -> Boolean = { false }
+    private val bloquearClicks: () -> Boolean = { false },
+    private val onItemClickOverride: ((ItemLista) -> Unit)? = null
 ) : RecyclerView.Adapter<MediaAdapter.MediaViewHolder>() {
 
     private var edicion = false // estado del modo edicion
@@ -125,6 +126,11 @@ open class MediaAdapter(
                     return@setOnClickListener
                 }
 
+                onItemClickOverride?.invoke(mediaItem)
+                if (onItemClickOverride != null) {
+                    return@setOnClickListener
+                }
+
                 if (modoEliminacion) {
                         toggleSeleccion(holder, mediaItem)
                         return@setOnClickListener
@@ -197,6 +203,11 @@ open class MediaAdapter(
 
                 // PACK DESHABILITADO
                 if (bloquearClicks()) {
+                    return@setOnClickListener
+                }
+
+                onItemClickOverride?.invoke(mediaItem)
+                if (onItemClickOverride != null) {
                     return@setOnClickListener
                 }
 

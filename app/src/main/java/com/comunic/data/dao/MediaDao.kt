@@ -46,5 +46,30 @@ interface MediaDao {
     ) // Trae un medio específico por su nombre para mostrar, pero solo si no está marcado como eliminado
 
 
+    @Query("""
+    SELECT * FROM media_items
+    WHERE displayName = :displayName
+    LIMIT 1
+""")
+    suspend fun getAnyByDisplayName(displayName: String): MediaEntity? // Hace una búsqueda sin importar si está eliminado o no. para no crear duplicado
+
+    @Query("""
+    SELECT * FROM media_items
+    WHERE isDeleted = 1
+    ORDER BY updatedAt DESC
+""")
+    suspend fun getDeletedMedia(): List<MediaEntity>
+
+    @Query("""
+    UPDATE media_items
+    SET isDeleted = 0,
+        updatedAt = :updatedAt
+    WHERE mediaId = :mediaId
+""")
+    suspend fun restore(
+        mediaId: String,
+        updatedAt: Long
+    )
+
 
 }

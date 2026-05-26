@@ -34,8 +34,10 @@ class MediaRepository(
                 return@forEach
             }
 
+//            val existente = db.mediaDao()
+//                .getActiveByDisplayName(displayName)
             val existente = db.mediaDao()
-                .getActiveByDisplayName(displayName)
+                .getAnyByDisplayName(displayName)
 
             if (existente != null) {
                 return@forEach

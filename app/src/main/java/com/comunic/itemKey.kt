@@ -13,4 +13,5 @@ object ItemKey {
 
     fun pictoId(key: String) = key.removePrefix(PIC_PREFIX)
     fun mediaBase(key: String) = key.removePrefix(MED_PREFIX)
+    fun mediaId(key: String) = key.removePrefix(MED_PREFIX)
 }

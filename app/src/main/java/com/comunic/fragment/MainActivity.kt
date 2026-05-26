@@ -200,8 +200,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 menuItem.isChecked = false
 
                 if (sessionManager.isTutor()) {
-                    sessionManager.setUserMode(UserMode.PATIENT)
-
+                    sessionManager.deactivateTutorMode()
                     val current =
                         supportFragmentManager.findFragmentById(
                             R.id.fragment_container
@@ -838,8 +837,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 val password = input.text.toString()
 
                 if (password == "1234") {
-                    sessionManager.setUserMode(UserMode.TUTOR)
-
+                    sessionManager.activateTutorMode()
                     val current =
                         supportFragmentManager.findFragmentById(
                             R.id.fragment_container

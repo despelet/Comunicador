@@ -20,7 +20,9 @@ class SessionManager(
             )
 
         return runCatching {
-            UserMode.valueOf(saved ?: UserMode.PATIENT.name)
+            UserMode.valueOf(
+                saved ?: UserMode.PATIENT.name
+            )
         }.getOrDefault(UserMode.PATIENT)
     }
 
@@ -30,16 +32,56 @@ class SessionManager(
             .apply()
     }
 
+    fun activateTutorMode() {
+        prefs.edit()
+            .putString(KEY_USER_MODE, UserMode.TUTOR.name)
+            .putBoolean(KEY_TUTOR_AUTHENTICATED, true)
+            .putLong(KEY_LAST_TUTOR_ACCESS, System.currentTimeMillis())
+            .apply()
+    }
+
+    fun deactivateTutorMode() {
+        prefs.edit()
+            .putString(KEY_USER_MODE, UserMode.PATIENT.name)
+            .putBoolean(KEY_TUTOR_AUTHENTICATED, false)
+            .putLong(KEY_LAST_TUTOR_ACCESS, 0L)
+            .apply()
+    }
+
+    fun isTutorAuthenticated(): Boolean {
+        return prefs.getBoolean(
+            KEY_TUTOR_AUTHENTICATED,
+            false
+        )
+    }
+
+    fun getLastTutorAccess(): Long {
+        return prefs.getLong(
+            KEY_LAST_TUTOR_ACCESS,
+            0L
+        )
+    }
+
+    fun touchTutorAccess() {
+        if (getUserMode() == UserMode.TUTOR) {
+            prefs.edit()
+                .putLong(
+                    KEY_LAST_TUTOR_ACCESS,
+                    System.currentTimeMillis()
+                )
+                .apply()
+        }
+    }
+
     fun isPatient(): Boolean =
         getUserMode() == UserMode.PATIENT
 
     fun isTutor(): Boolean =
         getUserMode() == UserMode.TUTOR
 
-//    fun isProfessional(): Boolean =
-//        getUserMode() == UserMode.PROFESSIONAL
-
     companion object {
         private const val KEY_USER_MODE = "user_mode"
+        private const val KEY_TUTOR_AUTHENTICATED = "tutor_authenticated"
+        private const val KEY_LAST_TUTOR_ACCESS = "last_tutor_access"
     }
 }

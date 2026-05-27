@@ -20,7 +20,8 @@ class CategoriasCuadriculaAdapter (
     private val onClick: (CategoryPreview) -> Unit,
     private val onOptionsClick: (CategoryPreview) -> Unit,
     private val onEnableClick: (CategoryPreview) -> Unit,    // ⬇descarga
-    private val onLongClick: (CategoryPreview) -> Unit
+    private val onLongClick: (CategoryPreview) -> Unit,
+    private val mostrarOpciones: () -> Boolean = { true }
     ) : RecyclerView.Adapter<CategoriasCuadriculaAdapter.VH>() {
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
@@ -73,7 +74,12 @@ class CategoriasCuadriculaAdapter (
         }
 
         //  Alternar botones overlay
-        holder.btnOpciones.visibility = if (disabled) View.GONE else View.VISIBLE
+        holder.btnOpciones.visibility =
+            if (!disabled && mostrarOpciones()) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         holder.btnHabilitar.visibility = if (disabled) View.VISIBLE else View.GONE
 
         //  Acciones
@@ -81,7 +87,9 @@ class CategoriasCuadriculaAdapter (
         holder.btnHabilitar.setOnClickListener { onEnableClick(item) }     // ⬇️ habilitar
         // longpress en toda la tarjeta (además del botón)
         holder.card.setOnLongClickListener {
-            onLongClick(item)
+            if (mostrarOpciones()) {
+                onLongClick(item)
+            }
             true
         }
 

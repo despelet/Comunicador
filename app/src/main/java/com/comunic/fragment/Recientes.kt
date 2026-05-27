@@ -74,6 +74,8 @@ import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import com.comunic.interfaces.ZipImportListener
+import com.comunic.session.PermissionManager
+import com.comunic.session.SessionManager
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
@@ -502,7 +504,8 @@ class Recientes : Fragment(),
         }
     }
 
-    fun solicitarContrasena() {
+    /*fun solicitarContrasena() {
+
         val builder = AlertDialog.Builder(requireContext(),
             R.style.ThemeOverlay_Comunic_AlertDialog
         )
@@ -522,6 +525,26 @@ class Recientes : Fragment(),
         }
         builder.setNegativeButton("Cancelar") { dialog, _ -> dialog.cancel() }
         builder.show()
+    }*/
+
+    fun solicitarContrasena() {
+
+        // si ya tengo los permisos, no necesito solicitar la contraseña
+        val sessionManager = SessionManager(requireContext())
+        val permissionManager = PermissionManager(sessionManager)
+
+        if (!permissionManager.canDeleteMedia()) {
+
+            Toast.makeText(
+                requireContext(),
+                "No tenés permisos para eliminar",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            return
+        }
+
+        activarModoEliminacion()
     }
 
     private var modoEliminacionActivo = false

@@ -58,6 +58,7 @@ import com.comunic.data.entity.MediaEntity
 import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.ZipImportListener
 import com.comunic.session.PermissionManager
+import com.comunic.session.RoleAwareFragment
 import com.comunic.session.SessionManager
 import kotlinx.coroutines.withContext
 import com.comunic.session.UserMode
@@ -148,6 +149,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             .commit()
 
         actualizarMenuLateralParaFragment(fragment)
+
     }
 
     private fun navigateTo(menuId: Int, fragment: Fragment) {
@@ -215,6 +217,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
                     if (current != null) {
                         actualizarMenuLateralParaFragment(current)
+                        if (current is RoleAwareFragment) {
+                            current.onUserModeChanged()
+                        }
                         navigationView.menu.close()
                         navigationView.invalidate()
                         navigationView.requestLayout()
@@ -360,6 +365,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
             if (current != null) {
                 actualizarMenuLateralParaFragment(current)
+                if (current is RoleAwareFragment) {
+                    current.onUserModeChanged()
+                }
             }
             drawerLayout.closeDrawer(GravityCompat.START)
             Toast.makeText(

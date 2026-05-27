@@ -51,4 +51,18 @@ class PermissionManager(
             //UserMode.PROFESSIONAL -> false
         }
     }
+
+    // categorias
+    fun canDeleteCategory(): Boolean {
+        return sessionManager.isTutor()
+    }
+
+    fun canRemoveItemFromCategory(): Boolean {
+        return sessionManager.isTutor()
+    }
+
+    fun canDisablePacks(): Boolean {
+        return sessionManager.isTutor()
+    }
+
 }

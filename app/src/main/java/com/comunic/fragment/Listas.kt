@@ -39,6 +39,9 @@ import com.comunic.data.entity.InstalledPackEntity
 import com.comunic.data.entity.MediaEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.interfaces.DrawerMenuConfig
+import com.comunic.session.PermissionManager
+import com.comunic.session.RoleAwareFragment
+import com.comunic.session.SessionManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
@@ -59,13 +62,19 @@ import java.util.zip.ZipInputStream
 // import com.tu.paquete.MenuHandler
 
 class Listas : Fragment(), MenuHandler,
-    DrawerMenuConfig {
+    DrawerMenuConfig, RoleAwareFragment {
 
     private var _binding: FragmentListasBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var categoriasAdapter: CategoriasCuadriculaAdapter
     private lateinit var db: AppDatabase
+
+    override fun onUserModeChanged() {
+        if (::categoriasAdapter.isInitialized) {
+            categoriasAdapter.notifyDataSetChanged()
+        }
+    }
 
     override fun configureDrawerMenu(menu: Menu) {
         menu.findItem(R.id.nav_eliminar)?.isVisible = false
@@ -104,6 +113,11 @@ class Listas : Fragment(), MenuHandler,
             },
             onLongClick = { cat ->
                 mostrarOpcionesCategoria(cat)
+            },
+            mostrarOpciones = {
+                PermissionManager(
+                    SessionManager(requireContext())
+                ).canDeleteCategory()
             }
         )
 
@@ -408,6 +422,8 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
         }
 
         // USER: eliminar lista
+        if (!puedeEliminarListas()) return
+
         AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
             .setTitle(cat.name)
             .setItems(arrayOf("Eliminar lista")) { _, _ ->
@@ -1232,6 +1248,22 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
         snackbar.setBackgroundTint(color)
         snackbar.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
         snackbar.show()
+    }
+
+    private fun puedeEliminarListas(): Boolean {
+
+        val sessionManager = SessionManager(requireContext())
+        val permissionManager =PermissionManager(sessionManager)
+
+        if (!permissionManager.canDeleteCategory()) {
+            Toast.makeText(
+                requireContext(),
+                "No tenés permisos para eliminar listas",
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
+        return true
     }
 
     companion object {

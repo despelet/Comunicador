@@ -100,6 +100,6 @@ class SessionManager(
 //        const val TUTOR_TIMEOUT_MS =
 //            5 * 60 * 1000L // 5 min
     const val TUTOR_TIMEOUT_MS =
-        10 * 1000L
+        10 * 60 * 1000L
     }
 }

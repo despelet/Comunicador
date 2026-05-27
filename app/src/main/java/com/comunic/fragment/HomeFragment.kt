@@ -146,15 +146,27 @@ class HomeFragment : Fragment(),
                     .commit()
             },
             onOptionsClick = { cat ->
-                Toast.makeText(requireContext(), "Mantener presionado: sin acción en Home", Toast.LENGTH_SHORT).show()            },
+                Toast.makeText(
+                    requireContext(),
+                    "Mantener presionado: sin acción en Home",
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
             onEnableClick = { cat ->
-                Toast.makeText(requireContext(), "Mantener presionado: sin acción en Home", Toast.LENGTH_SHORT).show()            },
+                Toast.makeText(
+                    requireContext(),
+                    "Mantener presionado: sin acción en Home",
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
             onLongClick = { cat ->
-                // En Home NO querés borrar listas, así que lo dejamos sin acción
-                // (o podés mostrar un toast)
-                Toast.makeText(requireContext(), "Mantener presionado: sin acción en Home", Toast.LENGTH_SHORT).show()
-            }
-
+                Toast.makeText(
+                    requireContext(),
+                    "Mantener presionado: sin acción en Home",
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
+            mostrarOpciones = { false }
         )
 
         binding.recyclerCategorias.layoutManager =

@@ -46,6 +46,9 @@ import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.data.mappers.resolveItemKeyToItemListaAllowDisabled
 import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.MediaResultListener
+import com.comunic.session.PermissionManager
+import com.comunic.session.RoleAwareFragment
+import com.comunic.session.SessionManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.tabs.TabLayout
 import java.util.Locale
@@ -55,7 +58,8 @@ class CategoriaDetalleFragment :
     Fragment(),
     TextToSpeech.OnInitListener,
     MediaResultListener ,
-    DrawerMenuConfig {
+    DrawerMenuConfig ,
+    RoleAwareFragment {
 
     private var _binding: FragmentCategoriaDetalleBinding? = null
     private val binding get() = _binding!!
@@ -85,7 +89,9 @@ class CategoriaDetalleFragment :
     //private var deleteActionMode: ActionMode? = null
 
 
-
+    override fun onUserModeChanged() {
+        setupDeleteCategoryButton()
+    }
 
     companion object {
         fun newInstance(categoryId: String, categoryName: String) =
@@ -337,6 +343,8 @@ class CategoriaDetalleFragment :
     }
 
     private fun eliminarDeCategoria(categoryId: String, itemKey: String) {
+        if (!puedeModificarLista()) return
+
         viewLifecycleOwner.lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 val placementId = db.categoryDao().findPlacementId(categoryId, itemKey)
@@ -349,6 +357,8 @@ class CategoriaDetalleFragment :
     }
 
     private fun eliminarSeleccionDeCategoria(categoryId: String, seleccionados: List<ItemLista>) {
+        if (!puedeModificarLista()) return
+
         viewLifecycleOwner.lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 // cada ItemLista.id == itemKey (porque ya ajustamos el resolver)
@@ -481,7 +491,14 @@ class CategoriaDetalleFragment :
             val isSystem = cat?.isSystem == true
 
             // Solo user => visible
-            binding.btnEliminarCategoria.visibility = if (isSystem) View.GONE else View.VISIBLE
+            val sessionManager = SessionManager(requireContext())
+            val permissionManager = PermissionManager(sessionManager)
+
+            val puedeEliminar =
+                permissionManager.canDeleteCategory()
+
+            binding.btnEliminarCategoria.visibility =
+                if (!isSystem && puedeEliminar) View.VISIBLE else View.GONE
 
             binding.btnEliminarCategoria.setOnClickListener {
                 mostrarMenuEliminar()
@@ -490,6 +507,8 @@ class CategoriaDetalleFragment :
     }
 
     private fun mostrarMenuEliminar() {
+        if (!puedeModificarLista()) return
+
         val opciones = arrayOf("Eliminar lista", "Eliminar elementos de la lista")
 
         AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
@@ -505,7 +524,12 @@ class CategoriaDetalleFragment :
     }
 
     private fun solicitarContrasenaEliminarElementos() {
-        val builder = AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
+        if (!puedeModificarLista()) return
+
+        activarModoEliminacionEnCategoria()
+
+        //ya no tengo que pedir la contraseña
+        /*val builder = AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
         builder.setTitle("Ingrese la contraseña")
 
         val input = EditText(requireContext()).apply {
@@ -523,7 +547,7 @@ class CategoriaDetalleFragment :
         }
 
         builder.setNegativeButton("Cancelar") { dialog, _ -> dialog.cancel() }
-        builder.show()
+        builder.show()*/
     }
 
     private fun activarModoEliminacionEnCategoria() {
@@ -982,147 +1006,25 @@ class CategoriaDetalleFragment :
         dialog.show()
     }
 
-    /*private fun exportarElementos(elementos: List<ItemLista>) {
-        if (elementos.isEmpty()) {
-            Toast.makeText(requireContext(), "No seleccionaste elementos", Toast.LENGTH_SHORT).show()
-            return
-        }
 
-        val uris = ArrayList<Uri>()
-        for (item in elementos) {
-            val uri = if (item.uri.scheme == "content") {
-                // Ya es un content://, lo usamos directamente
-                item.uri
-            } else {
-                // Es un file://, lo pasamos por FileProvider
-                val file = File(item.uri.path!!)
-                FileProvider.getUriForFile(requireContext(), "com.comunic.fileprovider", file)
-            }
-            uris.add(uri)
-        }
-
-        val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-            type = "**"
-            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(Intent.createChooser(intent, "Compartir archivos"))
-    }
-
-    private fun exportarElementosComoZip(elementos: List<ItemLista>, nombreZip: String  ) {
-        if (elementos.isEmpty()) {
-            Toast.makeText(requireContext(), "No seleccionaste elementos", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val zipFile = File(requireContext().cacheDir, nombreZip)
-
-        try {
-            ZipOutputStream(BufferedOutputStream(FileOutputStream(zipFile))).use { zos ->
-                for (item in elementos) {
-                    val inputStream = requireContext().contentResolver.openInputStream(item.uri) ?: continue
-
-                    // obtener mime y extension
-                    var extension = File(item.uri.path ?: "")
-                        .extension
-                        .lowercase(Locale.ROOT)
-
-                    if (extension.isBlank()) {
-
-                        val mimeType = requireContext().contentResolver.getType(item.uri)
-
-                        extension = MimeTypeMap
-                            .getSingleton()
-                            .getExtensionFromMimeType(mimeType)
-                            ?.lowercase(Locale.ROOT)
-                            ?: ""
-                    }
-
-                    // añade extensión si no está
-                    val fileName = if (
-                        extension.isNotBlank() &&
-                        !item.nombre.endsWith(".$extension")
-                    ) {
-                        "${item.nombre}.$extension"
-                    } else {
-                        item.nombre
-                    }
-
-
-                    val entry = ZipEntry(fileName)
-                    zos.putNextEntry(entry)
-
-                    inputStream.copyTo(zos)
-
-                    zos.closeEntry()
-                    inputStream.close()
-                }
-            }
-
-            val uriZip = FileProvider.getUriForFile(requireContext(), "com.comunic.fileprovider", zipFile)
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/zip"
-                putExtra(Intent.EXTRA_STREAM, uriZip)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-
-            startActivity(Intent.createChooser(intent, "Compartir ZIP"))
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(requireContext(), "Error al crear ZIP", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun pedirNombreZip(
-        onNombreListo: (String) -> Unit
-    ) {
-
-        val inputLayout = TextInputLayout(requireContext())
-        val editText = TextInputEditText(requireContext())
-
-        val fecha = SimpleDateFormat("yyyy_MM_dd",Locale.getDefault()).format(Date())
-
-        editText.setText("bicom_$fecha")
-
-        inputLayout.hint = "Nombre del ZIP"
-        inputLayout.addView(editText)
-
-        AlertDialog.Builder(
-            requireContext(),
-            R.style.ThemeOverlay_Comunic_AlertDialog
-        )
-            .setTitle("Nombre del archivo ZIP")
-            .setView(inputLayout)
-            .setPositiveButton("Continuar") { _, _ ->
-
-                val texto = editText.text
-                    ?.toString()
-                    ?.trim()
-                    .orEmpty()
-
-                val nombreBase =
-                    if (texto.isBlank()) {
-                        "bicom_$fecha"
-                    } else {
-                        texto.replace(
-                            Regex("[^a-zA-Z0-9._-]"),
-                            "_"
-                        )
-                    }
-
-                val nombreFinal =  if (nombreBase.endsWith(".zip")) {  nombreBase
-                    } else {
-                        "$nombreBase.zip"
-                    }
-
-                onNombreListo(nombreFinal)
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }*/
 
     // EXPORTAR ELEMENTOS - hasta aca
+
+    private fun puedeModificarLista(): Boolean {
+        val sessionManager = SessionManager(requireContext())
+        val permissionManager = PermissionManager(sessionManager)
+
+        if (!permissionManager.canRemoveItemFromCategory()) {
+            Toast.makeText(
+                requireContext(),
+                "No tenés permisos para modificar esta lista",
+                Toast.LENGTH_SHORT
+            ).show()
+            return false
+        }
+
+        return true
+    }
 
 }
 

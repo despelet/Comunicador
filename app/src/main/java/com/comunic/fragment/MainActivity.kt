@@ -848,7 +848,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                         placementId = UUID.randomUUID().toString(),
                         categoryId = catId,
                         itemKey = item.id,
-                        orderIndex = next
+                        orderIndex = next,
+                        createdAt = now,
+                        updatedAt = now
                     )
                 )
             }

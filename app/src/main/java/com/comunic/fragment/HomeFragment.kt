@@ -2277,8 +2277,8 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                             }
                         }
 
+                        val now = System.currentTimeMillis()
                         val nuevaCategoriaId = "user_" + UUID.randomUUID()
-
                         val order = db.categoryDao().getMaxCategoryOrderIndex() + 1
 
                         db.categoryDao().upsert(
@@ -2286,7 +2286,8 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                                 categoryId = nuevaCategoriaId,
                                 name = nombreFinal,
                                 orderIndex = order,
-                                createdAt = System.currentTimeMillis()
+                                createdAt = now,
+                                updatedAt = now
                             )
                         )
 
@@ -2366,6 +2367,7 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                             timestamp = mediaExistente.createdAt
                         )
 
+                        val now = System.currentTimeMillis()
                         val nextOrder =
                             db.categoryDao() .getMaxOrderIndex( categoria.categoryId ) + 1
 
@@ -2374,7 +2376,9 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                                 placementId =UUID.randomUUID().toString(),
                                 categoryId =  categoria.categoryId,
                                 itemKey = itemExistente.id,
-                                orderIndex = nextOrder
+                                orderIndex = nextOrder,
+                                createdAt = now,
+                                updatedAt = now
                             )
                         )
 
@@ -2441,7 +2445,9 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                             placementId = UUID.randomUUID().toString(),
                             categoryId = categoria.categoryId,
                             itemKey = item.id,
-                            orderIndex = nextOrder
+                            orderIndex = nextOrder,
+                            createdAt = now,
+                            updatedAt = now
                         )
                     )
                 }

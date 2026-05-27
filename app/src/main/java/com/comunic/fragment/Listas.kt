@@ -310,7 +310,8 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         categoryId = newId,
                         name = nombre,
                         orderIndex = order,
-                        createdAt = now
+                        createdAt = now,
+                        updatedAt = now
                     )
                 )
             }
@@ -335,7 +336,8 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         categoryId = newId,
                         name = nombre,
                         orderIndex = order,
-                        createdAt = now
+                        createdAt = now,
+                        updatedAt = now
                     )
                 )
             }
@@ -358,7 +360,9 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                     placementId = UUID.randomUUID().toString(),
                                     categoryId = newId,
                                     itemKey = item.id,   // ✅ item.id = itemKey
-                                    orderIndex = next++
+                                    orderIndex = next++,
+                                    createdAt = now,
+                                    updatedAt = now
                                 )
                             )
                         }
@@ -871,14 +875,22 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                             }
                         }
 
-                        val nuevaCategoriaId = "user_" + UUID.randomUUID()
-                        val order = db.categoryDao().getMaxCategoryOrderIndex() + 1
+                        val now = System.currentTimeMillis()
+
+                        val nuevaCategoriaId =
+                            "user_" + UUID.randomUUID()
+
+                        val order =
+                            db.categoryDao()
+                                .getMaxCategoryOrderIndex() + 1
+
                         db.categoryDao().upsert(
                             CategoryEntity(
                                 categoryId = nuevaCategoriaId,
                                 name = nombreFinal,
                                 orderIndex = order,
-                                createdAt = System.currentTimeMillis()
+                                createdAt = now,
+                                updatedAt = now
                             )
                         )
                         categoriasMap[folderName] =
@@ -970,7 +982,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                             esImagen = esImagen,
                             timestamp = mediaExistente.createdAt
                         )
-
+                        val now = System.currentTimeMillis()
                         val nextOrder =
                             db.categoryDao() .getMaxOrderIndex( categoria.categoryId ) + 1
 
@@ -979,7 +991,9 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                 placementId =UUID.randomUUID().toString(),
                                 categoryId =  categoria.categoryId,
                                 itemKey = itemExistente.id,
-                                orderIndex = nextOrder
+                                orderIndex = nextOrder,
+                                createdAt = now,
+                                updatedAt = now
                             )
                         )
 
@@ -1047,7 +1061,9 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                             placementId = UUID.randomUUID().toString(),
                             categoryId = categoria.categoryId,
                             itemKey = item.id,
-                            orderIndex = nextOrder
+                            orderIndex = nextOrder,
+                            createdAt = now,
+                            updatedAt = now
                         )
                     )
                 }

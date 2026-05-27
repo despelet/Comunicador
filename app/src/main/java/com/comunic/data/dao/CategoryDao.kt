@@ -15,7 +15,11 @@ import kotlinx.coroutines.flow.Flow
 interface CategoryDao {
 
     // ===== Categories =====
-    @Query("SELECT * FROM categories ORDER BY orderIndex ASC")
+    @Query("""
+SELECT * FROM categories
+WHERE isDeleted = 0
+ORDER BY orderIndex ASC
+""")
     suspend fun getAll(): List<CategoryEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -29,16 +33,19 @@ interface CategoryDao {
         SELECT itemKey
         FROM category_items
         WHERE categoryId = :categoryId
+          AND isDeleted = 0
         ORDER BY orderIndex ASC
     """)
-    suspend fun getItemKeysForCategory(categoryId: String): List<String>
+    suspend fun getItemKeysForCategory(
+        categoryId: String
+    ): List<String>
 
     // Para calcular el próximo orderIndex al agregar
     @Query("""
         SELECT COALESCE(MAX(orderIndex), -1)
         FROM category_items
         WHERE categoryId = :categoryId
-    """)
+        AND isDeleted = 0    """)
     suspend fun getMaxOrderIndex(categoryId: String): Int
 
     @Query("SELECT COALESCE(MAX(orderIndex), -1) FROM categories")
@@ -47,9 +54,16 @@ interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertCategoryItem(item: CategoryItemEntity)
 
-    @Query("DELETE FROM category_items WHERE placementId = :placementId")
-    suspend fun deletePlacement(placementId: String)
-
+    @Query("""
+    UPDATE category_items
+    SET isDeleted = 1,
+        updatedAt = :updatedAt
+    WHERE placementId = :placementId
+""")
+    suspend fun softDeletePlacement(
+        placementId: String,
+        updatedAt: Long
+    )
 
 
     // Para mostrar el nombre de la categoría aunque no tenga items, trayendo el itemKey del primer item para usarlo en el detalle de la categoría
@@ -57,7 +71,8 @@ interface CategoryDao {
     SELECT placementId
     FROM category_items
     WHERE categoryId = :categoryId
-      AND itemKey = :itemKey
+          AND itemKey = :itemKey
+          AND isDeleted = 0
     ORDER BY orderIndex ASC
     LIMIT 1
 """)
@@ -91,7 +106,9 @@ ORDER BY c.orderIndex ASC
     @Query("""
     SELECT EXISTS(
         SELECT 1 FROM category_items
-        WHERE categoryId = :categoryId AND itemKey = :itemKey
+        WHERE categoryId = :categoryId
+            AND itemKey = :itemKey
+            AND isDeleted = 0
         LIMIT 1
     )
 """)
@@ -109,8 +126,8 @@ SELECT c.categoryId AS categoryId,
        c.name       AS name
 FROM categories c
 LEFT JOIN installed_packs ip ON ip.packId = c.packId
-JOIN category_items ci ON ci.categoryId = c.categoryId
-WHERE ci.itemKey = :itemKey
+JOIN category_items ci ON ci.categoryId = c.categoryId 
+WHERE ci.itemKey = :itemKey 
   AND c.isDeleted = 0
   AND (c.isSystem = 0 OR COALESCE(ip.enabled, 1) = 1)
 ORDER BY c.orderIndex ASC
@@ -143,7 +160,7 @@ SELECT
   (
     SELECT ci.itemKey
     FROM category_items ci
-    WHERE ci.categoryId = c.categoryId
+    WHERE ci.categoryId = c.categoryId AND ci.isDeleted = 0
     ORDER BY ci.orderIndex ASC
     LIMIT 1 OFFSET :offset
   ) AS itemKey,
@@ -169,7 +186,7 @@ SELECT
   (
     SELECT ci.itemKey
     FROM category_items ci
-    WHERE ci.categoryId = c.categoryId
+    WHERE ci.categoryId = c.categoryId AND ci.isDeleted = 0
     ORDER BY ci.orderIndex ASC
     LIMIT 1 OFFSET :offset
   ) AS itemKey,
@@ -232,4 +249,5 @@ WHERE isDeleted = 0
 ORDER BY orderIndex
 """)
     fun getAllCategoriesFlow(): Flow<List<CategoryEntity>>
+
 }

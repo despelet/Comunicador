@@ -19,8 +19,8 @@ interface PictogramDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertOverride(override: PictogramOverrideEntity)
 
-    @Query("DELETE FROM category_items WHERE placementId = :placementId")
-    suspend fun deletePlacement(placementId: String)
+//    @Query("DELETE FROM category_items WHERE placementId = :placementId")
+//    suspend fun deletePlacement(placementId: String)
 
     data class PictogramUiRow(
         val pictogramId: String,
@@ -29,18 +29,7 @@ interface PictogramDao {
         val packId: String
     )
 
-//    @Query("""
-//    SELECT
-//      p.pictogramId AS pictogramId,
-//      COALESCE(o.customLabel, p.baseLabel) AS label,
-//      COALESCE(o.customImageUri, p.baseImageUri) AS imageUri
-//    FROM category_items ci
-//    JOIN pictograms p ON p.pictogramId = ci.pictogramId
-//    LEFT JOIN pictogram_overrides o ON o.pictogramId = p.pictogramId
-//    WHERE ci.categoryId = :categoryId
-//    ORDER BY ci.orderIndex ASC
-//""")
-//    suspend fun getPictosForCategory(categoryId: String): List<PictogramUiRow>
+
 
 
     // traer pictos por lista de ids

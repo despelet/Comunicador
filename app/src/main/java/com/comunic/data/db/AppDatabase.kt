@@ -33,7 +33,7 @@ import com.comunic.data.entity.PictogramOverrideEntity
         PictogramOverrideEntity::class,
         MediaEntity::class
     ],
-    version = 10
+    version = 13
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -56,7 +56,18 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "items_usados_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)                    .build()
+                    .addMigrations(MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7,
+                        MIGRATION_7_8,
+                        MIGRATION_8_9,
+                        MIGRATION_9_10,
+                        MIGRATION_10_11,
+                        MIGRATION_11_12,
+                        MIGRATION_12_13).build()
                 INSTANCE = instance
                 instance
             }
@@ -278,6 +289,88 @@ abstract class AppDatabase : RoomDatabase() {
         """.trimIndent())
             }
         }
+
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+
+                db.execSQL("""
+            ALTER TABLE categories
+            ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0
+        """.trimIndent())
+
+                db.execSQL("""
+            UPDATE categories
+            SET updatedAt = createdAt
+            WHERE updatedAt = 0
+        """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_11_12 =
+            object : Migration(11, 12) {
+
+                override fun migrate(
+                    db: SupportSQLiteDatabase
+                ) {
+
+                    db.execSQL("""
+                ALTER TABLE category_items
+                ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0
+            """.trimIndent())
+
+                    db.execSQL("""
+                ALTER TABLE category_items
+                ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0
+            """.trimIndent())
+
+                    db.execSQL("""
+                ALTER TABLE category_items
+                ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0
+            """.trimIndent())
+
+                    db.execSQL("""
+                UPDATE category_items
+                SET
+                    createdAt =
+                        strftime('%s','now') * 1000,
+                    updatedAt =
+                        strftime('%s','now') * 1000
+            """.trimIndent())
+
+                    db.execSQL("""
+                CREATE INDEX IF NOT EXISTS
+                index_category_items_isDeleted
+                ON category_items(isDeleted)
+            """.trimIndent())
+                }
+            }
+
+        private val MIGRATION_12_13 =
+            object : Migration(12, 13) {
+
+                override fun migrate(
+                    db: SupportSQLiteDatabase
+                ) {
+
+                    db.execSQL("""
+                ALTER TABLE media_items
+                ADD COLUMN ownerUserId TEXT NOT NULL
+                DEFAULT 'local_user'
+            """.trimIndent())
+
+                    db.execSQL("""
+                ALTER TABLE categories
+                ADD COLUMN ownerUserId TEXT NOT NULL
+                DEFAULT 'local_user'
+            """.trimIndent())
+
+                    db.execSQL("""
+                ALTER TABLE category_items
+                ADD COLUMN ownerUserId TEXT NOT NULL
+                DEFAULT 'local_user'
+            """.trimIndent())
+                }
+            }
     }
 }
 

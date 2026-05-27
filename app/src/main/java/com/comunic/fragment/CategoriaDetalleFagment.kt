@@ -349,7 +349,10 @@ class CategoriaDetalleFragment :
             withContext(Dispatchers.IO) {
                 val placementId = db.categoryDao().findPlacementId(categoryId, itemKey)
                 if (placementId != null) {
-                    db.categoryDao().deletePlacement(placementId)
+                    db.categoryDao().softDeletePlacement(
+                        placementId = placementId,
+                        updatedAt = System.currentTimeMillis()
+                    )
                 }
             }
             loadCategory(categoryId)
@@ -365,7 +368,10 @@ class CategoriaDetalleFragment :
                 seleccionados.forEach { item ->
                     val placementId = db.categoryDao().findPlacementId(categoryId, item.id)
                     if (placementId != null) {
-                        db.categoryDao().deletePlacement(placementId)
+                        db.categoryDao().softDeletePlacement(
+                            placementId = placementId,
+                            updatedAt = System.currentTimeMillis()
+                        )
                     }
                 }
             }
@@ -460,7 +466,7 @@ class CategoriaDetalleFragment :
                     withContext(Dispatchers.IO) {
                         val existentes = db.categoryDao().getItemKeysForCategory(categoryId).toSet()
                         val nuevos = selected.filter { it.id !in existentes }
-
+                        val now = System.currentTimeMillis()
                         var next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
                         nuevos.forEach { item ->
                             db.categoryDao().insertCategoryItem(
@@ -468,7 +474,9 @@ class CategoriaDetalleFragment :
                                     placementId = UUID.randomUUID().toString(),
                                     categoryId = categoryId,
                                     itemKey = item.id,
-                                    orderIndex = next++
+                                    orderIndex = next++,
+                                    createdAt = now,
+                                    updatedAt = now
                                 )
                             )
                         }
@@ -690,6 +698,7 @@ class CategoriaDetalleFragment :
                 val exists = db.categoryDao().existsItemInCategory(categoryId, item.id)
                 if (exists) return@withContext
 
+                val now = System.currentTimeMillis()
                 val next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
 
                 db.categoryDao().insertCategoryItem(
@@ -697,7 +706,9 @@ class CategoriaDetalleFragment :
                         placementId = UUID.randomUUID().toString(),
                         categoryId = categoryId,
                         itemKey = item.id,
-                        orderIndex = next
+                        orderIndex = next,
+                        createdAt = now,
+                        updatedAt = now
                     )
                 )
             }

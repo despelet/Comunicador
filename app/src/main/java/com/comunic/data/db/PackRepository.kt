@@ -37,7 +37,8 @@ class PackRepository(
                 createdAt = now,
                 packId = "basic_core",
                 isSystem = true,
-                isDeleted = false
+                isDeleted = false,
+                updatedAt = now
             )
         )
 
@@ -49,7 +50,8 @@ class PackRepository(
                 createdAt = now,
                 packId = "basic_food",
                 isSystem = true,
-                isDeleted = false
+                isDeleted = false,
+                updatedAt = now
             )
         )
 
@@ -125,7 +127,9 @@ class PackRepository(
                 categoryId = "basic_core",
 //                pictogramId = id,
                 itemKey = ItemKey.picto(id),
-                orderIndex = index
+                orderIndex = index,
+                createdAt = now,
+                updatedAt = now
             )
         }
 
@@ -157,7 +161,9 @@ class PackRepository(
                 categoryId = "basic_food",
                 //pictogramId = id,
                 itemKey = ItemKey.picto(id),
-                orderIndex = index
+                orderIndex = index,
+                createdAt = now,
+                updatedAt = now
             )
         }
         db.pictogramDao().insertPlacements(foodPlacements)

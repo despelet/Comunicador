@@ -1574,17 +1574,16 @@ class Recientes : Fragment(),
                                     )
                             }
                         }
-
+                        val now = System.currentTimeMillis()
                         val nuevaCategoriaId = "user_" + UUID.randomUUID()
-
                         val order = db.categoryDao().getMaxCategoryOrderIndex() + 1
-
                         db.categoryDao().upsert(
                             CategoryEntity(
                                 categoryId = nuevaCategoriaId,
                                 name = nombreFinal,
                                 orderIndex = order,
-                                createdAt = System.currentTimeMillis()
+                                createdAt = now,
+                                updatedAt = now
                             )
                         )
 
@@ -1661,7 +1660,7 @@ class Recientes : Fragment(),
                             timestamp = mediaExistente.createdAt
                         )
 
-
+                        val now = System.currentTimeMillis()
                         val nextOrder =
                             db.categoryDao()
                                 .getMaxOrderIndex(categoria.categoryId) + 1
@@ -1671,7 +1670,9 @@ class Recientes : Fragment(),
                                 placementId = UUID.randomUUID().toString(),
                                 categoryId = categoria.categoryId,
                                 itemKey = itemExistente.id,
-                                orderIndex = nextOrder
+                                orderIndex = nextOrder,
+                                createdAt = now,
+                                updatedAt = now
                             )
                         )
 
@@ -1734,7 +1735,9 @@ class Recientes : Fragment(),
                             placementId = UUID.randomUUID().toString(),
                             categoryId = categoria.categoryId,
                             itemKey = item.id,
-                            orderIndex = nextOrder
+                            orderIndex = nextOrder,
+                            createdAt = now,
+                            updatedAt = now
                         )
                     )
                 }
@@ -1957,7 +1960,8 @@ class Recientes : Fragment(),
                         categoryId = newId,
                         name = nombre,
                         orderIndex = order,
-                        createdAt = now
+                        createdAt = now,
+                        updatedAt = now
                     )
                 )
             }
@@ -1991,6 +1995,8 @@ class Recientes : Fragment(),
 //                            orderIndex = next
 //                        )
 //                    )
+
+                    val now = System.currentTimeMillis()
                     val itemKey = item.id.trim()     // ✅ id = MED:... o PIC:...
                     Log.d("ADD_DEBUG", "guardando itemKey='${item.id}' nombre='${item.nombre}'")
                     db.categoryDao().insertCategoryItem(
@@ -1998,7 +2004,9 @@ class Recientes : Fragment(),
                             placementId = UUID.randomUUID().toString(),
                             categoryId = catId,
                             itemKey = itemKey,
-                            orderIndex = next
+                            orderIndex = next,
+                            createdAt = now,
+                            updatedAt = now
                         )
                     )
                 }
@@ -2018,6 +2026,7 @@ class Recientes : Fragment(),
         viewLifecycleOwner.lifecycleScope.launch {
             withContext(Dispatchers.IO) {
 
+                val now = System.currentTimeMillis()
                 val next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
 
                 db.categoryDao().insertCategoryItem(
@@ -2025,7 +2034,9 @@ class Recientes : Fragment(),
                         placementId = UUID.randomUUID().toString(),
                         categoryId = categoryId,
                         itemKey = item.id,
-                        orderIndex = next
+                        orderIndex = next,
+                        createdAt = now,
+                        updatedAt = now
                     )
                 )
             }

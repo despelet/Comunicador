@@ -22,5 +22,8 @@ data class MediaEntity(
         val updatedAt: Long,
 
         @ColumnInfo(defaultValue = "0")
-        val isDeleted: Boolean = false
+        val isDeleted: Boolean = false,
+
+        @ColumnInfo(defaultValue = "'local_user'")
+        val ownerUserId: String = "local_user"
 )

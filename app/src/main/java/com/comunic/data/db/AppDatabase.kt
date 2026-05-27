@@ -13,6 +13,7 @@ import com.comunic.data.dao.ItemUsadoBucketDao
 import com.comunic.data.dao.ItemUsadoDao
 import com.comunic.data.dao.MediaDao
 import com.comunic.data.dao.PictogramDao
+import com.comunic.data.dao.UserProfileDao
 import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.entity.InstalledPackEntity
@@ -21,6 +22,7 @@ import com.comunic.data.entity.ItemUsadoBucket
 import com.comunic.data.entity.MediaEntity
 import com.comunic.data.entity.PictogramEntity
 import com.comunic.data.entity.PictogramOverrideEntity
+import com.comunic.data.entity.UserProfileEntity
 
 @Database(
     entities = [
@@ -31,9 +33,10 @@ import com.comunic.data.entity.PictogramOverrideEntity
         PictogramEntity::class,
         CategoryItemEntity::class,
         PictogramOverrideEntity::class,
-        MediaEntity::class
+        MediaEntity::class,
+        UserProfileEntity::class
     ],
-    version = 13
+    version = 14
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -45,6 +48,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pictogramDao(): PictogramDao // Agregado el DAO para PictogramEntity
 
     abstract fun mediaDao(): MediaDao // Agregado el DAO para MediaEntity
+
+    abstract fun userProfileDao():  UserProfileDao // Agregado el DAO para UserProfileEntity
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -67,7 +72,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_9_10,
                         MIGRATION_10_11,
                         MIGRATION_11_12,
-                        MIGRATION_12_13).build()
+                        MIGRATION_12_13,
+                        MIGRATION_13_14).build()
                 INSTANCE = instance
                 instance
             }
@@ -368,6 +374,43 @@ abstract class AppDatabase : RoomDatabase() {
                 ALTER TABLE category_items
                 ADD COLUMN ownerUserId TEXT NOT NULL
                 DEFAULT 'local_user'
+            """.trimIndent())
+                }
+            }
+
+        private val MIGRATION_13_14 =
+            object : Migration(13, 14) {
+
+                override fun migrate(
+                    db: SupportSQLiteDatabase
+                ) {
+
+                    db.execSQL("""
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    userId TEXT NOT NULL,
+                    displayName TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    isActive INTEGER NOT NULL DEFAULT 1,
+                    PRIMARY KEY(userId)
+                )
+            """.trimIndent())
+
+                    db.execSQL("""
+                INSERT INTO user_profiles (
+                    userId,
+                    displayName,
+                    role,
+                    createdAt,
+                    isActive
+                )
+                VALUES (
+                    'local_user',
+                    'Usuario principal',
+                    'patient',
+                    strftime('%s','now') * 1000,
+                    1
+                )
             """.trimIndent())
                 }
             }

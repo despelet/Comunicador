@@ -1,12 +1,14 @@
 package com.comunic.data
 
 import android.content.Context
+import androidx.core.content.ContentProviderCompat.requireContext
 import com.comunic.ItemKey
 import com.comunic.data.dao.ItemUsadoBucketDao
 import com.comunic.data.dao.ItemUsadoDao
 import com.comunic.data.db.AppDatabase
 import com.comunic.data.entity.ItemUsado
 import com.comunic.data.entity.ItemUsadoBucket
+import com.comunic.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -90,42 +92,65 @@ class RankingManager private constructor(context: Context) {
 
         scope.launch {
 
-            val key = normalizeKey(itemKeyOrLegacy) // ✅ normalización única
+            val key = normalizeKey(itemKeyOrLegacy)
+
+            val userId =
+                SessionManager(appContext)
+                    .getCurrentUserId()
 
             // ---------- GLOBAL ----------
-            val itemGlobal = itemUsadoDao.obtenerPorNombre(key)
+            val itemGlobal =
+                itemUsadoDao.obtenerPorNombre(
+                    key,
+                    userId
+                )
 
             if (itemGlobal != null) {
+
                 itemGlobal.cantidadDeUsos++
                 itemGlobal.ultimaFechaUso = now
+
                 itemUsadoDao.insertar(itemGlobal)
+
             } else {
+
                 itemUsadoDao.insertar(
                     ItemUsado(
                         nombreArchivo = key,
                         cantidadDeUsos = 1,
-                        ultimaFechaUso = now
+                        ultimaFechaUso = now,
+                        ownerUserId = userId
                     )
                 )
             }
 
             // ---------- BUCKET ----------
-            val bucketId = TimeBucket.bucketIdFromMillis(now)
+            val bucketId =
+                TimeBucket.bucketIdFromMillis(now)
 
             val itemBucket =
-                itemUsadoBucketDao.obtenerPorNombreYBucket(key, bucketId)
+                itemUsadoBucketDao.obtenerPorNombreYBucket(
+                    key,
+                    bucketId,
+                    userId
+                )
 
             if (itemBucket != null) {
+
                 itemBucket.cantidadDeUsos++
                 itemBucket.ultimaFechaUso = now
+
                 itemUsadoBucketDao.insertar(itemBucket)
+
             } else {
+
                 itemUsadoBucketDao.insertar(
                     ItemUsadoBucket(
                         nombreArchivo = key,
                         bucketId = bucketId,
                         cantidadDeUsos = 1,
-                        ultimaFechaUso = now
+                        ultimaFechaUso = now,
+                        ownerUserId = userId
                     )
                 )
             }
@@ -147,19 +172,25 @@ class RankingManager private constructor(context: Context) {
     }
 
     suspend fun getTop6Global(): List<ItemUsado> {
-        return itemUsadoDao.getTop6ItemsUsados()
+        return itemUsadoDao.getTop6ItemsUsados(userId = SessionManager(appContext).getCurrentUserId())
     }
 
     suspend fun getTopForNow(limit: Int = 6): List<ItemUsadoBucket> {
+        val userId =
+            SessionManager(appContext)
+                .getCurrentUserId()
         val bucketId = TimeBucket.bucketIdFromMillis(System.currentTimeMillis())
-        return itemUsadoBucketDao.getTopForBucket(bucketId, limit)
+        return itemUsadoBucketDao.getTopForBucket(bucketId, limit, userId)
     }
 
     // Vaciar toda la base (global + bucket)
     fun resetear() {
         scope.launch {
-            itemUsadoDao.borrarTodo()
-            itemUsadoBucketDao.borrarTodo() // agregá este método en el DAO bucket
+            val userId =
+                SessionManager(appContext)
+                    .getCurrentUserId()
+            itemUsadoDao.borrarTodo(userId)
+            itemUsadoBucketDao.borrarTodo(userId) // agregá este método en el DAO bucket
         }
     }
 

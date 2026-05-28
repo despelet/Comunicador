@@ -18,9 +18,12 @@ interface CategoryDao {
     @Query("""
 SELECT * FROM categories
 WHERE isDeleted = 0
+AND ownerUserId = :userId
 ORDER BY orderIndex ASC
 """)
-    suspend fun getAll(): List<CategoryEntity>
+    suspend fun getAll(
+        userId: String
+    ): List<CategoryEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(category: CategoryEntity)
@@ -30,23 +33,30 @@ ORDER BY orderIndex ASC
 
     // Traer itemKeys de una categoría para armar el recycler del detalle
     @Query("""
-        SELECT itemKey
-        FROM category_items
-        WHERE categoryId = :categoryId
-          AND isDeleted = 0
-        ORDER BY orderIndex ASC
-    """)
+    SELECT itemKey
+    FROM category_items
+    WHERE categoryId = :categoryId
+      AND isDeleted = 0
+      AND ownerUserId = :userId
+    ORDER BY orderIndex ASC
+""")
     suspend fun getItemKeysForCategory(
-        categoryId: String
+        categoryId: String,
+        userId: String
     ): List<String>
 
     // Para calcular el próximo orderIndex al agregar
     @Query("""
-        SELECT COALESCE(MAX(orderIndex), -1)
-        FROM category_items
-        WHERE categoryId = :categoryId
-        AND isDeleted = 0    """)
-    suspend fun getMaxOrderIndex(categoryId: String): Int
+    SELECT COALESCE(MAX(orderIndex), -1)
+    FROM category_items
+    WHERE categoryId = :categoryId
+      AND isDeleted = 0
+      AND ownerUserId = :userId
+""")
+    suspend fun getMaxOrderIndex(
+        categoryId: String,
+        userId: String
+    ): Int
 
     @Query("SELECT COALESCE(MAX(orderIndex), -1) FROM categories")
     suspend fun getMaxCategoryOrderIndex(): Int
@@ -71,12 +81,17 @@ ORDER BY orderIndex ASC
     SELECT placementId
     FROM category_items
     WHERE categoryId = :categoryId
-          AND itemKey = :itemKey
-          AND isDeleted = 0
+      AND itemKey = :itemKey
+      AND isDeleted = 0
+      AND ownerUserId = :userId
     ORDER BY orderIndex ASC
     LIMIT 1
 """)
-    suspend fun findPlacementId(categoryId: String, itemKey: String): String?
+    suspend fun findPlacementId(
+        categoryId: String,
+        itemKey: String,
+        userId: String
+    ): String?
 
     // Para mostrar el nombre de la categoría aunque no tenga items, trayendo la imagen del primer item si existe
     @Query("""
@@ -105,14 +120,20 @@ ORDER BY c.orderIndex ASC
     // Para mostrar el ícono de check en el detalle del item si pertenece a la categoría
     @Query("""
     SELECT EXISTS(
-        SELECT 1 FROM category_items
+        SELECT 1
+        FROM category_items
         WHERE categoryId = :categoryId
-            AND itemKey = :itemKey
-            AND isDeleted = 0
+          AND itemKey = :itemKey
+          AND isDeleted = 0
+          AND ownerUserId = :userId
         LIMIT 1
     )
 """)
-    suspend fun existsItemInCategory(categoryId: String, itemKey: String): Boolean
+    suspend fun existsItemInCategory(
+        categoryId: String,
+        itemKey: String,
+        userId: String
+    ): Boolean
 
     data class CategoryMiniRow(
         val categoryId: String,
@@ -170,12 +191,16 @@ SELECT
 FROM categories c
 LEFT JOIN installed_packs ip ON ip.packId = c.packId
 WHERE (c.isSystem = 1)
-   OR (c.isSystem = 0 AND c.isDeleted = 0)
+   OR (
+        c.isSystem = 0
+        AND c.isDeleted = 0
+        AND c.ownerUserId = :userId
+      )
 ORDER BY
   CASE WHEN c.isSystem = 1 AND COALESCE(ip.enabled, 1) = 0 THEN 1 ELSE 0 END ASC,
   c.orderIndex ASC
 """)
-    fun getCategoryPreviewKeyRowsForListScreen(offset: Int): Flow<List<CategoryPreviewKeyRowList>>
+    fun getCategoryPreviewKeyRowsForListScreen(offset: Int, userId: String): Flow<List<CategoryPreviewKeyRowList>>
 
     // Home: SOLO categorías activas (system pack enabled, user no deleted)
 // y por cada offset devolvemos el itemKey #0..#3 para armar el mosaico 2x2.
@@ -196,10 +221,22 @@ SELECT
 FROM categories c
 LEFT JOIN installed_packs ip ON ip.packId = c.packId
 WHERE c.isDeleted = 0
-  AND (c.isSystem = 0 OR COALESCE(ip.enabled, 1) = 1)
-ORDER BY c.orderIndex ASC
-""")
-    suspend fun getHomeActiveCategoryPreviewKeyRows(offset: Int): List<CategoryPreviewKeyRow>
+  AND (
+      c.isSystem = 1
+      OR c.ownerUserId = :userId
+  )
+ORDER BY
+  CASE
+    WHEN c.isSystem = 1
+     AND COALESCE(ip.enabled, 1) = 0
+    THEN 1
+    ELSE 0
+  END ASC,
+  c.orderIndex ASC""")
+    suspend fun getHomeActiveCategoryPreviewKeyRows(
+        offset: Int,
+        userId: String
+    ): List<CategoryPreviewKeyRow>
 
     @Query("SELECT * FROM categories WHERE categoryId = :id LIMIT 1")
     suspend fun getCategoryById(id: String): CategoryEntity?
@@ -227,10 +264,12 @@ LIMIT 1
 SELECT * FROM categories
 WHERE name = :name
 AND isDeleted = 0
+AND ownerUserId = :userId
 LIMIT 1
 """)
     suspend fun getCategoryByName(
-        name: String
+        name: String,
+        userId: String
     ): CategoryEntity?
 
 
@@ -249,5 +288,16 @@ WHERE isDeleted = 0
 ORDER BY orderIndex
 """)
     fun getAllCategoriesFlow(): Flow<List<CategoryEntity>>
+
+    @Query("""
+SELECT * FROM categories
+WHERE isSystem = 0
+  AND isDeleted = 0
+  AND ownerUserId = :userId
+ORDER BY orderIndex ASC
+""")
+    suspend fun getUserActiveForUser(
+        userId: String
+    ): List<CategoryEntity>
 
 }

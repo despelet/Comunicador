@@ -19,8 +19,6 @@ data class CategoryEntity(
     val createdAt: Long,
     val updatedAt: Long,
 
-
-    // Match exacto con SQLite DEFAULT 'user'
     @ColumnInfo(defaultValue = "'user'")
     val packId: String = "user",
 
@@ -29,6 +27,7 @@ data class CategoryEntity(
 
     @ColumnInfo(defaultValue = "0")
     val isDeleted: Boolean = false,
+
     @ColumnInfo(defaultValue = "'local_user'")
     val ownerUserId: String = "local_user"
 )

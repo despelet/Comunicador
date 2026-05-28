@@ -14,6 +14,7 @@ import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.export.exportlista.ExportCategoryItem
 import com.comunic.export.exportlista.ExportCategoryMetadata
+import com.comunic.session.SessionManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
@@ -250,6 +251,9 @@ object ExportManager {
     ) {
         val context = fragment.requireContext()
         val db = AppDatabase.getDatabase(context)
+        val userId =
+            SessionManager(context)
+                .getCurrentUserId()
 
         val zipFile = File(
             context.cacheDir,
@@ -265,7 +269,7 @@ object ExportManager {
             for (categoria in categorias) {
                 val itemKeys =
                     db.categoryDao()
-                        .getItemKeysForCategory(categoria.categoryId)
+                        .getItemKeysForCategory(categoria.categoryId, userId)
                 val exportItems =
                     itemKeys.mapIndexed { index, key ->
                         ExportCategoryItem(

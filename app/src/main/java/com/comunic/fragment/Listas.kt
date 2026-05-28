@@ -47,6 +47,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -152,13 +153,46 @@ class Listas : Fragment(), MenuHandler,
         }
     }
 
-    private fun observeRows() = combine(
-        db.categoryDao().getCategoryPreviewKeyRowsForListScreen(0),
-        db.categoryDao().getCategoryPreviewKeyRowsForListScreen(1),
-        db.categoryDao().getCategoryPreviewKeyRowsForListScreen(2),
-        db.categoryDao().getCategoryPreviewKeyRowsForListScreen(3)
-    ) { r0, r1, r2, r3 ->
-        listOf(r0, r1, r2, r3)
+    private fun observeRows() : Flow<List<List<CategoryDao.CategoryPreviewKeyRowList>>> {
+
+        val userId =
+            SessionManager(requireContext())
+                .getCurrentUserId()
+
+        return combine(
+            db.categoryDao()
+                .getCategoryPreviewKeyRowsForListScreen(
+                    0,
+                    userId
+                ),
+
+            db.categoryDao()
+                .getCategoryPreviewKeyRowsForListScreen(
+                    1,
+                    userId
+                ),
+
+            db.categoryDao()
+                .getCategoryPreviewKeyRowsForListScreen(
+                    2,
+                    userId
+                ),
+
+            db.categoryDao()
+                .getCategoryPreviewKeyRowsForListScreen(
+                    3,
+                    userId
+                )
+
+        ) { r0, r1, r2, r3 ->
+
+            listOf(
+                r0,
+                r1,
+                r2,
+                r3
+            )
+        }
     }
 
     private fun procesarYActualizarUI(allRows: List<List<CategoryDao.CategoryPreviewKeyRowList>>) {
@@ -311,7 +345,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         name = nombre,
                         orderIndex = order,
                         createdAt = now,
-                        updatedAt = now
+                        updatedAt = now,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
                 )
             }
@@ -322,6 +359,9 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
     private fun crearListaYSeleccionar(nombre: String) {
         viewLifecycleOwner.lifecycleScope.launch {
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
             val now = System.currentTimeMillis()
             val newId = "user_" + java.util.UUID.randomUUID().toString()
 
@@ -337,7 +377,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         name = nombre,
                         orderIndex = order,
                         createdAt = now,
-                        updatedAt = now
+                        updatedAt = now,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
                 )
             }
@@ -353,7 +396,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 viewLifecycleOwner.lifecycleScope.launch {
                     // 3) Insertar seleccionados como itemKey dentro de la categoría nueva
                     withContext(Dispatchers.IO) {
-                        var next = db.categoryDao().getMaxOrderIndex(newId) + 1
+                        var next = db.categoryDao().getMaxOrderIndex(newId, userId) + 1
                         selected.forEach { item ->
                             db.categoryDao().insertCategoryItem(
                                 CategoryItemEntity(
@@ -362,7 +405,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                     itemKey = item.id,   // ✅ item.id = itemKey
                                     orderIndex = next++,
                                     createdAt = now,
-                                    updatedAt = now
+                                    updatedAt = now,
+                                    ownerUserId =
+                                    SessionManager(requireContext())
+                                        .getCurrentUserId()
                                 )
                             )
                         }
@@ -621,7 +667,9 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
     private fun importarListaDesdeZip(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
             try {
 
                 val inputStream =  requireContext().contentResolver.openInputStream(uri)  ?: return@launch
@@ -749,7 +797,16 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         if (nombreFinal.isBlank()) {
                             continue
                         }
-                        val existing =db.categoryDao().getCategoryByName(nombreFinal)
+                        val userId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
+
+                        val existing =
+                            db.categoryDao()
+                                .getCategoryByName(
+                                    nombreFinal,
+                                    userId
+                                )
                         if (existing != null) {
                             withContext(Dispatchers.Main) {
                                 val deferred =CompletableDeferred<Pair<String?, Boolean>?>()
@@ -794,7 +851,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                             "$nombreFinal ($contador)"
                                         while (
                                             db.categoryDao()
-                                                .getCategoryByName(nuevoNombre) != null
+                                                .getCategoryByName(
+                                                    nuevoNombre,
+                                                    userId
+                                                ) != null
                                         ) {
 
                                             contador++
@@ -890,7 +950,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                 name = nombreFinal,
                                 orderIndex = order,
                                 createdAt = now,
-                                updatedAt = now
+                                updatedAt = now,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
                         )
                         categoriasMap[folderName] =
@@ -967,7 +1030,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                 mediaType =if (esImagen) "image" else "video",
                                 createdAt =archivoDestino.lastModified()  .takeIf { it > 0L } ?: now,
                                 updatedAt = now,
-                                isDeleted = false
+                                isDeleted = false,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
 
                             db.mediaDao().upsert( mediaExistente )
@@ -984,7 +1050,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         )
                         val now = System.currentTimeMillis()
                         val nextOrder =
-                            db.categoryDao() .getMaxOrderIndex( categoria.categoryId ) + 1
+                            db.categoryDao() .getMaxOrderIndex( categoria.categoryId , userId) + 1
 
                         db.categoryDao().insertCategoryItem(
                             CategoryItemEntity(
@@ -993,7 +1059,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                 itemKey = itemExistente.id,
                                 orderIndex = nextOrder,
                                 createdAt = now,
-                                updatedAt = now
+                                updatedAt = now,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
                         )
 
@@ -1027,7 +1096,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         if (esImagen) "image" else "video",
                         createdAt = now,
                         updatedAt = now,
-                        isDeleted = false
+                        isDeleted = false,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
 
                     db.mediaDao().upsert(media)
@@ -1054,7 +1126,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
                     val nextOrder =
                         db.categoryDao()
-                            .getMaxOrderIndex(categoria.categoryId) + 1
+                            .getMaxOrderIndex(categoria.categoryId, userId) + 1
 
                     db.categoryDao().insertCategoryItem(
                         CategoryItemEntity(
@@ -1063,7 +1135,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                             itemKey = item.id,
                             orderIndex = nextOrder,
                             createdAt = now,
-                            updatedAt = now
+                            updatedAt = now,
+                            ownerUserId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
                         )
                     )
                 }
@@ -1204,7 +1279,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         if (esImagen) "image" else "video",
                         createdAt = now,
                         updatedAt = now,
-                        isDeleted = false
+                        isDeleted = false,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
 
                     db.mediaDao().upsert(media)

@@ -91,15 +91,38 @@ class SessionManager(
         return elapsed > TUTOR_TIMEOUT_MS
     }
 
+    fun getCurrentUserId(): String {
+
+        return prefs.getString(
+            KEY_CURRENT_USER_ID,
+            "LOCAL_USER_A"
+        ) ?: "LOCAL_USER_A"
+    }
+
+    fun setCurrentUserId(
+        userId: String
+    ) {
+
+        prefs.edit()
+            .putString(
+                KEY_CURRENT_USER_ID,
+                userId
+            )
+            .apply()
+    }
+
 
     companion object {
         private const val KEY_USER_MODE = "user_mode"
         private const val KEY_TUTOR_AUTHENTICATED = "tutor_authenticated"
         private const val KEY_LAST_TUTOR_ACCESS = "last_tutor_access"
 
-//        const val TUTOR_TIMEOUT_MS =
-//            5 * 60 * 1000L // 5 min
-    const val TUTOR_TIMEOUT_MS =
-        10 * 60 * 1000L
-    }
+        const val TUTOR_TIMEOUT_MS = 10 * 60 * 1000L
+        private const val KEY_CURRENT_USER_ID = "current_user_id"
+
+        const val LOCAL_USER_A = "local_user"
+        const val LOCAL_USER_B = "local_user_b"
+
+        }
+
 }

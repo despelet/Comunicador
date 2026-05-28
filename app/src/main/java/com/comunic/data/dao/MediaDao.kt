@@ -71,5 +71,19 @@ interface MediaDao {
         updatedAt: Long
     )
 
+    @Query("""
+    SELECT * FROM media_items
+    WHERE isDeleted = 0
+    AND ownerUserId = :userId
+    ORDER BY createdAt DESC
+""")
+    suspend fun getActiveMediaForUser(userId: String): List<MediaEntity>
+    @Query("""
+    SELECT * FROM media_items
+    WHERE isDeleted = 1
+    AND ownerUserId = :userId
+    ORDER BY updatedAt DESC
+""")
+    suspend fun getDeletedMediaForUser(userId: String): List<MediaEntity>
 
 }

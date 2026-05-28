@@ -36,7 +36,7 @@ import com.comunic.data.entity.UserProfileEntity
         MediaEntity::class,
         UserProfileEntity::class
     ],
-    version = 14
+    version = 15
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -73,7 +73,9 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_10_11,
                         MIGRATION_11_12,
                         MIGRATION_12_13,
-                        MIGRATION_13_14).build()
+                        MIGRATION_13_14,
+                        MIGRATION_14_15
+                    ).build()
                 INSTANCE = instance
                 instance
             }
@@ -411,6 +413,54 @@ abstract class AppDatabase : RoomDatabase() {
                     strftime('%s','now') * 1000,
                     1
                 )
+            """.trimIndent())
+                }
+            }
+
+        private val MIGRATION_14_15 =
+            object : Migration(14, 15) {
+
+                override fun migrate(db: SupportSQLiteDatabase) {
+
+                    db.execSQL("""
+                ALTER TABLE items_usados
+                ADD COLUMN ownerUserId TEXT NOT NULL
+                DEFAULT 'local_user'
+            """.trimIndent())
+
+                    db.execSQL("""
+                CREATE TABLE IF NOT EXISTS items_usados_bucket_new (
+                    nombreArchivo TEXT NOT NULL,
+                    bucketId INTEGER NOT NULL,
+                    cantidadDeUsos INTEGER NOT NULL,
+                    ultimaFechaUso INTEGER NOT NULL,
+                    ownerUserId TEXT NOT NULL DEFAULT 'local_user',
+                    PRIMARY KEY(nombreArchivo, bucketId, ownerUserId)
+                )
+            """.trimIndent())
+
+                    db.execSQL("""
+                INSERT INTO items_usados_bucket_new (
+                    nombreArchivo,
+                    bucketId,
+                    cantidadDeUsos,
+                    ultimaFechaUso,
+                    ownerUserId
+                )
+                SELECT
+                    nombreArchivo,
+                    bucketId,
+                    cantidadDeUsos,
+                    ultimaFechaUso,
+                    'local_user'
+                FROM items_usados_bucket
+            """.trimIndent())
+
+                    db.execSQL("DROP TABLE items_usados_bucket")
+
+                    db.execSQL("""
+                ALTER TABLE items_usados_bucket_new
+                RENAME TO items_usados_bucket
             """.trimIndent())
                 }
             }

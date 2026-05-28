@@ -317,7 +317,14 @@ class CategoriaDetalleFragment :
     private fun loadCategory(categoryId: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             val keys = withContext(Dispatchers.IO) {
-                db.categoryDao().getItemKeysForCategory(categoryId)
+                val userId =
+                    SessionManager(requireContext())
+                        .getCurrentUserId()
+
+                db.categoryDao().getItemKeysForCategory(
+                    categoryId,
+                    userId
+                )
             }
             Log.d("CAT_DEBUG", "keys=${keys.joinToString()}")
 
@@ -344,10 +351,13 @@ class CategoriaDetalleFragment :
 
     private fun eliminarDeCategoria(categoryId: String, itemKey: String) {
         if (!puedeModificarLista()) return
+        val userId =
+            SessionManager(requireContext())
+                .getCurrentUserId()
 
         viewLifecycleOwner.lifecycleScope.launch {
             withContext(Dispatchers.IO) {
-                val placementId = db.categoryDao().findPlacementId(categoryId, itemKey)
+                val placementId = db.categoryDao().findPlacementId(categoryId, itemKey, userId)
                 if (placementId != null) {
                     db.categoryDao().softDeletePlacement(
                         placementId = placementId,
@@ -361,12 +371,15 @@ class CategoriaDetalleFragment :
 
     private fun eliminarSeleccionDeCategoria(categoryId: String, seleccionados: List<ItemLista>) {
         if (!puedeModificarLista()) return
+        val userId =
+            SessionManager(requireContext())
+                .getCurrentUserId()
 
         viewLifecycleOwner.lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 // cada ItemLista.id == itemKey (porque ya ajustamos el resolver)
                 seleccionados.forEach { item ->
-                    val placementId = db.categoryDao().findPlacementId(categoryId, item.id)
+                    val placementId = db.categoryDao().findPlacementId(categoryId, item.id, userId)
                     if (placementId != null) {
                         db.categoryDao().softDeletePlacement(
                             placementId = placementId,
@@ -438,6 +451,9 @@ class CategoriaDetalleFragment :
 
     private fun abrirSelectorParaAgregar(categoryId: String) {
         viewLifecycleOwner.lifecycleScope.launch {
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
 
             // 1) cargar items disponibles (pictos + media)
             val disponibles = withContext(Dispatchers.IO) {
@@ -464,10 +480,17 @@ class CategoriaDetalleFragment :
 //                        }
 //                    }
                     withContext(Dispatchers.IO) {
-                        val existentes = db.categoryDao().getItemKeysForCategory(categoryId).toSet()
+                        val userId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
+
+                        val existentes = db.categoryDao().getItemKeysForCategory(
+                            categoryId,
+                            userId
+                        ).toSet()
                         val nuevos = selected.filter { it.id !in existentes }
                         val now = System.currentTimeMillis()
-                        var next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
+                        var next = db.categoryDao().getMaxOrderIndex(categoryId, userId) + 1
                         nuevos.forEach { item ->
                             db.categoryDao().insertCategoryItem(
                                 CategoryItemEntity(
@@ -476,7 +499,10 @@ class CategoriaDetalleFragment :
                                     itemKey = item.id,
                                     orderIndex = next++,
                                     createdAt = now,
-                                    updatedAt = now
+                                    updatedAt = now,
+                                    ownerUserId =
+                                    SessionManager(requireContext())
+                                        .getCurrentUserId()
                                 )
                             )
                         }
@@ -692,14 +718,17 @@ class CategoriaDetalleFragment :
 
     private fun agregarItemACategoria(item: ItemLista) {
         viewLifecycleOwner.lifecycleScope.launch {
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
 
             withContext(Dispatchers.IO) {
 
-                val exists = db.categoryDao().existsItemInCategory(categoryId, item.id)
+                val exists = db.categoryDao().existsItemInCategory(categoryId, item.id, userId )
                 if (exists) return@withContext
 
                 val now = System.currentTimeMillis()
-                val next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
+                val next = db.categoryDao().getMaxOrderIndex(categoryId, userId) + 1
 
                 db.categoryDao().insertCategoryItem(
                     CategoryItemEntity(
@@ -708,7 +737,10 @@ class CategoriaDetalleFragment :
                         itemKey = item.id,
                         orderIndex = next,
                         createdAt = now,
-                        updatedAt = now
+                        updatedAt = now,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
                 )
             }
@@ -832,18 +864,26 @@ class CategoriaDetalleFragment :
 
         viewLifecycleOwner.lifecycleScope.launch { val categorias = db.categoryDao().getUserActive()
             val cantidades = categorias.associate { categoria ->
+                val userId =
+                    SessionManager(requireContext())
+                        .getCurrentUserId()
                 categoria.categoryId to
-                        db.categoryDao()
-                            .getItemKeysForCategory(categoria.categoryId)
+                        db.categoryDao().getItemKeysForCategory(
+                            categoryId,
+                            userId
+                        )
                             .size
             }
 
             val checkedListas = BooleanArray(categorias.size)
             val previews =
                 categorias.associate { categoria ->
+                    val userId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     val itemKeys =
                         db.categoryDao()
-                            .getItemKeysForCategory(categoria.categoryId)
+                            .getItemKeysForCategory(categoria.categoryId, userId)
                     val previewItems =
                         itemKeys.mapNotNull { key ->
                             resolveItemKeyToItemLista(

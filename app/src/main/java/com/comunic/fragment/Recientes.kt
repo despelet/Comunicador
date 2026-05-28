@@ -464,8 +464,13 @@ class Recientes : Fragment(),
 
             // 2) Cargar USER media desde /files/media (tu lógica original)
             // Tu carpeta interna "media" ya está sincronizada con la base de datos gracias a MediaRepository.ensureLocalMediaIndexed()
-            val mediaItems = db.mediaDao().getActiveMedia()
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
 
+            val mediaItems =
+                db.mediaDao()
+                    .getActiveMediaForUser(userId)
             val userMediaAsItems = mediaItems.map { media ->
 //                ItemLista(
 //                    id = ItemKey.media(media.displayName), // temporal: compatibilidad con listas existentes
@@ -804,12 +809,14 @@ class Recientes : Fragment(),
         val btnExportarListas =      dialogView.findViewById<MaterialButton>(R.id.btnExportarListas)
         val btnSeleccionarTodas = dialogView.findViewById<MaterialButton>(R.id.btnSeleccionarTodas)
         val btnDeseleccionarTodas = dialogView.findViewById<MaterialButton>(R.id.btnDeseleccionarTodas)
-
+        val userId =
+            SessionManager(requireContext())
+                .getCurrentUserId()
         viewLifecycleOwner.lifecycleScope.launch { val categorias = db.categoryDao().getUserActive()
             val cantidades = categorias.associate { categoria ->
                     categoria.categoryId to
                             db.categoryDao()
-                                .getItemKeysForCategory(categoria.categoryId)
+                                .getItemKeysForCategory(categoria.categoryId, userId)
                                 .size
                 }
 
@@ -818,7 +825,7 @@ class Recientes : Fragment(),
                 categorias.associate { categoria ->
                     val itemKeys =
                         db.categoryDao()
-                            .getItemKeysForCategory(categoria.categoryId)
+                            .getItemKeysForCategory(categoria.categoryId, userId)
                     val previewItems =
                         itemKeys.mapNotNull { key ->
                             resolveItemKeyToItemLista(
@@ -1136,7 +1143,10 @@ class Recientes : Fragment(),
                     mediaType = if (esImagen) "image" else "video",
                     createdAt = now,
                     updatedAt = now,
-                    isDeleted = false
+                    isDeleted = false,
+                    ownerUserId =
+                    SessionManager(requireContext())
+                        .getCurrentUserId()
                 )
 
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -1391,7 +1401,16 @@ class Recientes : Fragment(),
                         if (nombreFinal.isBlank()) {
                             continue
                         }
-                        val existing =db.categoryDao().getCategoryByName(nombreFinal)
+                        val userId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
+
+                        val existing =
+                            db.categoryDao()
+                                .getCategoryByName(
+                                    nombreFinal,
+                                    userId
+                                )
                         if (existing != null) {
                             withContext(Dispatchers.Main) {
                                 val deferred =CompletableDeferred<Pair<String?, Boolean>?>()
@@ -1468,7 +1487,10 @@ class Recientes : Fragment(),
 
                                         while (
                                             db.categoryDao()
-                                                .getCategoryByName(nuevoNombre) != null
+                                                .getCategoryByName(
+                                                    nuevoNombre,
+                                                    userId
+                                                ) != null
                                         ) {
 
                                             contador++
@@ -1583,7 +1605,10 @@ class Recientes : Fragment(),
                                 name = nombreFinal,
                                 orderIndex = order,
                                 createdAt = now,
-                                updatedAt = now
+                                updatedAt = now,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
                         )
 
@@ -1646,7 +1671,10 @@ class Recientes : Fragment(),
                                 mediaType = if (esImagen) "image" else "video",
                                 createdAt = archivoDestino.lastModified().takeIf { it > 0L } ?: now,
                                 updatedAt = now,
-                                isDeleted = false
+                                isDeleted = false,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
 
                             db.mediaDao().upsert(mediaExistente)
@@ -1659,11 +1687,13 @@ class Recientes : Fragment(),
                             esImagen = esImagen,
                             timestamp = mediaExistente.createdAt
                         )
-
+                        val userId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
                         val now = System.currentTimeMillis()
                         val nextOrder =
                             db.categoryDao()
-                                .getMaxOrderIndex(categoria.categoryId) + 1
+                                .getMaxOrderIndex(categoria.categoryId, userId) + 1
 
                         db.categoryDao().insertCategoryItem(
                             CategoryItemEntity(
@@ -1672,7 +1702,10 @@ class Recientes : Fragment(),
                                 itemKey = itemExistente.id,
                                 orderIndex = nextOrder,
                                 createdAt = now,
-                                updatedAt = now
+                                updatedAt = now,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
                         )
 
@@ -1705,7 +1738,10 @@ class Recientes : Fragment(),
                         mediaType = if (esImagen) "image" else "video",
                         createdAt = now,
                         updatedAt = now,
-                        isDeleted = false
+                        isDeleted = false,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
 
                     db.mediaDao().upsert(media)
@@ -1725,10 +1761,12 @@ class Recientes : Fragment(),
                         uriGuardado,
                         esImagen
                     )
-
+                    val userId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     val nextOrder =
                         db.categoryDao()
-                            .getMaxOrderIndex(categoria.categoryId) + 1
+                            .getMaxOrderIndex(categoria.categoryId, userId ) + 1
 
                     db.categoryDao().insertCategoryItem(
                         CategoryItemEntity(
@@ -1737,7 +1775,10 @@ class Recientes : Fragment(),
                             itemKey = item.id,
                             orderIndex = nextOrder,
                             createdAt = now,
-                            updatedAt = now
+                            updatedAt = now,
+                            ownerUserId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
                         )
                     )
                 }
@@ -1961,7 +2002,10 @@ class Recientes : Fragment(),
                         name = nombre,
                         orderIndex = order,
                         createdAt = now,
-                        updatedAt = now
+                        updatedAt = now,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
                 )
             }
@@ -1977,14 +2021,17 @@ class Recientes : Fragment(),
     private fun agregarItemAListas(item: ItemLista, categoryIds: List<String>) {
         viewLifecycleOwner.lifecycleScope.launch {
             withContext(Dispatchers.IO) {
+                val userId =
+                    SessionManager(requireContext())
+                        .getCurrentUserId()
                 for (catId in categoryIds) {
 
                     // 1) evitar duplicado
-                    val exists = db.categoryDao().existsItemInCategory(catId, item.id)
+                    val exists = db.categoryDao().existsItemInCategory(catId, item.id, userId)
                     if (exists) continue
 
                     // 2) siguiente orden
-                    val next = db.categoryDao().getMaxOrderIndex(catId) + 1
+                    val next = db.categoryDao().getMaxOrderIndex(catId, userId) + 1
 
                     // 3) insertar placement
 //                    db.categoryDao().insertCategoryItem(
@@ -2006,7 +2053,10 @@ class Recientes : Fragment(),
                             itemKey = itemKey,
                             orderIndex = next,
                             createdAt = now,
-                            updatedAt = now
+                            updatedAt = now,
+                            ownerUserId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
                         )
                     )
                 }
@@ -2024,10 +2074,13 @@ class Recientes : Fragment(),
 
     fun agregarItemAListaExterna(categoryId: String, item: ItemLista) {
         viewLifecycleOwner.lifecycleScope.launch {
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
             withContext(Dispatchers.IO) {
 
                 val now = System.currentTimeMillis()
-                val next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
+                val next = db.categoryDao().getMaxOrderIndex(categoryId, userId) + 1
 
                 db.categoryDao().insertCategoryItem(
                     CategoryItemEntity(
@@ -2036,7 +2089,10 @@ class Recientes : Fragment(),
                         itemKey = item.id,
                         orderIndex = next,
                         createdAt = now,
-                        updatedAt = now
+                        updatedAt = now,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
                 )
             }

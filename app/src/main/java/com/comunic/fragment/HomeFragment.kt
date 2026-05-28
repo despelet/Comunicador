@@ -78,6 +78,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.squareup.picasso.Picasso
 import com.comunic.interfaces.ZipImportListener
+import com.comunic.session.SessionManager
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CompletableDeferred
@@ -203,10 +204,13 @@ class HomeFragment : Fragment(),
         lifecycleScope.launch {
             val now = System.currentTimeMillis()
             val bucketId = RankingManager.TimeBucket.bucketIdFromMillis(now)
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
 
             val (topBucket, topGlobal) = withContext(Dispatchers.IO) {
-                val bucket = db.itemUsadoBucketDao().getTopForBucket(bucketId, 30)
-                val global = db.itemUsadoDao().obtenerMasUsados()
+                val bucket = db.itemUsadoBucketDao().getTopForBucket(bucketId, 30, userId)
+                val global = db.itemUsadoDao().obtenerMasUsados(userId)
                 bucket to global
             }
 
@@ -839,7 +843,10 @@ class HomeFragment : Fragment(),
                 mediaType = if (esImagen) "image" else "video",
                 createdAt = now,
                 updatedAt = now,
-                isDeleted = false
+                isDeleted = false,
+                ownerUserId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
             )
 
             db.mediaDao().upsert(media)
@@ -1174,8 +1181,13 @@ class HomeFragment : Fragment(),
 
             MediaRepository(requireContext(), db).ensureLocalMediaIndexed()
 
-            val mediaItems = db.mediaDao().getActiveMedia()
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
 
+            val mediaItems =
+                db.mediaDao()
+                    .getActiveMediaForUser(userId)
             val userMediaAsItems = mediaItems.map { media ->
                 ItemLista(
                     id = ItemKey.media(media.mediaId),
@@ -1445,18 +1457,25 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
 
         viewLifecycleOwner.lifecycleScope.launch { val categorias = db.categoryDao().getUserActive()
             val cantidades = categorias.associate { categoria ->
+                val userId =
+                    SessionManager(requireContext())
+                        .getCurrentUserId()
                 categoria.categoryId to
-                        db.categoryDao()
-                            .getItemKeysForCategory(categoria.categoryId)
+                        db.categoryDao().getItemKeysForCategory(
+                            categoria.categoryId,
+                            userId)
                             .size
             }
 
             val checkedListas = BooleanArray(categorias.size)
             val previews =
                 categorias.associate { categoria ->
-                    val itemKeys =
-                        db.categoryDao()
-                            .getItemKeysForCategory(categoria.categoryId)
+                    val userId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
+                    val itemKeys =db.categoryDao().getItemKeysForCategory(
+                        categoria.categoryId,
+                        userId)
                     val previewItems =
                         itemKeys.mapNotNull { key ->
                             resolveItemKeyToItemLista(
@@ -1906,7 +1925,10 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                         if (esImagen) "image" else "video",
                         createdAt = now,
                         updatedAt = now,
-                        isDeleted = false
+                        isDeleted = false,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
 
                     db.mediaDao().upsert(media)
@@ -1945,7 +1967,9 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
 
     private fun importarListaDesdeZip(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
             try {
 
                 val inputStream =
@@ -2093,7 +2117,16 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                         if (nombreFinal.isBlank()) {
                             continue
                         }
-                        val existing =db.categoryDao().getCategoryByName(nombreFinal)
+                        val userId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
+
+                        val existing =
+                            db.categoryDao()
+                                .getCategoryByName(
+                                    nombreFinal,
+                                    userId
+                                )
                         if (existing != null) {
                             withContext(Dispatchers.Main) {
                                 val deferred =CompletableDeferred<Pair<String?, Boolean>?>()
@@ -2170,7 +2203,10 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
 
                                         while (
                                             db.categoryDao()
-                                                .getCategoryByName(nuevoNombre) != null
+                                                .getCategoryByName(
+                                                    nuevoNombre,
+                                                    userId
+                                                ) != null
                                         ) {
 
                                             contador++
@@ -2287,7 +2323,10 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                                 name = nombreFinal,
                                 orderIndex = order,
                                 createdAt = now,
-                                updatedAt = now
+                                updatedAt = now,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
                         )
 
@@ -2351,7 +2390,10 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                                 mediaType =if (esImagen) "image" else "video",
                                 createdAt =archivoDestino.lastModified()  .takeIf { it > 0L } ?: now,
                                 updatedAt = now,
-                                isDeleted = false
+                                isDeleted = false,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
 
                             db.mediaDao().upsert( mediaExistente )
@@ -2369,7 +2411,7 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
 
                         val now = System.currentTimeMillis()
                         val nextOrder =
-                            db.categoryDao() .getMaxOrderIndex( categoria.categoryId ) + 1
+                            db.categoryDao() .getMaxOrderIndex( categoria.categoryId , userId) + 1
 
                         db.categoryDao().insertCategoryItem(
                             CategoryItemEntity(
@@ -2378,7 +2420,10 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                                 itemKey = itemExistente.id,
                                 orderIndex = nextOrder,
                                 createdAt = now,
-                                updatedAt = now
+                                updatedAt = now,
+                                ownerUserId =
+                                SessionManager(requireContext())
+                                    .getCurrentUserId()
                             )
                         )
 
@@ -2411,7 +2456,10 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                         if (esImagen) "image" else "video",
                         createdAt = now,
                         updatedAt = now,
-                        isDeleted = false
+                        isDeleted = false,
+                        ownerUserId =
+                        SessionManager(requireContext())
+                            .getCurrentUserId()
                     )
 
                     db.mediaDao().upsert(media)
@@ -2438,7 +2486,7 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
 
                     val nextOrder =
                         db.categoryDao()
-                            .getMaxOrderIndex(categoria.categoryId) + 1
+                            .getMaxOrderIndex(categoria.categoryId, userId) + 1
 
                     db.categoryDao().insertCategoryItem(
                         CategoryItemEntity(
@@ -2447,7 +2495,10 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                             itemKey = item.id,
                             orderIndex = nextOrder,
                             createdAt = now,
-                            updatedAt = now
+                            updatedAt = now,
+                            ownerUserId =
+                            SessionManager(requireContext())
+                                .getCurrentUserId()
                         )
                     )
                 }
@@ -2516,10 +2567,45 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                 PackRepository(requireContext(), db).ensureBasicPackInstalled()
             }
 
-            val rows0 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(0) }
-            val rows1 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(1) }
-            val rows2 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(2) }
-            val rows3 = withContext(Dispatchers.IO) { db.categoryDao().getHomeActiveCategoryPreviewKeyRows(3) }
+            val userId =
+                SessionManager(requireContext())
+                    .getCurrentUserId()
+
+            val rows0 =
+                withContext(Dispatchers.IO) {
+                    db.categoryDao()
+                        .getHomeActiveCategoryPreviewKeyRows(
+                            0,
+                            userId
+                        )
+                }
+
+            val rows1 =
+                withContext(Dispatchers.IO) {
+                    db.categoryDao()
+                        .getHomeActiveCategoryPreviewKeyRows(
+                            1,
+                            userId
+                        )
+                }
+
+            val rows2 =
+                withContext(Dispatchers.IO) {
+                    db.categoryDao()
+                        .getHomeActiveCategoryPreviewKeyRows(
+                            2,
+                            userId
+                        )
+                }
+
+            val rows3 =
+                withContext(Dispatchers.IO) {
+                    db.categoryDao()
+                        .getHomeActiveCategoryPreviewKeyRows(
+                            3,
+                            userId
+                        )
+                }
 
             data class CatAgg(
                 val categoryId: String,

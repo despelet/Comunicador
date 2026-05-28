@@ -8,23 +8,38 @@ interface ItemUsadoBucketDao {
 
     @Query("""
         SELECT * FROM items_usados_bucket 
-        WHERE bucketId = :bucketId 
+        WHERE bucketId = :bucketId
+        AND ownerUserId = :userId
         ORDER BY cantidadDeUsos DESC 
         LIMIT :limit
     """)
-    suspend fun getTopForBucket(bucketId: Int, limit: Int): List<ItemUsadoBucket>
+    suspend fun getTopForBucket(
+        bucketId: Int,
+        limit: Int,
+        userId: String
+    ): List<ItemUsadoBucket>
 
     @Query("""
         SELECT * FROM items_usados_bucket 
-        WHERE nombreArchivo = :nombre AND bucketId = :bucketId
+        WHERE nombreArchivo = :nombre
+        AND bucketId = :bucketId
+        AND ownerUserId = :userId
         LIMIT 1
     """)
-    suspend fun obtenerPorNombreYBucket(nombre: String, bucketId: Int): ItemUsadoBucket?
+    suspend fun obtenerPorNombreYBucket(
+        nombre: String,
+        bucketId: Int,
+        userId: String
+    ): ItemUsadoBucket?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertar(item: ItemUsadoBucket)
 
-    // NUEVO: vaciar la tabla bucket
-    @Query("DELETE FROM items_usados_bucket")
-    suspend fun borrarTodo()
+    @Query("""
+        DELETE FROM items_usados_bucket
+        WHERE ownerUserId = :userId
+    """)
+    suspend fun borrarTodo(
+        userId: String
+    )
 }

@@ -33,6 +33,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageView
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
@@ -88,13 +89,15 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
-
+        val userId =
+            SessionManager(this@MainActivity)
+                .getCurrentUserId()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         lifecycleScope.launch {
             val dao = AppDatabase.getDatabase(applicationContext).itemUsadoDao()
-            dao.getAllItemsUsados() // o cualquier consulta mínima
+            dao.getAllItemsUsados(userId) // o cualquier consulta mínima
         }
 
         // MENU LATERAL
@@ -244,6 +247,14 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 return true
             }
 
+            R.id.nav_usuario_a -> {
+                cambiarUsuarioDebug(SessionManager.LOCAL_USER_A)
+            }
+
+            R.id.nav_usuario_b -> {
+                cambiarUsuarioDebug(SessionManager.LOCAL_USER_B)
+            }
+
             R.id.exportar_archivos -> {
                 // Acción para exportar archivos
                 Toast.makeText(this, "Seleccionado: ${menuItem.title}", Toast.LENGTH_SHORT).show()
@@ -309,6 +320,12 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         menu.findItem(R.id.nav_editar)?.isVisible =  canEdit
         menu.findItem(R.id.nav_eliminar)?.isVisible =canDelete
         menu.findItem(R.id.nav_papelera)?.isVisible =canTrash
+
+        menu.findItem(R.id.nav_usuario_a)?.isChecked =
+            sessionManager.getCurrentUserId() == SessionManager.LOCAL_USER_A
+
+        menu.findItem(R.id.nav_usuario_b)?.isChecked =
+            sessionManager.getCurrentUserId() == SessionManager.LOCAL_USER_B
 
         // =========================
         // IMPORT / EXPORT
@@ -787,7 +804,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             ?: return
 
         lifecycleScope.launch(Dispatchers.IO) {
-
+            val userId =
+                SessionManager(this@MainActivity)
+                    .getCurrentUserId()
             val db = AppDatabase.getDatabase(applicationContext)
             val now = System.currentTimeMillis()
 
@@ -798,7 +817,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 mediaType = if (esImagen) "image" else "video",
                 createdAt = now,
                 updatedAt = now,
-                isDeleted = false
+                isDeleted = false,
+                ownerUserId =
+                SessionManager(this@MainActivity)
+                    .getCurrentUserId()
             )
 
             db.mediaDao().upsert(media)
@@ -841,7 +863,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
             pendingCategoryId?.let { catId ->
 
-                val next = db.categoryDao().getMaxOrderIndex(catId) + 1
+                val next = db.categoryDao().getMaxOrderIndex(catId, userId) + 1
 
                 db.categoryDao().insertCategoryItem(
                     CategoryItemEntity(
@@ -850,7 +872,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                         itemKey = item.id,
                         orderIndex = next,
                         createdAt = now,
-                        updatedAt = now
+                        updatedAt = now,
+                        ownerUserId =
+                        SessionManager(this@MainActivity)
+                            .getCurrentUserId()
                     )
                 )
             }
@@ -946,6 +971,41 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             }
             .setNegativeButton("CANCELAR", null)
             .show()
+    }
+
+    private fun cambiarUsuarioDebug(userId: String) {
+
+        sessionManager.setCurrentUserId(userId)
+        sessionManager.deactivateTutorMode()
+
+        val current =
+            supportFragmentManager.findFragmentById(
+                R.id.fragment_container
+            )
+
+        if (current != null) {
+            actualizarMenuLateralParaFragment(current)
+
+            if (current is RoleAwareFragment) {
+                current.onUserModeChanged()
+            }
+        }
+
+        when (current) {
+            is HomeFragment -> openFragment(HomeFragment())
+            is Recientes -> openFragment(Recientes())
+            is Listas -> openFragment(Listas())
+            is CategoriaDetalleFragment -> {
+                openFragment(Listas())
+            }
+            else -> openFragment(Recientes())
+        }
+
+        Toast.makeText(
+            this,
+            "Usuario activo: $userId",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
 }

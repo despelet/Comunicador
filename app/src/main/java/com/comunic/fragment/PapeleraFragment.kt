@@ -15,6 +15,7 @@ import com.comunic.R
 import com.comunic.adapters.MediaAdapter
 import com.comunic.data.db.AppDatabase
 import com.comunic.databinding.FragmentPapeleraBinding
+import com.comunic.session.SessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -68,7 +69,11 @@ class PapeleraFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
 
             val eliminados = withContext(Dispatchers.IO) {
-                db.mediaDao().getDeletedMedia()
+                val userId =
+                    SessionManager(requireContext())
+                        .getCurrentUserId()
+
+                db.mediaDao().getDeletedMediaForUser(userId)
             }
 
             items.clear()

@@ -111,6 +111,24 @@ class SessionManager(
             .apply()
     }
 
+    fun getLastSyncAt(): Long {
+        return prefs.getLong(
+            KEY_LAST_SYNC_AT,
+            0L
+        )
+    }
+
+    fun setLastSyncAt(
+        timestamp: Long
+    ) {
+        prefs.edit()
+            .putLong(
+                KEY_LAST_SYNC_AT,
+                timestamp
+            )
+            .apply()
+    }
+
 
     companion object {
         private const val KEY_USER_MODE = "user_mode"
@@ -122,6 +140,8 @@ class SessionManager(
 
         const val LOCAL_USER_A = "local_user"
         const val LOCAL_USER_B = "local_user_b"
+
+        private const val KEY_LAST_SYNC_AT =   "last_sync_at"
 
         }
 

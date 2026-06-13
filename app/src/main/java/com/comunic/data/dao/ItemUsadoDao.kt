@@ -54,4 +54,15 @@ interface ItemUsadoDao {
     suspend fun borrarTodo(
         userId: String
     )
+
+    @Query("""
+    UPDATE items_usados
+    SET ownerUserId = :newUserId
+    WHERE ownerUserId = :oldUserId
+""")
+    suspend fun adoptItemsUsadosToUser(
+        oldUserId: String,
+        newUserId: String
+    ) // Para adoptar los items usados de un usuario a otro, por ejemplo al migrar de un usuario anónimo a uno registrado
+
 }

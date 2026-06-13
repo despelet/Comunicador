@@ -42,4 +42,15 @@ interface ItemUsadoBucketDao {
     suspend fun borrarTodo(
         userId: String
     )
+
+    @Query("""
+    UPDATE items_usados_bucket
+    SET ownerUserId = :newUserId
+    WHERE ownerUserId = :oldUserId
+""")
+    suspend fun adoptItemsUsadosBucketToUser(
+        oldUserId: String,
+        newUserId: String
+    ) // Para transferir los items usados bucket de un usuario a otro (ej: al cambiar de cuenta, para no perder el historial de uso reciente)
+
 }

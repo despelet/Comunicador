@@ -86,4 +86,16 @@ interface MediaDao {
 """)
     suspend fun getDeletedMediaForUser(userId: String): List<MediaEntity>
 
+    @Query("""
+    UPDATE media_items
+    SET ownerUserId = :newUserId,
+        updatedAt = :updatedAt
+    WHERE ownerUserId = :oldUserId
+""")
+    suspend fun adoptMediaToUser(
+        oldUserId: String,
+        newUserId: String,
+        updatedAt: Long
+    ) // Cuando un usuario se registra, adoptamos los medios que haya creado antes de registrarse (que estaban asociados a su userId temporal) y los asociamos a su nuevo userId permanente. Esto permite que el usuario no pierda acceso a los medios que creó antes de registrarse, y que esos medios ahora estén correctamente asociados a su cuenta de usuario.
+
 }

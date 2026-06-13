@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     kotlin("kapt")
     id("org.jetbrains.kotlin.plugin.parcelize")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -13,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.comunic"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 35
         versionCode = 13
         versionName = "1.13"
@@ -59,7 +60,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     packaging {
@@ -132,6 +133,19 @@ dependencies {
 
     implementation(libs.androidx.core.splashscreen.v101)
     implementation(libs.gson) // json para exportar listas
+
+    // Import the Firebase BoM
+    implementation(platform(libs.firebase.bom))
+
+    implementation(libs.firebase.auth)
+    // TODO: Add the dependencies for Firebase products you want to use
+    // When using the BoM, don't specify versions in Firebase dependencies
+ //   implementation(libs.firebase.analytics)
+
+
+    // Add the dependencies for any other desired Firebase products
+    // https://firebase.google.com/docs/android/setup#available-libraries
+
 }
 
 

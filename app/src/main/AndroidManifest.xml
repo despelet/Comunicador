@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.comunic"
+
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permisos para versiones de Android anteriores a 13 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERNET" />
+
 
     <!-- Permiso para versiones de Android 13 y superiores -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />

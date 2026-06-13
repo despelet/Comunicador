@@ -300,4 +300,28 @@ ORDER BY orderIndex ASC
         userId: String
     ): List<CategoryEntity>
 
+    @Query("""
+    UPDATE categories
+    SET ownerUserId = :newUserId,
+        updatedAt = :updatedAt
+    WHERE ownerUserId = :oldUserId
+""")
+    suspend fun adoptCategoriesToUser(
+        oldUserId: String,
+        newUserId: String,
+        updatedAt: Long
+    ) // Para adoptar las categorías de un usuario al iniciar sesión con otro usuario, o al eliminar la cuenta (en este caso se asignan a un userId genérico "deleted_user" para no perder la info de categorías creadas por el usuario eliminado y que podrían ser útiles si inicia sesión nuevamente o para otros usuarios si eran categorías compartidas)
+
+    @Query("""
+    UPDATE category_items
+    SET ownerUserId = :newUserId,
+        updatedAt = :updatedAt
+    WHERE ownerUserId = :oldUserId
+""")
+    suspend fun adoptCategoryItemsToUser(
+        oldUserId: String,
+        newUserId: String,
+        updatedAt: Long
+    ) // Para adoptar los items de las categorías de un usuario al iniciar sesión con otro usuario, o al eliminar la cuenta (en este caso se asignan a un userId genérico "deleted_user" para no perder la info de categorías creadas por el usuario eliminado y que podrían ser útiles si inicia sesión nuevamente o para otros usuarios si eran categorías compartidas)
+
 }

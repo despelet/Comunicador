@@ -324,4 +324,25 @@ ORDER BY orderIndex ASC
         updatedAt: Long
     ) // Para adoptar los items de las categorías de un usuario al iniciar sesión con otro usuario, o al eliminar la cuenta (en este caso se asignan a un userId genérico "deleted_user" para no perder la info de categorías creadas por el usuario eliminado y que podrían ser útiles si inicia sesión nuevamente o para otros usuarios si eran categorías compartidas)
 
+    // migracion nombre->uuid a lo ya existente
+    @Query("""
+    SELECT *
+    FROM category_items
+    WHERE itemKey LIKE 'MED:%'
+      AND isDeleted = 0
+""")
+    suspend fun getActiveMediaPlacements(): List<CategoryItemEntity>
+
+    @Query("""
+    UPDATE category_items
+    SET itemKey = :newItemKey,
+        updatedAt = :updatedAt
+    WHERE placementId = :placementId
+""")
+    suspend fun updatePlacementItemKey(
+        placementId: String,
+        newItemKey: String,
+        updatedAt: Long
+    )
+
 }

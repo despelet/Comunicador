@@ -26,6 +26,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.comunic.ItemKey
 import com.comunic.data.db.AppDatabase
 import com.comunic.databinding.FragmentCategoriaDetalleBinding
 import kotlinx.coroutines.launch
@@ -465,20 +466,7 @@ class CategoriaDetalleFragment :
                 viewLifecycleOwner.lifecycleScope.launch {
 
                     // 3) insertar seleccionados en category_items
-//                    withContext(Dispatchers.IO) {
-//                        var next = db.categoryDao().getMaxOrderIndex(categoryId) + 1
-//
-//                        selected.forEach { item ->
-//                            db.categoryDao().insertCategoryItem(
-//                                CategoryItemEntity(
-//                                    placementId = UUID.randomUUID().toString(),
-//                                    categoryId = categoryId,
-//                                    itemKey = item.id,    // ✅ id == itemKey
-//                                    orderIndex = next++
-//                                )
-//                            )
-//                        }
-//                    }
+
                     withContext(Dispatchers.IO) {
                         val userId =
                             SessionManager(requireContext())
@@ -492,6 +480,13 @@ class CategoriaDetalleFragment :
                         val now = System.currentTimeMillis()
                         var next = db.categoryDao().getMaxOrderIndex(categoryId, userId) + 1
                         nuevos.forEach { item ->
+                            if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                                Log.e(
+                                    "ITEM_KEY_VALIDATION",
+                                    "Intento de insertar MED legacy en categoría: ${item.id}"
+                                )
+                                return@forEach
+                            }
                             db.categoryDao().insertCategoryItem(
                                 CategoryItemEntity(
                                     placementId = UUID.randomUUID().toString(),
@@ -726,6 +721,14 @@ class CategoriaDetalleFragment :
 
                 val exists = db.categoryDao().existsItemInCategory(categoryId, item.id, userId )
                 if (exists) return@withContext
+
+                if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                    Log.e(
+                        "ITEM_KEY_VALIDATION",
+                        "Intento de insertar MED legacy: ${item.id}"
+                    )
+                    return@withContext
+                }
 
                 val now = System.currentTimeMillis()
                 val next = db.categoryDao().getMaxOrderIndex(categoryId, userId) + 1

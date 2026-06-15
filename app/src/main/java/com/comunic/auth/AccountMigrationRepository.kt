@@ -23,6 +23,11 @@ class AccountMigrationRepository(
             val oldUserId =
                 sessionManager.getCurrentUserId()
 
+            Log.d(
+                TAG,
+                "oldUserId=$oldUserId newUserId=$newUserId"
+            )
+
             if (oldUserId == newUserId) {
                 Log.d(TAG, "No se requiere adopción: oldUserId == newUserId")
                 return@withContext
@@ -31,6 +36,10 @@ class AccountMigrationRepository(
             val now =
                 System.currentTimeMillis()
 
+            Log.d(
+                TAG,
+                "Migrando media"
+            )
             db.mediaDao().adoptMediaToUser(
                 oldUserId = oldUserId,
                 newUserId = newUserId,

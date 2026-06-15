@@ -398,6 +398,12 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                     withContext(Dispatchers.IO) {
                         var next = db.categoryDao().getMaxOrderIndex(newId, userId) + 1
                         selected.forEach { item ->
+                            if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                                Log.e(
+                                    "ITEM_KEY_VALIDATION",
+                                    "Intento de importar MED legacy nuevo en Listas: ${item.id}"
+                                )
+                            }
                             db.categoryDao().insertCategoryItem(
                                 CategoryItemEntity(
                                     placementId = UUID.randomUUID().toString(),
@@ -990,30 +996,6 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
                     val archivoDestino = File(mediaDir, nombreFinal)
 
-                    /*if (archivoDestino.exists()) {
-                        val itemExistente = ItemLista(
-                            id = ItemKey.media(nombreSinExtension),
-                            nombre = nombreSinExtension,
-                            uri = Uri.fromFile(archivoDestino),
-                            esImagen = esImagen,
-                            timestamp = archivoDestino.lastModified()
-                        )
-
-                        val nextOrder =
-                            db.categoryDao()
-                                .getMaxOrderIndex(categoria.categoryId) + 1
-
-                        db.categoryDao().insertCategoryItem(
-                            CategoryItemEntity(
-                                placementId = UUID.randomUUID().toString(),
-                                categoryId = categoria.categoryId,
-                                itemKey = itemExistente.id,
-                                orderIndex = nextOrder
-                            )
-                        )
-
-                        continue
-                    }*/
                     if (archivoDestino.exists()) {
 
                         val uriExistente =  Uri.fromFile(archivoDestino)
@@ -1051,6 +1033,14 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         val now = System.currentTimeMillis()
                         val nextOrder =
                             db.categoryDao() .getMaxOrderIndex( categoria.categoryId , userId) + 1
+
+                        if (ItemKey.isMedia(itemExistente.id) && !ItemKey.isMediaUuid(itemExistente.id)) {
+                            Log.e(
+                                "ITEM_KEY_VALIDATION",
+                                "Intento de importar MED legacy existente en Listas: ${itemExistente.id}"
+                            )
+                            continue
+                        }
 
                         db.categoryDao().insertCategoryItem(
                             CategoryItemEntity(
@@ -1127,7 +1117,13 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                     val nextOrder =
                         db.categoryDao()
                             .getMaxOrderIndex(categoria.categoryId, userId) + 1
-
+                    if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                        Log.e(
+                            "ITEM_KEY_VALIDATION",
+                            "Intento de importar MED legacy nuevo en Listas: ${item.id}"
+                        )
+                        continue
+                    }
                     db.categoryDao().insertCategoryItem(
                         CategoryItemEntity(
                             placementId = UUID.randomUUID().toString(),

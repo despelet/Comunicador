@@ -55,9 +55,11 @@ import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.R
 import com.comunic.Sugeridos
+import com.comunic.auth.AccountMigrationRepository
 import com.comunic.data.entity.MediaEntity
 import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.ZipImportListener
+import com.comunic.migration.LegacyMediaKeyMigrationRepository
 import com.comunic.session.PermissionManager
 import com.comunic.session.RoleAwareFragment
 import com.comunic.session.SessionManager
@@ -114,6 +116,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         sessionManager = SessionManager(this)
         permissionManager = PermissionManager(sessionManager)
 
+        runStartupMigrations()
+
 
         val menuButton: ImageButton = findViewById(R.id.menu)
         menuButton.setOnClickListener {                     // Abrir el menú lateral al presionar el botón
@@ -138,6 +142,41 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 //        drawerMenu.findItem(R.id.nav_proteger)?.isVisible = false
 //        drawerMenu.findItem(R.id.nav_editar)?.isVisible = false
 //        drawerMenu.findItem(R.id.nav_nosotros)?.isVisible = false
+
+/*        lifecycleScope.launch {
+
+            Log.d(
+                "MIGRATION_TEST",
+                "Iniciando adopción"
+            )
+
+            AccountMigrationRepository(this@MainActivity)
+                .adoptLocalDataToUser(
+                    "usuario_prueba_firebase"
+                )
+
+            Log.d(
+                "MIGRATION_TEST",
+                "Adopción finalizada"
+            )
+        }*/
+
+        /*lifecycleScope.launch {
+
+            Log.d(
+                "LEGACY_MEDIA_KEY_MIGRATION",
+                "Iniciando migración legacy MED:nombre -> MED:uuid"
+            )
+
+            LegacyMediaKeyMigrationRepository(this@MainActivity)
+                .migrateLegacyMediaKeys()
+
+            Log.d(
+                "LEGACY_MEDIA_KEY_MIGRATION",
+                "Migración legacy finalizada"
+            )
+        }*/
+
 
     }
 
@@ -863,6 +902,14 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
             pendingCategoryId?.let { catId ->
 
+                if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                    Log.e(
+                        "ITEM_KEY_VALIDATION",
+                        "Intento de insertar MED legacy: ${item.id}"
+                    )
+                    return@let
+                }
+
                 val next = db.categoryDao().getMaxOrderIndex(catId, userId) + 1
 
                 db.categoryDao().insertCategoryItem(
@@ -1006,6 +1053,38 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             "Usuario activo: $userId",
             Toast.LENGTH_SHORT
         ).show()
+    }
+
+    private fun runStartupMigrations() {
+
+        lifecycleScope.launch {
+            if (!sessionManager.isLegacyMediaKeyMigrationDone()) {
+                Log.d(
+                    "STARTUP_MIGRATION",
+                    "Ejecutando migración MED:nombre -> MED:uuid"
+                )
+                try {
+                    LegacyMediaKeyMigrationRepository(this@MainActivity)
+                        .migrateLegacyMediaKeys()
+                    sessionManager.setLegacyMediaKeyMigrationDone()
+                    Log.d(
+                        "STARTUP_MIGRATION",
+                        "Migración MED:nombre -> MED:uuid finalizada"
+                    )
+                } catch (e: Exception) {
+                    Log.e(
+                        "STARTUP_MIGRATION",
+                        "Error ejecutando migración MED:nombre -> MED:uuid",
+                        e
+                    )
+                }
+            } else {
+                Log.d(
+                    "STARTUP_MIGRATION",
+                    "Migración MED:nombre -> MED:uuid ya realizada"
+                )
+            }
+        }
     }
 
 }

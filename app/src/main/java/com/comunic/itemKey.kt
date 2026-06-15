@@ -14,4 +14,18 @@ object ItemKey {
     fun pictoId(key: String) = key.removePrefix(PIC_PREFIX)
     fun mediaBase(key: String) = key.removePrefix(MED_PREFIX)
     fun mediaId(key: String) = key.removePrefix(MED_PREFIX)
+
+    fun isMediaUuid(key: String): Boolean {
+        if (!isMedia(key)) return false
+
+        val value = mediaBase(key)
+
+        return try {
+            java.util.UUID.fromString(value)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
 }

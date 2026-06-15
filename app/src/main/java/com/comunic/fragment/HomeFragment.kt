@@ -2413,6 +2413,13 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                         val nextOrder =
                             db.categoryDao() .getMaxOrderIndex( categoria.categoryId , userId) + 1
 
+                        if (ItemKey.isMedia(itemExistente.id) && !ItemKey.isMediaUuid(itemExistente.id)) {
+                            Log.e(
+                                "ITEM_KEY_VALIDATION",
+                                "Intento de importar MED legacy existente: ${itemExistente.id}"
+                            )
+                            continue
+                        }
                         db.categoryDao().insertCategoryItem(
                             CategoryItemEntity(
                                 placementId =UUID.randomUUID().toString(),
@@ -2487,6 +2494,13 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                     val nextOrder =
                         db.categoryDao()
                             .getMaxOrderIndex(categoria.categoryId, userId) + 1
+                    if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                        Log.e(
+                            "ITEM_KEY_VALIDATION",
+                            "Intento de importar MED legacy nuevo: ${item.id}"
+                        )
+                        continue
+                    }
 
                     db.categoryDao().insertCategoryItem(
                         CategoryItemEntity(

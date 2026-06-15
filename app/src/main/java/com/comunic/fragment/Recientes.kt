@@ -1694,7 +1694,13 @@ class Recientes : Fragment(),
                         val nextOrder =
                             db.categoryDao()
                                 .getMaxOrderIndex(categoria.categoryId, userId) + 1
-
+                        if (ItemKey.isMedia(itemExistente.id) && !ItemKey.isMediaUuid(itemExistente.id)) {
+                            Log.e(
+                                "ITEM_KEY_VALIDATION",
+                                "Intento de importar MED legacy existente en Listas: ${itemExistente.id}"
+                            )
+                            continue
+                        }
                         db.categoryDao().insertCategoryItem(
                             CategoryItemEntity(
                                 placementId = UUID.randomUUID().toString(),
@@ -1767,7 +1773,13 @@ class Recientes : Fragment(),
                     val nextOrder =
                         db.categoryDao()
                             .getMaxOrderIndex(categoria.categoryId, userId ) + 1
-
+                    if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                        Log.e(
+                            "ITEM_KEY_VALIDATION",
+                            "Intento de importar MED legacy nuevo en Listas: ${item.id}"
+                        )
+                        continue
+                    }
                     db.categoryDao().insertCategoryItem(
                         CategoryItemEntity(
                             placementId = UUID.randomUUID().toString(),
@@ -2046,6 +2058,13 @@ class Recientes : Fragment(),
                     val now = System.currentTimeMillis()
                     val itemKey = item.id.trim()     // ✅ id = MED:... o PIC:...
                     Log.d("ADD_DEBUG", "guardando itemKey='${item.id}' nombre='${item.nombre}'")
+                    if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                        Log.e(
+                            "ITEM_KEY_VALIDATION",
+                            "Intento de importar MED legacy nuevo en Listas: ${item.id}"
+                        )
+                        continue
+                    }
                     db.categoryDao().insertCategoryItem(
                         CategoryItemEntity(
                             placementId = UUID.randomUUID().toString(),
@@ -2081,7 +2100,12 @@ class Recientes : Fragment(),
 
                 val now = System.currentTimeMillis()
                 val next = db.categoryDao().getMaxOrderIndex(categoryId, userId) + 1
-
+                if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
+                    Log.e(
+                        "ITEM_KEY_VALIDATION",
+                        "Intento de importar MED legacy nuevo en Listas: ${item.id}"
+                    )
+                }
                 db.categoryDao().insertCategoryItem(
                     CategoryItemEntity(
                         placementId = UUID.randomUUID().toString(),

@@ -129,6 +129,22 @@ class SessionManager(
             .apply()
     }
 
+    fun isLegacyMediaKeyMigrationDone(): Boolean {
+        return prefs.getBoolean(
+            KEY_LEGACY_MEDIA_KEY_MIGRATED,
+            false
+        )
+    }
+
+    fun setLegacyMediaKeyMigrationDone() {
+        prefs.edit()
+            .putBoolean(
+                KEY_LEGACY_MEDIA_KEY_MIGRATED,
+                true
+            )
+            .apply()
+    }
+
 
     companion object {
         private const val KEY_USER_MODE = "user_mode"
@@ -142,6 +158,7 @@ class SessionManager(
         const val LOCAL_USER_B = "local_user_b"
 
         private const val KEY_LAST_SYNC_AT =   "last_sync_at"
+        private const val KEY_LEGACY_MEDIA_KEY_MIGRATED =  "legacy_media_key_migrated"
 
         }
 

@@ -6,6 +6,13 @@ class SessionManager(
     context: Context
 ) {
 
+
+    // Gurrda estado local de la sesión, como el modo de usuario (paciente o tutor), autenticación del tutor, último acceso del tutor, etc.
+    /* currentUserId
+        userMode
+        lastSyncAt
+        legacyMigrationDone*/
+
     private val prefs =
         context.getSharedPreferences(
             "session_prefs",
@@ -92,11 +99,10 @@ class SessionManager(
     }
 
     fun getCurrentUserId(): String {
-
         return prefs.getString(
             KEY_CURRENT_USER_ID,
-            "LOCAL_USER_A"
-        ) ?: "LOCAL_USER_A"
+            LOCAL_USER_A
+        ) ?: LOCAL_USER_A
     }
 
     fun setCurrentUserId(
@@ -145,6 +151,30 @@ class SessionManager(
             .apply()
     }
 
+    fun getDisplayName(): String? {
+        return prefs.getString(
+            KEY_DISPLAY_NAME,
+            null
+        )
+    }
+
+    fun setDisplayName(
+        name: String
+    ) {
+        prefs.edit()
+            .putString(
+                KEY_DISPLAY_NAME,
+                name
+            )
+            .apply()
+    }
+
+    fun clearDisplayName() {
+        prefs.edit()
+            .remove(KEY_DISPLAY_NAME)
+            .apply()
+    }
+
 
     companion object {
         private const val KEY_USER_MODE = "user_mode"
@@ -159,7 +189,7 @@ class SessionManager(
 
         private const val KEY_LAST_SYNC_AT =   "last_sync_at"
         private const val KEY_LEGACY_MEDIA_KEY_MIGRATED =  "legacy_media_key_migrated"
-
+        private const val KEY_DISPLAY_NAME = "display_name"
         }
 
 }

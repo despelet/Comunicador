@@ -8,7 +8,7 @@
     android:layout_margin="4dp"
     app:cardCornerRadius="12dp"
     app:strokeWidth="1dp"
-    app:strokeColor="@color/color1"
+    app:strokeColor="@color/color9"
     app:cardElevation="2dp">
 
     <LinearLayout
@@ -32,7 +32,7 @@
             android:layout_marginTop="4dp"
             android:gravity="center"
             android:maxLines="2"
-            android:textColor="@color/color1"
+            android:textColor="@color/color9"
             android:background="@color/color5"
             android:textStyle="bold"
             android:textAllCaps="true"

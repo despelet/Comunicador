@@ -27,13 +27,12 @@ import android.os.Looper
 import android.provider.MediaStore
 import android.text.InputType
 import android.util.Log
-import android.view.Menu
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageView
-import androidx.core.content.ContentProviderCompat.requireContext
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
@@ -55,7 +54,7 @@ import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.R
 import com.comunic.Sugeridos
-import com.comunic.auth.AccountMigrationRepository
+import com.comunic.auth.AuthSessionManager
 import com.comunic.data.entity.MediaEntity
 import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.ZipImportListener
@@ -64,7 +63,7 @@ import com.comunic.session.PermissionManager
 import com.comunic.session.RoleAwareFragment
 import com.comunic.session.SessionManager
 import kotlinx.coroutines.withContext
-import com.comunic.session.UserMode
+import com.google.android.material.textfield.TextInputEditText
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -115,8 +114,11 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // SESSIONS
         sessionManager = SessionManager(this)
         permissionManager = PermissionManager(sessionManager)
-
+        AuthSessionManager(this).restoreFirebaseSessionIfExists()
+        sessionManager.deactivateTutorMode()
         runStartupMigrations()
+        actualizarBloqueCuentaMenu()
+        actualizarSaludoCuenta()
 
 
         val menuButton: ImageButton = findViewById(R.id.menu)
@@ -177,7 +179,24 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             )
         }*/
 
+        drawerLayout.post {
+            val current =
+                supportFragmentManager.findFragmentById(
+                    R.id.fragment_container
+                )
 
+            if (current != null) {
+                actualizarMenuLateralParaFragment(current)
+
+                if (current is RoleAwareFragment) {
+                    current.onUserModeChanged()
+                }
+            }
+
+            navigationView.menu.close()
+            navigationView.invalidate()
+            navigationView.requestLayout()
+        }
     }
 
     private fun openFragment(fragment: Fragment) {
@@ -286,13 +305,13 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 return true
             }
 
-            R.id.nav_usuario_a -> {
-                cambiarUsuarioDebug(SessionManager.LOCAL_USER_A)
-            }
-
-            R.id.nav_usuario_b -> {
-                cambiarUsuarioDebug(SessionManager.LOCAL_USER_B)
-            }
+//            R.id.nav_usuario_a -> {
+//                cambiarUsuarioDebug(SessionManager.LOCAL_USER_A)
+//            }
+//
+//            R.id.nav_usuario_b -> {
+//                cambiarUsuarioDebug(SessionManager.LOCAL_USER_B)
+//            }
 
             R.id.exportar_archivos -> {
                 // Acción para exportar archivos
@@ -324,7 +343,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 }
 
             }
-
+            R.id.nav_cuenta_accion -> {
+                mostrarDialogoCuenta()
+            }
         }
 
         menuItem.isChecked = false // desmarcar el ítem seleccionado
@@ -360,11 +381,11 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         menu.findItem(R.id.nav_eliminar)?.isVisible =canDelete
         menu.findItem(R.id.nav_papelera)?.isVisible =canTrash
 
-        menu.findItem(R.id.nav_usuario_a)?.isChecked =
-            sessionManager.getCurrentUserId() == SessionManager.LOCAL_USER_A
-
-        menu.findItem(R.id.nav_usuario_b)?.isChecked =
-            sessionManager.getCurrentUserId() == SessionManager.LOCAL_USER_B
+//        menu.findItem(R.id.nav_usuario_a)?.isChecked =
+//            sessionManager.getCurrentUserId() == SessionManager.LOCAL_USER_A
+//
+//        menu.findItem(R.id.nav_usuario_b)?.isChecked =
+//            sessionManager.getCurrentUserId() == SessionManager.LOCAL_USER_B
 
         // =========================
         // IMPORT / EXPORT
@@ -1084,6 +1105,205 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     "Migración MED:nombre -> MED:uuid ya realizada"
                 )
             }
+        }
+    }
+
+    private fun mostrarDialogoCuenta() {
+        val emailActual = AuthSessionManager(this).getCurrentEmail()
+        if (emailActual == null) {
+            mostrarDialogoLogin()
+        } else {
+            AuthSessionManager(this)
+                .logout()
+            Toast.makeText(
+                this,
+                "Sesión cerrada",
+                Toast.LENGTH_SHORT
+            ).show()
+            recreate()
+        }
+    }
+
+
+
+
+    private fun mostrarDialogoCuentaActiva(
+        email: String
+    ) {
+
+        AlertDialog.Builder(
+            this,
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setTitle("Cuenta")
+            .setMessage("Sesión iniciada como:\n$email")
+            .setPositiveButton("Cerrar sesión") { _, _ ->
+
+                AuthSessionManager(this)
+                    .logout()
+
+                Toast.makeText(
+                    this,
+                    "Sesión cerrada",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                recreate()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun mostrarDialogoLogin() {
+
+        val dialogView =
+            layoutInflater.inflate(
+                R.layout.login_dialog_login,
+                null
+            )
+
+        val editEmail =  dialogView.findViewById<TextInputEditText>(R.id.editEmail)
+        val editPassword = dialogView.findViewById<TextInputEditText>(R.id.editPassword)
+        val btnLogin = dialogView.findViewById<MaterialButton>(R.id.btnLogin)
+        val btnIrARegistro =  dialogView.findViewById<MaterialButton>(R.id.btnIrARegistro)
+        val btnRecuperar =  dialogView.findViewById<TextView>(R.id.btnRecuperar)
+        val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+
+        val dialog = AlertDialog.Builder(this, R.style.ThemeOverlay_Comunic_AlertDialog).setView(dialogView).create()
+
+        btnLogin.setOnClickListener {
+            val email = editEmail.text?.toString()?.trim().orEmpty()
+            val password =editPassword.text?.toString().orEmpty()
+
+            if (email.isBlank() || password.isBlank()) {
+                Toast.makeText(this, "Ingresá email y contraseña", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+                try {
+                    AuthSessionManager(this@MainActivity).loginAndAdoptLocalData(email, password)
+                    Toast.makeText(this@MainActivity, "Sesión iniciada", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                    recreate()
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Error al iniciar sesión: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        btnRecuperar.setOnClickListener {
+
+            val email = editEmail.text?.toString()?.trim().orEmpty()
+            if (email.isBlank()) {
+                Toast.makeText(this, "Ingresá tu email para recuperar la contraseña", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+                try {
+                    AuthSessionManager(this@MainActivity).sendPasswordReset(email)
+                    Toast.makeText(this@MainActivity, "Te enviamos un email para recuperar la contraseña", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        btnIrARegistro.setOnClickListener {
+            dialog.dismiss()
+            mostrarDialogoRegistro()
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun mostrarDialogoRegistro() {
+
+        val dialogView = layoutInflater.inflate(R.layout.login_dialog_signup, null)
+        val editNombre = dialogView.findViewById<TextInputEditText>(R.id.editNombre)
+        val editEmail = dialogView.findViewById<TextInputEditText>(R.id.editEmail)
+        val editPassword = dialogView.findViewById<TextInputEditText>(R.id.editPassword)
+        val btnRegistro =dialogView.findViewById<MaterialButton>(R.id.btnRegistro)
+        val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+        val dialog = AlertDialog.Builder(this, R.style.ThemeOverlay_Comunic_AlertDialog).setView(dialogView).create()
+
+        btnRegistro.setOnClickListener {
+            val nombre = editNombre.text?.toString()?.trim().orEmpty()
+            val email = editEmail.text?.toString()?.trim().orEmpty()
+            val password = editPassword.text?.toString().orEmpty()
+
+            if (nombre.isBlank() || email.isBlank() || password.isBlank()) {
+                Toast.makeText(this, "Ingresá nombre, email y contraseña", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+                try {
+                    AuthSessionManager(this@MainActivity).registerAndAdoptLocalData(email, password, nombre)
+                    Toast.makeText(this@MainActivity, "Cuenta creada. Tu contenido quedó asociado a esta cuenta.", Toast.LENGTH_LONG).show()
+                    dialog.dismiss()
+                    recreate()
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Error al crear cuenta: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun actualizarSaludoCuenta() {
+
+        val saludo = findViewById<TextView>(R.id.txtSaludoCuenta)
+        val nombreLocal = sessionManager.getDisplayName()
+
+        val nombreFirebase = AuthSessionManager(this).getCurrentDisplayName()
+
+        if (!nombreFirebase.isNullOrBlank()) {
+            sessionManager.setDisplayName(nombreFirebase)
+        }
+
+        val nombreFinal =
+            if (!nombreLocal.isNullOrBlank()) {
+                nombreLocal
+            } else {
+                nombreFirebase
+            }
+
+        saludo.text =
+            if (!nombreFinal.isNullOrBlank()) {
+                "¡Hola, $nombreFinal!"
+            } else {
+                "¡Hola!"
+            }
+    }
+
+    private fun actualizarBloqueCuentaMenu() {
+
+        val menu = navigationView.menu
+        val authSessionManager = AuthSessionManager(this)
+        val email = authSessionManager.getCurrentEmail()
+        val nombre = sessionManager.getDisplayName()
+
+        if (!email.isNullOrBlank()) {
+
+            menu.findItem(R.id.nav_cuenta_info)?.title =  if (!nombre.isNullOrBlank()) nombre else "Cuenta activa"
+            menu.findItem(R.id.nav_cuenta_email)?.title =  email
+            menu.findItem(R.id.nav_cuenta_email)?.isVisible =true
+            menu.findItem(R.id.nav_cuenta_accion)?.title =  "Cerrar sesión"
+        } else {
+            menu.findItem(R.id.nav_cuenta_info)?.title =  "Sin iniciar sesión"
+            menu.findItem(R.id.nav_cuenta_email)?.isVisible = false
+            menu.findItem(R.id.nav_cuenta_accion)?.title = "Iniciar sesión / Crear cuenta"
         }
     }
 

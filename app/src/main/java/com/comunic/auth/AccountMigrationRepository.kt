@@ -12,6 +12,22 @@ class AccountMigrationRepository(
     private val db: AppDatabase = AppDatabase.getDatabase(context)
 ) {
 
+    /*
+    *
+    * Cambiar la propiedad de datos, migra de local a usuario de firebase
+    * Ejemplo:
+    *      media_items
+            ownerUserId = local_user
+
+            categories
+            ownerUserId = local_user
+
+            category_items
+            ownerUserId = local_user
+    *
+    *
+    * */
+
     private val sessionManager =
         SessionManager(context)
 

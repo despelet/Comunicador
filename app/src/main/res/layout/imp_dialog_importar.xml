@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
         android:text="IMPORTAR LISTA"
-        app:backgroundTint="@color/color1"
+        app:backgroundTint="@color/color9"
         android:textColor="@color/color5" />
 
     <com.google.android.material.button.MaterialButton
@@ -33,9 +33,9 @@
         android:layout_marginTop="10dp"
         android:text="IMPORTAR ELEMENTOS"
         app:strokeWidth="1dp"
-        app:strokeColor="@color/color1"
-        app:backgroundTint="@color/color1"
-        android:textColor="@color/color5" />
+        app:strokeColor="@color/color9"
+        app:backgroundTint="@color/color5"
+        android:textColor="@color/color9" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCancelar"
@@ -43,9 +43,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:text="CANCELAR"
-        app:strokeWidth="1dp"
-        app:strokeColor="@color/color1"
         app:backgroundTint="@color/color5"
-        android:textColor="@color/color1" />
+        android:textColor="@color/color9" />
 
 </LinearLayout>

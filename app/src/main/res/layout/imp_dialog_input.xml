@@ -40,7 +40,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="ACEPTAR"
-        app:backgroundTint="@color/color1"
+        app:backgroundTint="@color/color9"
         android:textColor="@color/color5"/>
 
     <com.google.android.material.button.MaterialButton
@@ -50,8 +50,8 @@
         android:layout_marginTop="8dp"
         android:text="CANCELAR"
         app:strokeWidth="1dp"
-        app:strokeColor="@color/color1"
+        app:strokeColor="@color/color9"
         app:backgroundTint="@color/color5"
-        android:textColor="@color/color1"/>
+        android:textColor="@color/color9"/>
 
 </LinearLayout>

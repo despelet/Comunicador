@@ -8,7 +8,7 @@
     android:layout_margin="6dp"
     app:cardCornerRadius="14dp"
     app:strokeWidth="2dp"
-    app:strokeColor="@color/color1"
+    app:strokeColor="@color/color11"
     android:background="@color/color5">
 
     <LinearLayout
@@ -42,7 +42,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:buttonTint="@color/color1"/>
+            android:buttonTint="@color/color9"/>
 
     </LinearLayout>
 

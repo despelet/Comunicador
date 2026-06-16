@@ -49,7 +49,7 @@
         android:text="Continuar"
         android:textAllCaps="true"
         android:textColor="@color/color5"
-        app:backgroundTint="@color/color1"
+        app:backgroundTint="@color/color9"
         app:cornerRadius="12dp"/>
 
     <com.google.android.material.button.MaterialButton
@@ -59,10 +59,10 @@
         android:layout_marginTop="8dp"
         android:text="Cancelar"
         android:textAllCaps="true"
-        android:textColor="@color/color1"
+        android:textColor="@color/color9"
         app:backgroundTint="@color/color5"
         app:cornerRadius="12dp"
-        app:strokeColor="@color/color1"
+        app:strokeColor="@color/color9"
         app:strokeWidth="1dp"/>
 
 </LinearLayout>

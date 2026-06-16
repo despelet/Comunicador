@@ -9,7 +9,7 @@
     android:backgroundTint="@color/color5"
     app:cardCornerRadius="14dp"
     app:cardElevation="2dp"
-    app:strokeColor="@color/color1"
+    app:strokeColor="@color/color9"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -29,7 +29,7 @@
                 android:id="@+id/checkSeleccion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:buttonTint="@color/color1"/>
+                app:buttonTint="@color/color9"/>
 
             <!-- TEXTO -->
             <LinearLayout
@@ -44,7 +44,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Nombre lista"
-                    android:textColor="@color/color1"
+                    android:textColor="@color/color9"
                     android:textSize="16sp"
                     android:textStyle="bold"/>
 
@@ -54,7 +54,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:text="0 elementos"
-                    android:textColor="@color/color1"
+                    android:textColor="@color/color10"
                     android:textSize="13sp"/>
             </LinearLayout>
 

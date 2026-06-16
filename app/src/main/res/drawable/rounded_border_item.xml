@@ -6,4 +6,7 @@
 
     <!-- Bordes redondeados -->
     <corners android:radius="5dp" /> <!-- Radio de las esquinas redondeadas -->
+
+    <corners android:color="@color/color10" /> <!-- color de las esquinas redondeadas -->
+
 </shape>

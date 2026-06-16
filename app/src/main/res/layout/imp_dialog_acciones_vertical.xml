@@ -25,9 +25,9 @@
         android:layout_marginTop="20dp"
         android:text="ACCIÓN 1"
         app:strokeWidth="1dp"
-        app:strokeColor="@color/color1"
+        app:strokeColor="@color/color9"
         app:backgroundTint="@color/color5"
-        android:textColor="@color/color1" />
+        android:textColor="@color/color9" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAccion2"
@@ -36,9 +36,9 @@
         android:layout_marginTop="10dp"
         android:text="ACCIÓN 2"
         app:strokeWidth="1dp"
-        app:strokeColor="@color/color1"
+        app:strokeColor="@color/color9"
         app:backgroundTint="@color/color5"
-        android:textColor="@color/color1" />
+        android:textColor="@color/color9" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAccion3"
@@ -47,9 +47,9 @@
         android:layout_marginTop="10dp"
         android:text="ACCIÓN 3"
         app:strokeWidth="1dp"
-        app:strokeColor="@color/color1"
+        app:strokeColor="@color/color9"
         app:backgroundTint="@color/color5"
-        android:textColor="@color/color1" />
+        android:textColor="@color/color9" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAccion4"
@@ -58,9 +58,9 @@
         android:layout_marginTop="10dp"
         android:text="ACCIÓN 4"
         app:strokeWidth="1dp"
-        app:strokeColor="@color/color1"
+        app:strokeColor="@color/color9"
         app:backgroundTint="@color/color5"
-        android:textColor="@color/color1" />
+        android:textColor="@color/color9" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCancelar"
@@ -68,7 +68,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
         android:text="CANCELAR"
-        app:backgroundTint="@color/color1"
-        android:textColor="@color/color5" />
+        app:backgroundTint="@color/color5"
+        android:textColor="@color/color9" />
 
 </LinearLayout>

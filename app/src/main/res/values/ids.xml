@@ -17,4 +17,7 @@
     <item name="btnDeseleccionarTodos" type="id"/>
     <item name="btnExportar" type="id"/>
     <item name="editText" type="id"/>
+    <item name="btnIrARegistro" type="id"/>
+    <item name="btnLogin" type="id"/>
+    <item name="btnRecuperar" type="id"/>
 </resources>

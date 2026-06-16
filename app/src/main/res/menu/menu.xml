@@ -40,15 +40,15 @@
                     android:id="@+id/nav_modo_paciente"
                     android:title="Paciente"
                     android:icon="@drawable/ic_person" />
-                <item
-                    android:id="@+id/nav_usuario_a"
-                    android:title="Usuario A"
-                    android:icon="@drawable/ic_person" />
+<!--                <item-->
+<!--                    android:id="@+id/nav_usuario_a"-->
+<!--                    android:title="Usuario A"-->
+<!--                    android:icon="@drawable/ic_person" />-->
 
-                <item
-                    android:id="@+id/nav_usuario_b"
-                    android:title="Usuario B"
-                    android:icon="@drawable/ic_person" />
+<!--                <item-->
+<!--                    android:id="@+id/nav_usuario_b"-->
+<!--                    android:title="Usuario B"-->
+<!--                    android:icon="@drawable/ic_person" />-->
 
                 <item
                     android:id="@+id/nav_administrar_perfiles"
@@ -79,6 +79,28 @@
                     android:icon="@android:drawable/ic_menu_upload"
                     app:showAsAction="ifRoom" />
             </group>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/group_cuenta"
+        android:title="Cuenta">
+        <menu>
+            <item
+                android:id="@+id/nav_cuenta_info"
+                android:title="Sin iniciar sesión"
+                android:enabled="false" />
+
+            <item
+                android:id="@+id/nav_cuenta_email"
+                android:title=""
+                android:enabled="false"
+                android:visible="false" />
+
+            <item
+                android:id="@+id/nav_cuenta_accion"
+                android:title="Iniciar sesión / Crear cuenta"
+                android:icon="@drawable/ic_person" />
         </menu>
     </item>
 

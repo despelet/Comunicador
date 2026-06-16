@@ -23,9 +23,9 @@
             android:layout_height="48dp"
             android:text="Seleccionar todas"
             android:textAllCaps="true"
-            android:textColor="@color/color1"
+            android:textColor="@color/color9"
             app:cornerRadius="12dp"
-            app:strokeColor="@color/color1"/>
+            app:strokeColor="@color/color9"/>
 
         <Space
             android:layout_width="6dp"
@@ -38,9 +38,9 @@
             android:layout_height="48dp"
             android:text="Quitar selección"
             android:textAllCaps="true"
-            android:textColor="@color/color1"
+            android:textColor="@color/color9"
             app:cornerRadius="12dp"
-            app:strokeColor="@color/color1"/>
+            app:strokeColor="@color/color9"/>
     </LinearLayout>
 
     <!-- LISTA -->
@@ -60,7 +60,7 @@
         android:text="Exportar listas"
         android:textAllCaps="true"
         android:textColor="@color/color5"
-        app:backgroundTint="@color/color1"
+        app:backgroundTint="@color/color9"
         app:cornerRadius="12dp"/>
 
     <!-- CANCELAR -->
@@ -71,10 +71,10 @@
         android:layout_marginTop="8dp"
         android:text="Cancelar"
         android:textAllCaps="true"
-        android:textColor="@color/color1"
+        android:textColor="@color/color9"
         app:backgroundTint="@color/color5"
         app:cornerRadius="12dp"
-        app:strokeColor="@color/color1"
+        app:strokeColor="@color/color9"
         app:strokeWidth="1dp"/>
 
 </LinearLayout>

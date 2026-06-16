@@ -3,6 +3,6 @@
     <solid android:color="@color/color5"/> <!-- Fondo transparente -->
     <stroke
         android:width="2dp"
-        android:color="@color/color7"/> <!-- Color del borde -->
+        android:color="@color/color11"/> <!-- Color del borde -->
     <corners android:radius="8dp"/> <!-- Bordes redondeados -->
 </shape>

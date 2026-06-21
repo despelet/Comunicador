@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.MediaEntity
 
 @Dao
@@ -97,5 +98,15 @@ interface MediaDao {
         newUserId: String,
         updatedAt: Long
     ) // Cuando un usuario se registra, adoptamos los medios que haya creado antes de registrarse (que estaban asociados a su userId temporal) y los asociamos a su nuevo userId permanente. Esto permite que el usuario no pierda acceso a los medios que creó antes de registrarse, y que esos medios ahora estén correctamente asociados a su cuenta de usuario.
+
+    ////////////// funciones para sync
+    @Query("""
+        SELECT *
+        FROM media_items
+        WHERE ownerUserId = :userId
+                AND isDeleted = 0
+        """) suspend fun  getAllMediaForSync(
+        userId: String
+    ):List<MediaEntity>
 
 }

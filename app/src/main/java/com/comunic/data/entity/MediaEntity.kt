@@ -25,5 +25,11 @@ data class MediaEntity(
         val isDeleted: Boolean = false,
 
         @ColumnInfo(defaultValue = "'local_user'")
-        val ownerUserId: String = "local_user"
+        val ownerUserId: String = "local_user",
+
+        @ColumnInfo(
+                name = "storagePath",
+                defaultValue = "''"
+        )
+        val storagePath: String = ""
 )

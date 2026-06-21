@@ -61,7 +61,7 @@ ORDER BY orderIndex ASC
     @Query("SELECT COALESCE(MAX(orderIndex), -1) FROM categories")
     suspend fun getMaxCategoryOrderIndex(): Int
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategoryItem(item: CategoryItemEntity)
 
     @Query("""
@@ -344,5 +344,25 @@ ORDER BY orderIndex ASC
         newItemKey: String,
         updatedAt: Long
     )
+
+    ////////////// funciones para sync
+    @Query("""
+        SELECT *
+        FROM categories
+        WHERE ownerUserId = :userId
+        AND isDeleted = 0
+        """) suspend fun  getAllCategoriesForSync(
+        userId: String
+        ):List<CategoryEntity>
+
+    @Query("""
+        SELECT *
+        FROM category_items
+        WHERE ownerUserId = :userId
+                AND isDeleted = 0
+
+        """) suspend fun  getAllCategoryItemsForSync(
+        userId: String
+    ):List<CategoryItemEntity>
 
 }

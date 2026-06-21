@@ -81,6 +81,9 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CompletableDeferred
 import org.json.JSONObject
+import androidx.lifecycle.lifecycleScope
+import com.comunic.sync.SyncEvents
+import kotlinx.coroutines.launch
 
 
 class Recientes : Fragment(),
@@ -222,6 +225,12 @@ class Recientes : Fragment(),
             }
         }
 
+        viewLifecycleOwner.lifecycleScope.launch {
+            SyncEvents.dataChanged.collect {
+                Log.d("SYNC", "Recargando Recientes")
+                loadImageData()
+            }
+        }
 
         return binding.root
     }
@@ -371,8 +380,10 @@ class Recientes : Fragment(),
 
     override fun onDestroy() {
         if (::escucharPalabra.isInitialized) {
-            escucharPalabra.stop()
-            escucharPalabra.shutdown()
+            try {
+                escucharPalabra.shutdown()
+            } catch (_: Exception) {
+            }
         }
         super.onDestroy()
     }

@@ -20,7 +20,12 @@ import android.app.AlertDialog
 import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -33,6 +38,7 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.fragment.HomeFragment.Companion.CAPTURE_IMAGE_REQUEST
@@ -49,6 +55,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.bumptech.glide.Glide
 import com.comunic.AddToListHost
 import com.comunic.ItemKey
 import com.comunic.ItemLista
@@ -56,12 +63,16 @@ import com.comunic.R
 import com.comunic.Sugeridos
 import com.comunic.auth.AuthSessionManager
 import com.comunic.data.entity.MediaEntity
+import com.comunic.dialog.SyncProgressDialog
 import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.ZipImportListener
 import com.comunic.migration.LegacyMediaKeyMigrationRepository
 import com.comunic.session.PermissionManager
 import com.comunic.session.RoleAwareFragment
 import com.comunic.session.SessionManager
+import com.comunic.sync.CloudSyncRepository
+import com.comunic.sync.SyncEvents
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.withContext
 import com.google.android.material.textfield.TextInputEditText
 
@@ -86,6 +97,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     private val tutorTimeoutRunnable = Runnable {
         checkTutorTimeout()
     }
+
+    private var lastPreviewUri: Uri? = null
+    private var pendingNombreTexto: String = ""
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -120,6 +134,12 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         actualizarBloqueCuentaMenu()
         actualizarSaludoCuenta()
 
+        lifecycleScope.launch {
+            SyncEvents.dataChanged.collect {
+                refrescarEstadoSesion()
+            }
+        }
+
 
         val menuButton: ImageButton = findViewById(R.id.menu)
         menuButton.setOnClickListener {                     // Abrir el menú lateral al presionar el botón
@@ -145,39 +165,6 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 //        drawerMenu.findItem(R.id.nav_editar)?.isVisible = false
 //        drawerMenu.findItem(R.id.nav_nosotros)?.isVisible = false
 
-/*        lifecycleScope.launch {
-
-            Log.d(
-                "MIGRATION_TEST",
-                "Iniciando adopción"
-            )
-
-            AccountMigrationRepository(this@MainActivity)
-                .adoptLocalDataToUser(
-                    "usuario_prueba_firebase"
-                )
-
-            Log.d(
-                "MIGRATION_TEST",
-                "Adopción finalizada"
-            )
-        }*/
-
-        /*lifecycleScope.launch {
-
-            Log.d(
-                "LEGACY_MEDIA_KEY_MIGRATION",
-                "Iniciando migración legacy MED:nombre -> MED:uuid"
-            )
-
-            LegacyMediaKeyMigrationRepository(this@MainActivity)
-                .migrateLegacyMediaKeys()
-
-            Log.d(
-                "LEGACY_MEDIA_KEY_MIGRATION",
-                "Migración legacy finalizada"
-            )
-        }*/
 
         drawerLayout.post {
             val current =
@@ -346,6 +333,13 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             R.id.nav_cuenta_accion -> {
                 mostrarDialogoCuenta()
             }
+            R.id.nav_sincronizar -> {
+                sincronizarCuenta()
+            }
+            R.id.nav_download -> {
+                sincronizarDownload()
+            }
+
         }
 
         menuItem.isChecked = false // desmarcar el ítem seleccionado
@@ -631,6 +625,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     }
 
     // funcion para manejar los resultados de las actividades de captura, selección e importación
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onActivityResult(
         requestCode: Int,
         resultCode: Int,
@@ -646,15 +641,11 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             requestCode == HomeFragment.REQUEST_CODE_IMPORTAR_ZIP &&
             resultCode == RESULT_OK
         ) {
-
             val zipUri = data?.data
-
             Log.d("ZIP_IMPORT", "ZIP seleccionado: $zipUri")
-
             zipUri?.let {
                 zipImportListener?.importarElementosDesdeZip(it)
             }
-
             return
         }
 
@@ -662,22 +653,16 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // UCROP
         // =========================
         if (requestCode == UCROP_REQUEST_CODE) {
-
             if (resultCode == RESULT_OK) {
-
-                val resultUri = UCrop.getOutput(data!!)
-
-                resultUri?.let {
+                UCrop.getOutput(data!!)?.let {
+                    lastPreviewUri = it
                     ingresarNombreArchivo(it, true)
                 }
-
             } else {
-
-                lastCapturedUri?.let {
+                lastPreviewUri?.let {
                     ingresarNombreArchivo(it, true)
                 }
             }
-
             return
         }
 
@@ -685,70 +670,45 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // GALERIA / CAMARA
         // =========================
         if (resultCode == RESULT_OK) {
-
             val mediaUri = when (requestCode) {
-
                 PICK_MEDIA_REQUEST -> data?.data
-
                 CAPTURE_IMAGE_REQUEST -> lastCapturedUri
-
                 CAPTURE_VIDEO_REQUEST -> lastCapturedUri
-
                 else -> null
             }
-
             mediaUri?.let {
-
                 val mime = contentResolver.getType(it)
-
                 if (mime?.startsWith("image/") == true) {
-
-                    startCrop(it)
-
+                    val uriNormalizada = normalizarImagenParaPreview(it)
+                    ingresarNombreArchivo(uriNormalizada, true)
                 } else if (mime?.startsWith("video/") == true) {
-
                     ingresarNombreArchivo(it, false)
                 }
             }
         }
     }
-//    private fun ingresarNombreArchivo(uri: Uri, esImagen: Boolean) {
-//
-//        val dialogView = layoutInflater.inflate(R.layout.dialog_image_name, null)
-//        val input = dialogView.findViewById<EditText>(R.id.nameEditText)
-//        Log.d("TEST", "Se llamó ingresarNombreArchivo")
-//
-//        AlertDialog.Builder(this)
-//            .setTitle(if (esImagen) "Sonido de la imagen" else "Sonido del video")
-//            .setView(dialogView)
-//            .setPositiveButton("OK") { _, _ ->
-//
-//                val nombre = input.text.toString().trim()
-//                if (nombre.isEmpty()) {
-//                    Toast.makeText(this, "Nombre vacío", Toast.LENGTH_SHORT).show()
-//                    return@setPositiveButton
-//                }
-//
-//                guardarArchivo(uri, nombre, esImagen)
-//            }
-//            .setNegativeButton("Cancelar", null)
-//            .show()
-//    }
 
     // funcion para mostrar un dialog personalizado para ingresar el nombre del archivo, con preview de la imagen/video y validación de campo vacío
     private fun ingresarNombreArchivo(mediaUri: Uri, isImage: Boolean) {
 
         Log.d("DIALOG_FLOW", "Mostrando dialog desde MainActivity")
 
+        lastPreviewUri = mediaUri
+
         val view = layoutInflater.inflate(R.layout.dialog_ingresar_sonido, null)
 
         val imagePreview = view.findViewById<ImageView>(R.id.imagePreview)
         val editNombre = view.findViewById<EditText>(R.id.editNombre)
+        val btnEditar = view.findViewById<FloatingActionButton>(R.id.btnEditar)
         val btnGuardar = view.findViewById<MaterialButton>(R.id.btnGuardar)
         val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
 
-        // Preview
-        Picasso.get().load(mediaUri).into(imagePreview)
+        editNombre.setText(pendingNombreTexto)
+
+        imagePreview.setImageURI(mediaUri)
+
+        btnEditar.visibility =
+            if (isImage) View.VISIBLE else View.GONE
 
         val dialog = AlertDialog.Builder(
             this,
@@ -757,12 +717,24 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             .setView(view)
             .create()
 
+        btnEditar.setOnClickListener {
+            pendingNombreTexto = editNombre.text.toString()
+            lastPreviewUri = mediaUri
+
+            dialog.dismiss()
+            startCrop(mediaUri)
+        }
+
         btnGuardar.setOnClickListener {
             val nombre = editNombre.text.toString().trim()
 
             if (nombre.isNotEmpty()) {
 
                 guardarArchivo(mediaUri, nombre, isImage)
+
+                pendingNombreTexto = ""
+                lastPreviewUri = null
+
                 dialog.dismiss()
 
                 mostrarSnackbar(
@@ -776,6 +748,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
 
         btnCancelar.setOnClickListener {
+            pendingNombreTexto = ""
+            lastPreviewUri = null
             dialog.dismiss()
         }
 
@@ -787,6 +761,78 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         )
 
         dialog.setCancelable(false)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun normalizarImagenParaPreview(uri: Uri): Uri {
+        return try {
+            val orientation = contentResolver.openInputStream(uri)?.use { input ->
+                ExifInterface(input).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+            } ?: ExifInterface.ORIENTATION_NORMAL
+
+            val bitmapOriginal = contentResolver.openInputStream(uri)?.use { input ->
+                BitmapFactory.decodeStream(input)
+            } ?: return uri
+
+            val matrix = Matrix()
+
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.preScale(-1f, 1f)
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.preScale(1f, -1f)
+                ExifInterface.ORIENTATION_TRANSPOSE -> {
+                    matrix.postRotate(90f)
+                    matrix.preScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_TRANSVERSE -> {
+                    matrix.postRotate(270f)
+                    matrix.preScale(-1f, 1f)
+                }
+            }
+
+            val necesitaTransformacion =
+                orientation != ExifInterface.ORIENTATION_NORMAL &&
+                        orientation != ExifInterface.ORIENTATION_UNDEFINED
+
+            val bitmapCorregido =
+                if (necesitaTransformacion) {
+                    Bitmap.createBitmap(
+                        bitmapOriginal,
+                        0,
+                        0,
+                        bitmapOriginal.width,
+                        bitmapOriginal.height,
+                        matrix,
+                        true
+                    )
+                } else {
+                    bitmapOriginal
+                }
+
+            val file = File(
+                cacheDir,
+                "preview_normalizada_${System.currentTimeMillis()}.jpg"
+            )
+
+            FileOutputStream(file).use { output ->
+                bitmapCorregido.compress(
+                    Bitmap.CompressFormat.JPEG,
+                    90,
+                    output
+                )
+            }
+
+            Uri.fromFile(file)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            uri
+        }
     }
     // funcion para mostrar un snackbar con mensaje personalizado y colores distintos para éxito o error, usado después de guardar un archivo o al ocurrir un error
     private fun mostrarSnackbar(mensaje: String, esExito: Boolean) {
@@ -808,56 +854,6 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     }
 
     // funcion para guardar el archivo en almacenamiento interno, registrar su metadata en SharedPreferences y notificar a los fragments interesados, además de agregarlo a la categoría pendiente si corresponde. Se llama desde ingresarNombreArchivo después de que el usuario ingresa el nombre y confirma guardar.
-    /*private fun guardarArchivo(uri: Uri, nombre: String, esImagen: Boolean) {
-
-        val savedUri = guardarEnAlmacenamientoInterno(uri, nombre, esImagen)
-            ?: return
-
-        val item = ItemLista(
-            id = ItemKey.media(nombre),
-            nombre = nombre,
-            uri = savedUri,
-            esImagen = esImagen,
-            timestamp = System.currentTimeMillis()
-        )
-
-        saveMediaData(nombre, savedUri, esImagen)
-
-        //mediaResultListener?.onMediaCreated(item)
-        val currentFragment =
-            supportFragmentManager.findFragmentById(
-                R.id.fragment_container
-            )
-        if (currentFragment is MediaResultListener) {
-            Log.d( "MEDIA_NOTIFY","Notificando a: ${currentFragment.javaClass.simpleName}"
-            )
-            currentFragment.onMediaCreated(item)
-        } else {
-            Log.e("MEDIA_NOTIFY", "Fragment actual no implementa MediaResultListener"
-            )
-        }
-
-        pendingCategoryId?.let { catId ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                val dao = AppDatabase.getDatabase(applicationContext).categoryDao()
-
-                val next = dao.getMaxOrderIndex(catId) + 1
-
-                dao.insertCategoryItem(
-                    CategoryItemEntity(
-                        placementId = UUID.randomUUID().toString(),
-                        categoryId = catId,
-                        itemKey = item.id,
-                        orderIndex = next
-                    )
-                )
-            }
-        }
-        pendingCategoryId = null
-
-        Toast.makeText(this, "Guardado: $nombre", Toast.LENGTH_SHORT).show()
-    }*/
-
     private fun guardarArchivo(uri: Uri, nombre: String, esImagen: Boolean) {
 
         val savedUri = guardarEnAlmacenamientoInterno(uri, nombre, esImagen)
@@ -1120,11 +1116,58 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 "Sesión cerrada",
                 Toast.LENGTH_SHORT
             ).show()
-            recreate()
+            refrescarEstadoSesion()
+            SyncEvents.notifyDataChanged()}
+
+    }
+
+    private fun sincronizarCuenta() {
+
+        val syncDialog = SyncProgressDialog()
+        syncDialog.show(supportFragmentManager, "sync_dialog")
+        syncDialog.showIndeterminate("Preparando sincronización...")
+
+        lifecycleScope.launch {
+            try {
+                val repo = CloudSyncRepository(this@MainActivity)
+                repo.uploadAll(syncDialog)
+                syncDialog.finishSuccess("Sincronización completada")
+            } catch (e: Exception) {
+                syncDialog.finishError(
+                    e.message ?: "Error desconocido"
+                )
+            }
         }
     }
 
+    private fun sincronizarDownload() {
 
+        val syncDialog = SyncProgressDialog()
+
+        syncDialog.show(
+            supportFragmentManager,
+            "sync_dialog"
+        )
+
+        syncDialog.showIndeterminate(
+            "Preparando descarga..."
+        )
+
+        lifecycleScope.launch {
+
+            try {
+
+                val repo = CloudSyncRepository(this@MainActivity)
+                repo.downloadAll(syncDialog)
+                SyncEvents.notifyDataChanged()
+                syncDialog.finishSuccess("Descarga completada")
+            } catch (e: Exception) {
+                syncDialog.finishError(
+                    e.message ?: "Error desconocido"
+                )
+            }
+        }
+    }
 
 
     private fun mostrarDialogoCuentaActiva(
@@ -1148,8 +1191,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     Toast.LENGTH_SHORT
                 ).show()
 
-                recreate()
-            }
+                refrescarEstadoSesion()            }
             .setNegativeButton("Cancelar", null)
             .show()
     }
@@ -1182,10 +1224,19 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
             lifecycleScope.launch {
                 try {
-                    AuthSessionManager(this@MainActivity).loginAndAdoptLocalData(email, password)
+                    //AuthSessionManager(this@MainActivity).loginAndAdoptLocalData(email, password)
+                    AuthSessionManager(this@MainActivity)
+                        .loginAndUseAccount(
+                            email,
+                            password
+                        )
+                    CloudSyncRepository(this@MainActivity)
+                        .downloadAll()
+
                     Toast.makeText(this@MainActivity, "Sesión iniciada", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
-                    recreate()
+                    refrescarEstadoSesion()
+                    SyncEvents.notifyDataChanged()
                 } catch (e: Exception) {
                     Toast.makeText(this@MainActivity, "Error al iniciar sesión: ${e.message}", Toast.LENGTH_LONG).show()
                 }
@@ -1245,6 +1296,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             lifecycleScope.launch {
                 try {
                     AuthSessionManager(this@MainActivity).registerAndAdoptLocalData(email, password, nombre)
+                    CloudSyncRepository(this@MainActivity).uploadAll()
                     Toast.makeText(this@MainActivity, "Cuenta creada. Tu contenido quedó asociado a esta cuenta.", Toast.LENGTH_LONG).show()
                     dialog.dismiss()
                     recreate()
@@ -1292,6 +1344,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         val menu = navigationView.menu
         val authSessionManager = AuthSessionManager(this)
         val email = authSessionManager.getCurrentEmail()
+        Log.d(
+            "SESSION_DEBUG",
+            "email=${authSessionManager.getCurrentEmail()}"
+        )
         val nombre = sessionManager.getDisplayName()
 
         if (!email.isNullOrBlank()) {
@@ -1299,12 +1355,33 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             menu.findItem(R.id.nav_cuenta_info)?.title =  if (!nombre.isNullOrBlank()) nombre else "Cuenta activa"
             menu.findItem(R.id.nav_cuenta_email)?.title =  email
             menu.findItem(R.id.nav_cuenta_email)?.isVisible =true
+            menu.findItem(R.id.nav_sincronizar)?.isVisible = true
+            menu.findItem(R.id.nav_download)?.isVisible = true
             menu.findItem(R.id.nav_cuenta_accion)?.title =  "Cerrar sesión"
         } else {
             menu.findItem(R.id.nav_cuenta_info)?.title =  "Sin iniciar sesión"
             menu.findItem(R.id.nav_cuenta_email)?.isVisible = false
+            menu.findItem(R.id.nav_sincronizar)?.isVisible = false
+            menu.findItem(R.id.nav_download)?.isVisible = false
             menu.findItem(R.id.nav_cuenta_accion)?.title = "Iniciar sesión / Crear cuenta"
         }
+    }
+
+    private fun refrescarEstadoSesion() {
+        actualizarBloqueCuentaMenu()
+        actualizarSaludoCuenta()
+        val current =
+            supportFragmentManager.findFragmentById(
+                R.id.fragment_container
+            )
+        if (current != null) {
+            actualizarMenuLateralParaFragment(current)
+            if (current is RoleAwareFragment) {
+                current.onUserModeChanged()
+            }
+        }
+        navigationView.invalidate()
+        navigationView.requestLayout()
     }
 
 }

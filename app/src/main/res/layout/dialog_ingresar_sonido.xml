@@ -15,16 +15,42 @@
         android:text="Sonido de la imagen"
         android:textColor="@color/color1"
         android:textStyle="bold"
-        android:layout_marginBottom="4dp"
-        android:textSize="20sp"/>
+        android:layout_margin="10dp"
+        android:textSize="20sp"
+        android:textAllCaps="true"/>
 
     <!-- PREVIEW -->
-    <ImageView
-        android:id="@+id/imagePreview"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="180dp"
-        android:scaleType="centerCrop"
-        android:layout_marginBottom="12dp"/>
+        android:layout_marginBottom="12dp">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnEditar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="start|top"
+            android:layout_marginStart="0dp"
+            android:contentDescription="Editar"
+            app:srcCompat="@drawable/edit"
+            app:backgroundTint="@color/color5"
+            app:tint="@color/color1"/>
+
+        <FrameLayout
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:layout_gravity="center">
+
+            <ImageView
+                android:id="@+id/imagePreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="@drawable/rounded_border_item"/>
+
+        </FrameLayout>
+
+    </FrameLayout>
 
 
 
@@ -38,7 +64,9 @@
         android:textColorHint="@color/color1"
         android:backgroundTint="@color/color1"
         android:layout_marginBottom="12dp"
-        android:textSize="16sp"/>
+        android:textSize="16sp"
+        android:textAllCaps="true"
+        android:inputType="textCapCharacters"/>
 
     <!-- BOTONES -->
     <LinearLayout
@@ -47,23 +75,25 @@
         android:orientation="vertical">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCancelar"
-            android:layout_width="match_parent"
-            app:cornerRadius="16dp"
-            android:text="Cancelar"
-            android:textColor="@color/color1"
-            app:backgroundTint="@color/color5"
-            android:layout_height="wrap_content"/>
-
-        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnGuardar"
             android:layout_width="match_parent"
             android:layout_weight="1"
             android:text="Guardar"
             app:cornerRadius="16dp"
             android:textColor="@color/color5"
-            app:backgroundTint="@color/color1"
+            app:backgroundTint="@color/color9"
             android:layout_height="wrap_content"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelar"
+            android:layout_width="match_parent"
+            app:cornerRadius="16dp"
+            android:text="Cancelar"
+            android:textColor="@color/color9"
+            app:backgroundTint="@color/color5"
+            android:layout_height="wrap_content"/>
+
+
     </LinearLayout>
 
 </LinearLayout>

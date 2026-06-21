@@ -36,7 +36,7 @@ import com.comunic.data.entity.UserProfileEntity
         MediaEntity::class,
         UserProfileEntity::class
     ],
-    version = 15
+    version = 16
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -74,7 +74,9 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_11_12,
                         MIGRATION_12_13,
                         MIGRATION_13_14,
-                        MIGRATION_14_15
+                        MIGRATION_14_15,
+                        MIGRATION_15_16
+
                     ).build()
                 INSTANCE = instance
                 instance
@@ -462,6 +464,19 @@ abstract class AppDatabase : RoomDatabase() {
                 ALTER TABLE items_usados_bucket_new
                 RENAME TO items_usados_bucket
             """.trimIndent())
+                }
+            }
+
+        private val MIGRATION_15_16 =
+            object : Migration(15, 16) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+
+                    db.execSQL("""
+                ALTER TABLE media_items
+                ADD COLUMN storagePath TEXT NOT NULL
+                DEFAULT ''
+            """.trimIndent())
+
                 }
             }
     }

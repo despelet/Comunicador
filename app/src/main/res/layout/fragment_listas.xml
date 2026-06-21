@@ -43,7 +43,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        app:backgroundTint="@color/color1"
+        app:backgroundTint="@color/color9"
         app:tint="@color/color5"
         android:contentDescription="Nueva lista"
         android:src="@android:drawable/ic_input_add" />

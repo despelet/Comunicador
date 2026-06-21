@@ -88,6 +88,27 @@ Orquesta el login
             }
         }
 
+        suspend fun loginAndUseAccount(
+            email: String,
+            password: String
+        ): String {
+            return withContext(Dispatchers.IO) {
+
+                val uid =
+                    authRepository.login(email, password)
+
+                sessionManager.setCurrentUserId(uid)
+
+                sessionManager.setDisplayName(
+                    authRepository.getCurrentDisplayName().orEmpty()
+                )
+
+                sessionManager.deactivateTutorMode()
+
+                uid
+            }
+        }
+
         suspend fun sendPasswordReset(
             email: String
         ) {
@@ -114,15 +135,8 @@ Orquesta el login
 
         fun logout() {
             authRepository.logout()
-
-            sessionManager.setCurrentUserId(
-                SessionManager.LOCAL_USER_A
-            )
-            sessionManager.clearDisplayName()
-
             sessionManager.deactivateTutorMode()
-
-            Log.d(TAG, "Logout realizado")
+            Log.d(TAG, "Cuenta desconectada. Se conserva currentUserId=${sessionManager.getCurrentUserId()}")
         }
 
         companion object {

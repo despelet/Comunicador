@@ -28,6 +28,7 @@ import com.comunic.fragment.CuadroImagen
 import com.comunic.ItemLista
 import com.comunic.R
 import com.comunic.fragment.CategoriaDetalleFragment
+import jp.wasabeef.picasso.transformations.RoundedCornersTransformation
 
 
 open class MediaAdapter(
@@ -87,29 +88,31 @@ open class MediaAdapter(
         holder.nameTextView.text = mediaItem.nombre
 
         // Cambiar visibilidad de los botones según el modo edición
-        holder.activarModoEdicion.text =
-            if (edicion) "Deshabilitar Edición" else "Habilitar Edición"
-        holder.botonEliminar.visibility = if (edicion) View.VISIBLE else View.GONE
-        if (edicion) {
-            holder.activarModoEdicion.setCompoundDrawablesWithIntrinsicBounds(
-                0,
-                0,
-                android.R.drawable.ic_menu_close_clear_cancel,
-                0
-            )  // Nuevo ícono (cancelar)
-        } else {
-            holder.activarModoEdicion.setCompoundDrawablesWithIntrinsicBounds(
-                0,
-                0,
-                android.R.drawable.ic_menu_edit,
-                0
-            )  // Ícono original (editar)
-        }
+//        holder.activarModoEdicion.text =
+//            if (edicion) "Deshabilitar Edición" else "Habilitar Edición"
+//        holder.botonEliminar.visibility = if (edicion) View.VISIBLE else View.GONE
+//        if (edicion) {
+//            holder.activarModoEdicion.setCompoundDrawablesWithIntrinsicBounds(
+//                0,
+//                0,
+//                android.R.drawable.ic_menu_close_clear_cancel,
+//                0
+//            )  // Nuevo ícono (cancelar)
+//        } else {
+//            holder.activarModoEdicion.setCompoundDrawablesWithIntrinsicBounds(
+//                0,
+//                0,
+//                android.R.drawable.ic_menu_edit,
+//                0
+//            )  // Ícono original (editar)
+//        }
         // SEGUN IMAGEN/VIDEO, ABRIR EL CUADRO IMAGEN
         if (mediaItem.esImagen) {
             holder.imageView.visibility = View.VISIBLE
             holder.videoThumbnail.visibility = View.GONE
-            Picasso.get().load(mediaItem.uri)
+            Picasso.get().load(mediaItem.uri).fit()
+                .centerCrop().transform(
+                    RoundedCornersTransformation(16, 0))
                 .into(holder.imageView, object : com.squareup.picasso.Callback {
                     override fun onSuccess() {}
                     override fun onError(e: Exception?) {
@@ -268,16 +271,16 @@ open class MediaAdapter(
         }
 
         // cuando apreto boton de editar, me pide contraseña
-        holder.activarModoEdicion.setOnClickListener {
-            if (edicion) {
-                modoEdicion(false, holder) // Si estamos en edición, salimos de edición
-            } else {
-                ingresarContrasena(
-                    holder.itemView.context,
-                    holder
-                ) // Si no estamos en edición, pedimos la contraseña
-            }
-        }
+//        holder.activarModoEdicion.setOnClickListener {
+//            if (edicion) {
+//                modoEdicion(false, holder) // Si estamos en edición, salimos de edición
+//            } else {
+//                ingresarContrasena(
+//                    holder.itemView.context,
+//                    holder
+//                ) // Si no estamos en edición, pedimos la contraseña
+//            }
+//        }
 
         // Colorear si está seleccionado en modo eliminación
 //        if (modoEliminacion && seleccionados.contains(mediaItem.id)) {
@@ -286,34 +289,34 @@ open class MediaAdapter(
 //            holder.itemView.setBackgroundColor(Color.TRANSPARENT)
 //        }
 
-        holder.botonEliminar.setOnClickListener {
-            if (modoEliminacion) {
-                val seleccionados = obtenerSeleccionados()
-                if (seleccionados.isNotEmpty()) {
-                    AlertDialog.Builder(holder.itemView.context)
-                        .setTitle("Confirmar eliminación")
-                        .setMessage("¿Deseas eliminar los elementos seleccionados?")
-                        .setPositiveButton("Eliminar") { dialog, _ ->
-                            eliminarSeleccionListener?.onEliminarSeleccionSolicitada(seleccionados)
-                            limpiarSeleccion()
-                            setModoEliminacion(false)
-                            dialog.dismiss()
-                        }
-                        .setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
-                        .show()
-                }
-            } else {
-                AlertDialog.Builder(holder.itemView.context)
-                    .setTitle("Confirmar eliminación")
-                    .setMessage("¿Deseas eliminar \"${mediaItem.nombre}\"?")
-                    .setPositiveButton("Eliminar") { dialog, _ ->
-                        eliminar(mediaItem.id)
-                        dialog.dismiss()
-                    }
-                    .setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
-                    .show()
-            }
-        }
+//        holder.botonEliminar.setOnClickListener {
+//            if (modoEliminacion) {
+//                val seleccionados = obtenerSeleccionados()
+//                if (seleccionados.isNotEmpty()) {
+//                    AlertDialog.Builder(holder.itemView.context)
+//                        .setTitle("Confirmar eliminación")
+//                        .setMessage("¿Deseas eliminar los elementos seleccionados?")
+//                        .setPositiveButton("Eliminar") { dialog, _ ->
+//                            eliminarSeleccionListener?.onEliminarSeleccionSolicitada(seleccionados)
+//                            limpiarSeleccion()
+//                            setModoEliminacion(false)
+//                            dialog.dismiss()
+//                        }
+//                        .setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
+//                        .show()
+//                }
+//            } else {
+//                AlertDialog.Builder(holder.itemView.context)
+//                    .setTitle("Confirmar eliminación")
+//                    .setMessage("¿Deseas eliminar \"${mediaItem.nombre}\"?")
+//                    .setPositiveButton("Eliminar") { dialog, _ ->
+//                        eliminar(mediaItem.id)
+//                        dialog.dismiss()
+//                    }
+//                    .setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
+//                    .show()
+//            }
+//        }
         val seleccionado = modoEliminacion && seleccionados.contains(mediaItem.id)
         holder.itemView.setBackgroundColor(if (seleccionado) Color.LTGRAY else Color.TRANSPARENT)
     }
@@ -395,19 +398,19 @@ open class MediaAdapter(
     }
 
     // Función para habilitar o deshabilitar el modo edición
-    private fun modoEdicion(enable: Boolean, holder: MediaViewHolder) {
-        edicion = enable
-        // Cambiar el texto del botón de edición
-        holder.activarModoEdicion.text = if (enable) "Deshabilitar Edición" else "Habilitar Edición"
-        // Mostrar u ocultar los botones de eliminación
-        holder.botonEliminar.visibility = if (enable) View.VISIBLE else View.GONE
-        // Cambiar el ícono del botón
-        if (enable) {
-            holder.activarModoEdicion.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.ic_menu_close_clear_cancel, 0)  // Nuevo ícono (cancelar)
-        } else {
-            holder.activarModoEdicion.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.ic_menu_edit, 0)  // Ícono original (editar)
-        }
-    }
+//    private fun modoEdicion(enable: Boolean, holder: MediaViewHolder) {
+//        edicion = enable
+//        // Cambiar el texto del botón de edición
+//        holder.activarModoEdicion.text = if (enable) "Deshabilitar Edición" else "Habilitar Edición"
+//        // Mostrar u ocultar los botones de eliminación
+//        holder.botonEliminar.visibility = if (enable) View.VISIBLE else View.GONE
+//        // Cambiar el ícono del botón
+//        if (enable) {
+//            holder.activarModoEdicion.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.ic_menu_close_clear_cancel, 0)  // Nuevo ícono (cancelar)
+//        } else {
+//            holder.activarModoEdicion.setCompoundDrawablesWithIntrinsicBounds(0, 0, android.R.drawable.ic_menu_edit, 0)  // Ícono original (editar)
+//        }
+//    }
 
 //    esta funcion pide contraseña, si es correcta habilita el modo edicion y el boton borrar se vuelve visible
     fun ingresarContrasena(context: Context, holder: MediaViewHolder) {
@@ -421,7 +424,7 @@ open class MediaAdapter(
         builder.setPositiveButton("Aceptar") { dialog, _ ->
             val enteredPassword = input.text.toString()
             if (enteredPassword == "1234") {
-                modoEdicion(true, holder)  // Habilita el modo edición si la contraseña es correcta
+               // modoEdicion(true, holder)  // Habilita el modo edición si la contraseña es correcta
             } else {
                 Toast.makeText(context, "Contraseña incorrecta", Toast.LENGTH_SHORT).show()
             }
@@ -449,11 +452,11 @@ open class MediaAdapter(
 
 
     class MediaViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val activarModoEdicion: Button = view.findViewById(R.id.activarModoEdicion)
+        //val activarModoEdicion: Button = view.findViewById(R.id.activarModoEdicion)
         val imageView: ImageView = view.findViewById(R.id.mediaImageView)
 //        val videoView: VideoView = view.findViewById(R.id.mediaVideoView)
         val videoThumbnail: ImageView = view.findViewById(R.id.videoThumbnail)
         val nameTextView: TextView = view.findViewById(R.id.nameTextView)
-        val botonEliminar: Button = view.findViewById(R.id.deleteButton)
+        //val botonEliminar: Button = view.findViewById(R.id.deleteButton)
     }
 }

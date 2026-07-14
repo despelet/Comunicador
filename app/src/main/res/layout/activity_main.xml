@@ -39,7 +39,7 @@
                 android:text="¡Hola!"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="@color/color9"
+                android:textColor="@color/color1"
                 android:gravity="center_vertical"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"

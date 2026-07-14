@@ -11,7 +11,7 @@
         android:id="@+id/check"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:buttonTint="@color/color9" />
+        android:buttonTint="@color/color7" />
 
     <TextView
         android:id="@+id/name"

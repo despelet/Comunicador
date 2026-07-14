@@ -15,11 +15,8 @@ suspend fun loadAllAvailableItems(
 
     // 1) media del usuario desde Room
     val mediaItems = db.mediaDao().getActiveMedia()
-
     mediaItems.forEach { media ->
-
         val key = ItemKey.media(media.mediaId)
-
         items.add(
             ItemLista(
                 id = key, // MED:uuid
@@ -33,11 +30,8 @@ suspend fun loadAllAvailableItems(
 
     // 2) pictos habilitados
     val pictos = db.pictogramDao().getEnabledPictosUi()
-
     pictos.forEach { row ->
-
         val key = ItemKey.picto(row.pictogramId)
-
         items.add(
             row.toItemLista(timestamp = 0L)
                 .copy(id = key)

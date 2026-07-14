@@ -19,14 +19,9 @@ class ExportItemsAdapter(
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 
-        val imgItem: ImageView =
-            view.findViewById(R.id.imgItem)
-
-        val txtNombre: TextView =
-            view.findViewById(R.id.txtNombre)
-
-        val checkSeleccion: CheckBox =
-            view.findViewById(R.id.checkSeleccion)
+        val imgItem: ImageView = view.findViewById(R.id.imgItem)
+        val txtNombre: TextView = view.findViewById(R.id.txtNombre)
+        val checkSeleccion: CheckBox = view.findViewById(R.id.checkSeleccion)
     }
 
     override fun onCreateViewHolder(
@@ -34,12 +29,7 @@ class ExportItemsAdapter(
         viewType: Int
     ): ViewHolder {
 
-        val view = LayoutInflater.from(parent.context)
-            .inflate(
-                R.layout.exp_item_export,
-                parent,
-                false
-            )
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.exp_item_export, parent, false)
 
         return ViewHolder(view)
     }

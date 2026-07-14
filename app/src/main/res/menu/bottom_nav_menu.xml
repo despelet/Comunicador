@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/color5">
 
 
@@ -7,25 +8,23 @@
         android:id="@+id/menu_home"
         android:icon="@drawable/ic_home"
             android:title="@string/inicio"
-
+        android:textAllCaps="true"
         />
 
     <item
         android:id="@+id/menu_recientes"
-        android:icon="@android:drawable/ic_menu_recent_history"
-        android:title="@string/recientes"
+        android:icon="@drawable/ic_recientes"
+        android:title="Mis palabras"
+        android:textAllCaps="true"
        />
 
     <item
         android:id="@+id/menu_listas"
-        android:icon="@android:drawable/ic_dialog_dialer"
+        android:icon="@drawable/ic_group"
         android:title="@string/Listas"
+        android:textAllCaps="true"
         />
 
-    <item
-        android:id="@+id/menu_sugeridos"
-        android:icon="@android:drawable/ic_menu_search"
-        android:title="@string/sugeridos"
-        />
+
 
 </menu>

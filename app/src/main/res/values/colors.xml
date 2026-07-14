@@ -19,7 +19,7 @@
     <color name="color4">#dde5b6</color>
 <!--    <color name="color5">#f0ead2</color>-->
     <color name="color6">#59ADC178</color>
-    <color name="color7">#C2BDA9</color>
+    <color name="color7">#8A8A87</color>
 
 <!--    color8: gris seleccion del menu-->
     <color name="color8">#D6D1B8</color>
@@ -29,10 +29,14 @@
         <color name="color1">#000000</color>
         <color name="color5">#FFFFFF</color>
 
-    <color name="color9">#33004C</color>
+    <color name="color9">#722BFB</color>
     <color name="color10">#a56bc2</color>
 
     <color name="color11">#e7e6e8</color>
+    <color name="color12">#9C43f0</color>
+    <color name="color12_10">#1ABA8AFE</color>
+
+    <color name="color_warning">#E6A500</color>
 
     <!--    <color name="color7">#B096BD</color>-->
 </resources>

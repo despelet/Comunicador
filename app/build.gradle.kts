@@ -150,6 +150,8 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
 
+    implementation(libs.picasso.transformations)
+
 }
 
 

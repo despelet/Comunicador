@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
@@ -20,6 +22,7 @@ import android.view.ViewGroup
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
@@ -717,12 +720,8 @@ class Recientes : Fragment(),
         checkedInicial: BooleanArray? = null
     ) {
 
-        val checked = checkedInicial
-            ?: BooleanArray(listaDeArchivos.size)
-        val dialogView = layoutInflater.inflate(
-            R.layout.exp_dialogo_seleccion,
-            null
-        )
+        val checked = checkedInicial ?: BooleanArray(listaDeArchivos.size)
+        val dialogView = layoutInflater.inflate(R.layout.exp_dialogo_seleccion, null)
         // TABS
         val tabs = dialogView.findViewById<TabLayout>(R.id.tabExportacion)
         val layoutElementos = dialogView.findViewById<LinearLayout>(R.id.layoutExportarElementos)
@@ -1929,19 +1928,19 @@ class Recientes : Fragment(),
             val contenidoAgregar = view.findViewById<LinearLayout>(R.id.contenidoAgregar)
             val iconAgregar = view.findViewById<ImageView>(R.id.iconExpand)
 
-            val headerExtra = view.findViewById<LinearLayout>(R.id.headerExtra)
-            val contenidoExtra = view.findViewById<LinearLayout>(R.id.contenidoExtra)
-            val iconExtra = view.findViewById<ImageView>(R.id.iconExtra)
+//            val headerExtra = view.findViewById<LinearLayout>(R.id.headerExtra)
+//            val contenidoExtra = view.findViewById<LinearLayout>(R.id.contenidoExtra)
+//            val iconExtra = view.findViewById<ImageView>(R.id.iconExtra)
 
-            val contenidos = listOf(contenidoAgregar, contenidoExtra)
-            val iconos = listOf(iconAgregar, iconExtra)
+//            val contenidos = listOf(contenidoAgregar, contenidoExtra)
+//            val iconos = listOf(iconAgregar, iconExtra)
 
             // Estado inicial: abrir "Agregar"
             contenidoAgregar.visibility = View.VISIBLE
             iconAgregar.rotation = 180f
 
-            contenidoExtra.visibility = View.GONE
-            iconExtra.rotation = 0f
+//            contenidoExtra.visibility = View.GONE
+//            iconExtra.rotation = 0f
 
             fun toggle(target: LinearLayout, icon: ImageView) {
                 val isOpen = target.visibility == View.VISIBLE
@@ -1956,9 +1955,9 @@ class Recientes : Fragment(),
                 toggle(contenidoAgregar, iconAgregar)
             }
 
-            headerExtra.setOnClickListener {
-                toggle(contenidoExtra, iconExtra)
-            }
+//            headerExtra.setOnClickListener {
+//                toggle(contenidoExtra, iconExtra)
+//            }
 
             recycler.layoutManager = LinearLayoutManager(requireContext())
             recycler.adapter = SimpleListCheckAdapter(
@@ -1966,9 +1965,8 @@ class Recientes : Fragment(),
                 checked
             )
 
-            val dialog = AlertDialog.Builder(requireContext())
-                .setView(view)
-                .create()
+            val dialog = AlertDialog.Builder(requireContext()).setView(view).create()
+            dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
             btnNueva.setOnClickListener {
                 dialog.dismiss()
@@ -1992,23 +1990,45 @@ class Recientes : Fragment(),
     }
 
     private fun mostrarDialogoCrearListaYAgregar(item: ItemLista) {
-        val input = com.google.android.material.textfield.TextInputEditText(requireContext()).apply {
-            hint = "Nombre de la lista"
+
+        val view = layoutInflater.inflate(R.layout.dialog_nueva_lista, null)
+
+        val editNombre = view.findViewById<TextInputEditText>(R.id.editNombreLista)
+        val btnCrear = view.findViewById<MaterialButton>(R.id.btnCrear)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrar)
+
+        val dialog = AlertDialog.Builder(
+            requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setView(view)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        btnCrear.setOnClickListener {
+
+            val nombre = editNombre.text?.toString()?.trim().orEmpty()
+
+            if (nombre.isBlank()) {
+                editNombre.error = "Ingresá un nombre"
+                return@setOnClickListener
+            }
+
+            crearListaYAgregarItem(nombre, item)
+            dialog.dismiss()
         }
 
-        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-            .setTitle("Nueva lista")
-            .setView(input)
-            .setPositiveButton("Crear") { _, _ ->
-                val nombre = input.text?.toString()?.trim().orEmpty()
-                if (nombre.isBlank()) {
-                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                crearListaYAgregarItem(nombre, item)
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun crearListaYAgregarItem(nombre: String, item: ItemLista) {

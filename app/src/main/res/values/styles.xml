@@ -14,5 +14,9 @@
         <item name="android:textSize">18sp</item>
 
     </style>
+    <style name="RoundedImage">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
 
 </resources>

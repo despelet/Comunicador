@@ -1,9 +1,6 @@
-package com.comunic
+package com.comunic.adapters
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,21 +9,10 @@ import android.widget.TextView
 import android.widget.VideoView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.target.Target
-import com.bumptech.glide.request.transition.Transition
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.comunic.R
 
 class CarruselAdapter(
-//    private val uris: List<Uri>,
-//    private val nombres: List<String>,
-//    private val esImagenLista: List<Boolean>,
-//    private val onClick: (Uri, String) -> Unit
-//) : RecyclerView.Adapter<CarruselAdapter.CarruselViewHolder>() {
-
     private val uris: List<Uri>,
     private val labels: List<String>,     // lo que se muestra
     private val ids: List<String>,        // lo que se devuelve al click
@@ -75,6 +61,7 @@ class CarruselAdapter(
             holder.imageView.visibility = View.VISIBLE
             Glide.with(holder.itemView.context)
                 .load(uri)
+                .centerCrop()
                 .into(holder.imageView)
         } else {
             holder.imageView.visibility = View.GONE

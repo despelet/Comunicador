@@ -5,6 +5,8 @@ package com.comunic.fragment
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -12,6 +14,7 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -309,23 +312,39 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
     }
 
     private fun mostrarDialogoNuevaLista() {
-        val input = com.google.android.material.textfield.TextInputEditText(requireContext())
-        input.hint = "Nombre de la lista"
+        val view = layoutInflater.inflate(R.layout.dialog_nueva_lista, null)
+        val editNombre = view.findViewById<TextInputEditText>(R.id.editNombreLista)
+        val btnCrear = view.findViewById<MaterialButton>(R.id.btnCrear)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrar)
 
-        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-            .setTitle("Nueva lista")
-            .setView(input)
-            .setPositiveButton("Crear") { _, _ ->
-                val nombre = input.text?.toString()?.trim().orEmpty()
-                if (nombre.isBlank()) {
-                    Toast.makeText(requireContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                //crearLista(nombre)
-                crearListaYSeleccionar(nombre)
+        val dialog = AlertDialog.Builder(
+            requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setView(view)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        btnCrear.setOnClickListener {
+            val nombre = editNombre.text?.toString()?.trim().orEmpty()
+            if (nombre.isBlank()) {
+                editNombre.error = "Ingresá un nombre"
+                return@setOnClickListener
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+            crearListaYSeleccionar(nombre)
+            dialog.dismiss()
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     /// crear lista vacia
@@ -359,9 +378,7 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
     private fun crearListaYSeleccionar(nombre: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val userId =
-                SessionManager(requireContext())
-                    .getCurrentUserId()
+            val userId = SessionManager(requireContext()).getCurrentUserId()
             val now = System.currentTimeMillis()
             val newId = "user_" + java.util.UUID.randomUUID().toString()
 
@@ -504,15 +521,6 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                 val dao = db.installedPackDao()
                 val existing = dao.get(packId)
                 if (existing == null) {
-//                    dao.upsert(
-//                        InstalledPackEntity(
-//                            packId = packId,
-//                            version = 1,
-//                            installedAt = System.currentTimeMillis(),
-//                            enabled = false,
-//                            isSystem = true
-//                        )
-//                    )
                     dao.insert(
                         InstalledPackEntity(
                             packId = packId,
@@ -853,19 +861,10 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                                 btn2.setOnClickListener {
                                     viewLifecycleOwner.lifecycleScope.launch {
                                         var contador = 1
-                                        var nuevoNombre =
-                                            "$nombreFinal ($contador)"
-                                        while (
-                                            db.categoryDao()
-                                                .getCategoryByName(
-                                                    nuevoNombre,
-                                                    userId
-                                                ) != null
-                                        ) {
-
+                                        var nuevoNombre = "$nombreFinal ($contador)"
+                                        while (db.categoryDao().getCategoryByName(nuevoNombre, userId) != null) {
                                             contador++
-                                            nuevoNombre =
-                                                "$nombreFinal ($contador)"
+                                            nuevoNombre = "$nombreFinal ($contador)"
                                         }
                                         deferred.complete(
                                             Pair(

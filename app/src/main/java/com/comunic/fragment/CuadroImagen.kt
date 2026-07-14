@@ -19,7 +19,7 @@ import androidx.viewpager2.widget.CompositePageTransformer
 import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
 import com.comunic.CarouselPageTransformer
-import com.comunic.CarruselAdapter
+import com.comunic.adapters.CarruselAdapter
 import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.R
@@ -113,23 +113,6 @@ class CuadroImagen : DialogFragment() {
 
         currentPos = posicionInicial
 
-//        binding.btnMore.setOnClickListener { anchor ->
-//            val popup = PopupMenu(requireContext(), anchor)
-//            popup.menuInflater.inflate(R.menu.menu_cuadroimagen, popup.menu)
-//
-//            popup.setOnMenuItemClickListener { menuItem ->
-//                when (menuItem.itemId) {
-//                    R.id.action_add_to_list -> {
-//                        val item = listaCompleta.getOrNull(currentPos) ?: return@setOnMenuItemClickListener true
-//                        (activity as? MainActivity)?.pedirAgregarAListaDesdeCuadro(item)
-//                        true
-//                    }
-//                    else -> false
-//                }
-//            }
-//
-//            popup.show()
-//        }
         binding.btnMore.setOnClickListener {
             val item = listaCompleta.getOrNull(currentPos) ?: return@setOnClickListener
             (activity as? MainActivity)?.pedirAgregarAListaDesdeCuadro(item)

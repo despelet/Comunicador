@@ -21,8 +21,10 @@ import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.graphics.Matrix
+import android.graphics.drawable.ColorDrawable
 import android.media.ExifInterface
 import android.net.Uri
 import android.os.Build
@@ -31,6 +33,10 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.text.InputType
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.UnderlineSpan
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
@@ -154,7 +160,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
 
         // -------- BOTTOM BAR --------
-        bottomNav.menu.findItem(R.id.menu_sugeridos)?.isVisible = false
+        //bottomNav.menu.findItem(R.id.menu_sugeridos)?.isVisible = false
         bottomNav.labelVisibilityMode =
             com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_SELECTED
 
@@ -502,10 +508,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     openFragment(Listas())
                     true
                 }
-                R.id.menu_sugeridos -> {
-                    openFragment(Sugeridos())
-                    true
-                }
+//                R.id.menu_sugeridos -> {
+//                    openFragment(Sugeridos())
+//                    true
+//                }
                 else -> false
             }
         }
@@ -519,9 +525,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         navigateTo(R.id.menu_listas, Listas())
     }
 
-    fun irASugeridosDesdeHome() {
-        navigateTo(R.id.menu_sugeridos, Sugeridos())
-    }
+//    fun irASugeridosDesdeHome() {
+//        navigateTo(R.id.menu_sugeridos, Sugeridos())
+//    }
 
     fun irAHomeDesdeHome() {
         navigateTo(R.id.menu_home, HomeFragment())
@@ -702,6 +708,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         val btnEditar = view.findViewById<FloatingActionButton>(R.id.btnEditar)
         val btnGuardar = view.findViewById<MaterialButton>(R.id.btnGuardar)
         val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrar)
 
         editNombre.setText(pendingNombreTexto)
 
@@ -710,12 +717,14 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         btnEditar.visibility =
             if (isImage) View.VISIBLE else View.GONE
 
-        val dialog = AlertDialog.Builder(
-            this,
-            R.style.ThemeOverlay_Comunic_AlertDialog
-        )
-            .setView(view)
-            .create()
+        val dialog = AlertDialog.Builder(this, R.style.ThemeOverlay_Comunic_AlertDialog).setView(view).create()
+
+        dialog.show()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        val width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+        dialog.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
+
+
 
         btnEditar.setOnClickListener {
             pendingNombreTexto = editNombre.text.toString()
@@ -739,7 +748,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
                 mostrarSnackbar(
                     if (isImage) "Tu imagen se guardó con éxito" else "Tu video se guardó con éxito",
-                    true
+                    TipoSnackbar.EXITO
                 )
 
             } else {
@@ -748,6 +757,12 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
 
         btnCancelar.setOnClickListener {
+            pendingNombreTexto = ""
+            lastPreviewUri = null
+            dialog.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
             pendingNombreTexto = ""
             lastPreviewUri = null
             dialog.dismiss()
@@ -835,22 +850,55 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
     }
     // funcion para mostrar un snackbar con mensaje personalizado y colores distintos para éxito o error, usado después de guardar un archivo o al ocurrir un error
-    private fun mostrarSnackbar(mensaje: String, esExito: Boolean) {
-
+    private fun mostrarSnackbar(
+        mensaje: String,
+        tipo: TipoSnackbar
+    ) {
         val rootView = findViewById<View>(android.R.id.content)
 
-        val snackbar = Snackbar
-            .make(rootView, mensaje, Snackbar.LENGTH_SHORT)
+        val snackbar = Snackbar.make(rootView, mensaje, Snackbar.LENGTH_SHORT)
 
-        val color = if (esExito) {
-            ContextCompat.getColor(this, R.color.color_success)
-        } else {
-            ContextCompat.getColor(this, com.google.android.material.R.color.design_default_color_error)
+
+
+        val color = when (tipo) {
+            TipoSnackbar.EXITO ->
+                ContextCompat.getColor(this, R.color.color_success)
+
+            TipoSnackbar.ERROR ->
+                ContextCompat.getColor(
+                    this,
+                    com.google.android.material.R.color.design_default_color_error
+                )
+
+            TipoSnackbar.ADVERTENCIA ->
+                ContextCompat.getColor(this, R.color.color_warning)
         }
 
         snackbar.setBackgroundTint(color)
-        snackbar.setTextColor(ContextCompat.getColor(this, android.R.color.white))
+        snackbar.setTextColor(Color.WHITE)
         snackbar.show()
+
+        val textView = snackbar.view.findViewById<TextView>(
+            com.google.android.material.R.id.snackbar_text
+        )
+
+        when (tipo) {
+            TipoSnackbar.EXITO ->
+                textView.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_check, 0, 0, 0)
+
+            TipoSnackbar.ADVERTENCIA ->
+                textView.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_warning, 0, 0, 0)
+
+            TipoSnackbar.ERROR ->
+                textView.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_error, 0, 0, 0)
+        }
+        textView.compoundDrawablePadding = 16
+    }
+
+    enum class TipoSnackbar {
+        EXITO,
+        ERROR,
+        ADVERTENCIA
     }
 
     // funcion para guardar el archivo en almacenamiento interno, registrar su metadata en SharedPreferences y notificar a los fragments interesados, además de agregarlo a la categoría pendiente si corresponde. Se llama desde ingresarNombreArchivo después de que el usuario ingresa el nombre y confirma guardar.
@@ -910,11 +958,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     )
                 }
 
-                Toast.makeText(
-                    this@MainActivity,
-                    "Guardado: $nombre",
-                    Toast.LENGTH_SHORT
-                ).show()
+
             }
 
             pendingCategoryId?.let { catId ->
@@ -1111,11 +1155,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         } else {
             AuthSessionManager(this)
                 .logout()
-            Toast.makeText(
-                this,
-                "Sesión cerrada",
-                Toast.LENGTH_SHORT
-            ).show()
+            mostrarSnackbar(
+                "Tu sesión se cerró",
+                TipoSnackbar.ADVERTENCIA
+            )
             refrescarEstadoSesion()
             SyncEvents.notifyDataChanged()}
 
@@ -1207,11 +1250,23 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         val editEmail =  dialogView.findViewById<TextInputEditText>(R.id.editEmail)
         val editPassword = dialogView.findViewById<TextInputEditText>(R.id.editPassword)
         val btnLogin = dialogView.findViewById<MaterialButton>(R.id.btnLogin)
-        val btnIrARegistro =  dialogView.findViewById<MaterialButton>(R.id.btnIrARegistro)
+        val btnIrARegistro = dialogView.findViewById<TextView>(R.id.btnIrARegistro)
         val btnRecuperar =  dialogView.findViewById<TextView>(R.id.btnRecuperar)
         val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
 
         val dialog = AlertDialog.Builder(this, R.style.ThemeOverlay_Comunic_AlertDialog).setView(dialogView).create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val texto = SpannableString("¿No tenés cuenta? Crear cuenta")
+
+        val inicio = texto.indexOf("Crear cuenta")
+        val fin = inicio + "Crear cuenta".length
+
+        texto.setSpan(ForegroundColorSpan(ContextCompat.getColor(this, R.color.color12)), inicio, fin, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        texto.setSpan(UnderlineSpan(), inicio, fin, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        btnIrARegistro.text = texto
 
         btnLogin.setOnClickListener {
             val email = editEmail.text?.toString()?.trim().orEmpty()
@@ -1282,6 +1337,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         val btnRegistro =dialogView.findViewById<MaterialButton>(R.id.btnRegistro)
         val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
         val dialog = AlertDialog.Builder(this, R.style.ThemeOverlay_Comunic_AlertDialog).setView(dialogView).create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
         btnRegistro.setOnClickListener {
             val nombre = editNombre.text?.toString()?.trim().orEmpty()

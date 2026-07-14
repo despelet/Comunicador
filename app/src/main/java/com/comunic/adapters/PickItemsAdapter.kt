@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.comunic.ItemLista
 import com.comunic.R
+import com.squareup.picasso.Picasso
 
 class PickItemsAdapter(
     private val items: List<ItemLista>,
@@ -48,7 +49,11 @@ class PickItemsAdapter(
         // 👇 IMAGEN
         when {
             item.esImagen -> {
-                holder.image.setImageURI(item.uri)
+                Picasso.get()
+                    .load(item.uri)
+                    .fit()
+                    .centerCrop()
+                    .into(holder.image)
             }
             else -> {
                 //holder.image.setImageResource(R.drawable.ic_video_placeholder)

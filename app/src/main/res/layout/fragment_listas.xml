@@ -17,7 +17,7 @@
             android:id="@+id/tituloCategorias"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Listas"
+            android:text="Mis grupos"
             android:textSize="22sp"
             android:textAllCaps="true"
             android:textStyle="bold"

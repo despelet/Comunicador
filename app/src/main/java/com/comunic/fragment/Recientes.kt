@@ -144,6 +144,9 @@ class Recientes : Fragment(),
         val recyclerView = binding.recyclerView
         val orderButton = binding.orderButton // Botón para ordenar
 
+        recyclerView.setHasFixedSize(true) // tamaño no cambia aunque cambie el contenido
+        recyclerView.itemAnimator = null //
+
         //recyclerView.layoutManager = LinearLayoutManager(this)  // 1 columna
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 3)  // 4 columnas
 //        mediaAdapter = MediaAdapter(listaDeArchivos, ::eliminar) { id ->
@@ -963,20 +966,6 @@ class Recientes : Fragment(),
         dialog.show()
     }
 
-
-//    private fun mostrarDialogoTipoExportacion(elementosSeleccionados: List<ItemLista>) {
-//        AlertDialog.Builder(requireContext(),
-//            R.style.ThemeOverlay_Comunic_AlertDialog
-//        )
-//            .setTitle("¿Cómo querés exportarlos?")
-//            .setItems(arrayOf("Compartir archivos sueltos", "Exportar como ZIP")) { _, which ->
-//                when (which) {
-//                    0 -> exportarElementos(elementosSeleccionados) // Sueltos
-//                    1 -> exportarElementosComoZip(elementosSeleccionados) // Como ZIP
-//                }
-//            }
-//            .show()
-//    }
      fun mostrarDialogoTipoExportacion(
         elementosSeleccionados: List<ItemLista>
     ) {

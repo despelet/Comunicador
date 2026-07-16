@@ -72,12 +72,14 @@ import com.comunic.data.entity.MediaEntity
 import com.comunic.dialog.SyncProgressDialog
 import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.ZipImportListener
+import com.comunic.migration.ImageOptimizationMigration
 import com.comunic.migration.LegacyMediaKeyMigrationRepository
 import com.comunic.session.PermissionManager
 import com.comunic.session.RoleAwareFragment
 import com.comunic.session.SessionManager
 import com.comunic.sync.CloudSyncRepository
 import com.comunic.sync.SyncEvents
+import com.comunic.utils.ImageCompressor
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.withContext
 import com.google.android.material.textfield.TextInputEditText
@@ -1006,13 +1008,22 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         val file = File(dir, "$nombre.$ext")
 
         return try {
-            contentResolver.openInputStream(mediaUri)?.use { input ->
-                FileOutputStream(file).use { output ->
-                    input.copyTo(output)
+            if (esImagen) {
+                ImageCompressor.saveOptimizedImage(
+                    context = this,
+                    sourceUri = mediaUri,
+                    destination = file
+                )
+            } else {
+                contentResolver.openInputStream(mediaUri)?.use { input ->
+                    FileOutputStream(file).use { output ->
+                        input.copyTo(output)
+                    }
                 }
+                Uri.fromFile(file)
             }
-            Uri.fromFile(file)
-        } catch (e: IOException) {
+
+        } catch (e: Exception) {
             e.printStackTrace()
             null
         }
@@ -1144,6 +1155,18 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     "STARTUP_MIGRATION",
                     "Migración MED:nombre -> MED:uuid ya realizada"
                 )
+            }
+
+            // para optimizar imágenes en la app, se ejecuta la migración de optimización de imágenes al inicio
+            if (!sessionManager.isImageOptimizationDone()) {
+                val ok = ImageOptimizationMigration(
+                    this@MainActivity
+                ).optimizeImages()
+                Log.d("TEST", "Optimización finalizada: $ok")
+
+                if (ok) {
+                    sessionManager.setImageOptimizationDone()
+                }
             }
         }
     }

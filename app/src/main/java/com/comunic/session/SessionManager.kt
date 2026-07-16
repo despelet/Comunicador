@@ -175,6 +175,15 @@ class SessionManager(
             .apply()
     }
 
+    //para migrar las imágenes a un tamaño más pequeño y optimizado, para que no ocupen tanto espacio
+    fun isImageOptimizationDone(): Boolean =
+        prefs.getBoolean(KEY_IMAGE_OPTIMIZATION_DONE, false)
+
+    fun setImageOptimizationDone() =
+        prefs.edit()
+            .putBoolean(KEY_IMAGE_OPTIMIZATION_DONE, true)
+            .apply()
+
 
     companion object {
         private const val KEY_USER_MODE = "user_mode"
@@ -190,6 +199,9 @@ class SessionManager(
         private const val KEY_LAST_SYNC_AT =   "last_sync_at"
         private const val KEY_LEGACY_MEDIA_KEY_MIGRATED =  "legacy_media_key_migrated"
         private const val KEY_DISPLAY_NAME = "display_name"
+
+        private const val KEY_IMAGE_OPTIMIZATION_DONE =  "image_optimization_done"
+
         }
 
 }

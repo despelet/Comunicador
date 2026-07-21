@@ -104,9 +104,19 @@ interface MediaDao {
         SELECT *
         FROM media_items
         WHERE ownerUserId = :userId
-                AND isDeleted = 0
+
         """) suspend fun  getAllMediaForSync(
         userId: String
     ):List<MediaEntity>
+
+    @Query("""
+    UPDATE media_items
+    SET contentHash = :contentHash
+    WHERE mediaId = :mediaId
+""")
+    suspend fun updateContentHash(
+        mediaId: String,
+        contentHash: String
+    ) // metodo para actualizar el hash sin actualizar el resto de las columnas de la tabla
 
 }

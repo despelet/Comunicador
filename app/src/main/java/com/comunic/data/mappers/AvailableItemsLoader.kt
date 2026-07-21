@@ -2,9 +2,11 @@ package com.comunic.data.mappers
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.data.db.AppDatabase
+import com.comunic.session.SessionManager
 
 suspend fun loadAllAvailableItems(
     context: Context,
@@ -14,8 +16,25 @@ suspend fun loadAllAvailableItems(
     val items = mutableListOf<ItemLista>()
 
     // 1) media del usuario desde Room
-    val mediaItems = db.mediaDao().getActiveMedia()
+    //val mediaItems = db.mediaDao().getActiveMedia()
+    val userId = SessionManager(context).getCurrentUserId()
+
+    val mediaItems = db.mediaDao().getActiveMediaForUser(userId)
+
+    Log.d("MEDIA_DB", "========== MEDIA (${mediaItems.size}) ==========")
+
     mediaItems.forEach { media ->
+        Log.d(
+            "MEDIA_DB",
+            """
+        id=${media.mediaId}
+        nombre=${media.displayName}
+        uri=${media.localUri}
+        owner=${media.ownerUserId}
+        ------------------------
+        """.trimIndent()
+        )
+
         val key = ItemKey.media(media.mediaId)
         items.add(
             ItemLista(

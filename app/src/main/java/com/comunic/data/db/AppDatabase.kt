@@ -36,7 +36,7 @@ import com.comunic.data.entity.UserProfileEntity
         MediaEntity::class,
         UserProfileEntity::class
     ],
-    version = 16
+    version = 17
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -75,7 +75,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_12_13,
                         MIGRATION_13_14,
                         MIGRATION_14_15,
-                        MIGRATION_15_16
+                        MIGRATION_15_16,
+                        MIGRATION_16_17
 
                     ).build()
                 INSTANCE = instance
@@ -474,6 +475,20 @@ abstract class AppDatabase : RoomDatabase() {
                     db.execSQL("""
                 ALTER TABLE media_items
                 ADD COLUMN storagePath TEXT NOT NULL
+                DEFAULT ''
+            """.trimIndent())
+
+                }
+            }
+
+        private val MIGRATION_16_17 =
+            object : Migration(16, 17) {
+                // agrega hash de contenido para detectar cambios en archivos con el mismo nombre
+                override fun migrate(db: SupportSQLiteDatabase) {
+
+                    db.execSQL("""
+                ALTER TABLE media_items
+                ADD COLUMN contentHash TEXT NOT NULL
                 DEFAULT ''
             """.trimIndent())
 

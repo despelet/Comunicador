@@ -45,6 +45,7 @@ import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.session.PermissionManager
 import com.comunic.session.RoleAwareFragment
 import com.comunic.session.SessionManager
+import com.comunic.utils.FileHash
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
@@ -1088,7 +1089,8 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
                         isDeleted = false,
                         ownerUserId =
                         SessionManager(requireContext())
-                            .getCurrentUserId()
+                            .getCurrentUserId(),
+                        contentHash = FileHash.sha256(uriGuardado)
                     )
 
                     db.mediaDao().upsert(media)

@@ -350,7 +350,6 @@ ORDER BY orderIndex ASC
         SELECT *
         FROM categories
         WHERE ownerUserId = :userId
-        AND isDeleted = 0
         """) suspend fun  getAllCategoriesForSync(
         userId: String
         ):List<CategoryEntity>
@@ -359,7 +358,6 @@ ORDER BY orderIndex ASC
         SELECT *
         FROM category_items
         WHERE ownerUserId = :userId
-                AND isDeleted = 0
 
         """) suspend fun  getAllCategoryItemsForSync(
         userId: String

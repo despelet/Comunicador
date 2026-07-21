@@ -86,6 +86,7 @@ import kotlinx.coroutines.CompletableDeferred
 import org.json.JSONObject
 import androidx.lifecycle.lifecycleScope
 import com.comunic.sync.SyncEvents
+import com.comunic.utils.FileHash
 import kotlinx.coroutines.launch
 
 
@@ -592,54 +593,6 @@ class Recientes : Fragment(),
             .show()
     }
 
-  /*  private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
-        val cr = requireContext().contentResolver
-        val itemsEliminados = mutableListOf<ItemLista>()
-
-        lista.forEach { item ->
-            val uri = item.uri
-            var ok = false
-            try {
-                ok = when (uri.scheme) {
-                    "content" -> {
-                        // MediaStore / SAF
-                        cr.delete(uri, null, null) > 0
-                    }
-                    "file" -> {
-                        // Archivo directo
-                        val path = uri.path
-                        if (!path.isNullOrEmpty()) File(path).delete() else false
-                    }
-                    else -> {
-                        // Fallback a tu carpeta “media” interna si fuese el caso
-                        val carpeta = File(requireContext().filesDir, "media")
-                        File(carpeta, item.nombre).delete()
-                    }
-                }
-            } catch (se: SecurityException) {
-                // Android 10+: si no fue creado por tu app podrías necesitar pedir permiso:
-                // val req = MediaStore.createDeleteRequest(cr, listOf(uri))
-                // startIntentSenderForResult(req.intentSender, REQ_DELETE, null, 0, 0, 0)
-                ok = false
-            }
-
-            if (ok) {
-                itemsEliminados.add(item)
-                Log.d("Eliminar", "Eliminado: ${item.nombre}")
-            } else {
-                Log.e("Eliminar", "No se pudo eliminar: ${item.nombre}")
-            }
-        }
-
-        // Sacarlos del adapter y refrescar
-        mediaAdapter.eliminarItems(itemsEliminados)
-
-        // Cerrar UI de selección
-        //selectionPanel.visibility = View.GONE
-       cancelarModoEliminacion()
-        Toast.makeText(requireContext(), "${itemsEliminados.size} elementos eliminados", Toast.LENGTH_SHORT).show()
-    }*/
-
     private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
         viewLifecycleOwner.lifecycleScope.launch {
 
@@ -1145,7 +1098,8 @@ class Recientes : Fragment(),
                     isDeleted = false,
                     ownerUserId =
                     SessionManager(requireContext())
-                        .getCurrentUserId()
+                        .getCurrentUserId(),
+                    contentHash = FileHash.sha256(uriGuardado)
                 )
 
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {

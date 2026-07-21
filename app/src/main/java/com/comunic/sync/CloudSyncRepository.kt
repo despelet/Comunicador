@@ -1,5 +1,6 @@
 package com.comunic.sync
 
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.util.Log
 import com.comunic.data.db.AppDatabase
@@ -145,11 +146,36 @@ class CloudSyncRepository(
         userId: String,
         syncDialog: SyncProgressDialog?
     ) {
+
         verificarMediaLocal(userId)
+
         val mediaItems = db.mediaDao().getAllMediaForSync(userId)
         val uid = auth.currentUser?.uid ?: return
+
+        // Leemos UNA SOLA VEZ todos los metadatos remotos.
+        // Firestore será nuestro índice de sincronización.
+        val remoteMediaMap =
+            firestore
+                .collection("users")
+                .document(uid)
+                .collection("media_items")
+                .get()
+                .await()
+                .documents
+                .associate { doc ->
+
+                    val mediaId = doc.getString("mediaId") ?: doc.id
+
+                    mediaId to RemoteMediaInfo(
+                        contentHash = doc.getString("contentHash").orEmpty(),
+                        storagePath = doc.getString("storagePath").orEmpty(),
+                        updatedAt = doc.getLong("updatedAt") ?: 0L
+                    )
+                }
+
         val batch = firestore.batch()
         val total = mediaItems.size
+
         mediaItems.forEachIndexed { index, media ->
             syncDialog?.updateProgress(
                 current = index,
@@ -158,13 +184,36 @@ class CloudSyncRepository(
                 detalle = media.displayName
             )
 
+            val remoteMedia = remoteMediaMap[media.mediaId]
+            val needsUpload = remoteMedia?.contentHash != media.contentHash
+
+            when {
+                remoteMedia == null ->
+                    Log.d(TAG, "Media nueva: ${media.displayName}")
+                needsUpload ->
+                    Log.d(TAG, "Media modificada: ${media.displayName}")
+                else ->
+                    Log.d(TAG, "Media sin cambios: ${media.displayName}")
+            }
+
+            val defaultStoragePath =
+                "users/$uid/media/${media.mediaId}.${if (media.mediaType == "video") "mp4" else "jpg"}"
+
             val storagePath =
-                uploadMediaFile(
-                    uid = uid,
-                    mediaId = media.mediaId,
-                    localUri = media.localUri,
-                    mediaType = media.mediaType
-                )
+                if (needsUpload) {
+
+                    uploadMediaFile(
+                        uid = uid,
+                        mediaId = media.mediaId,
+                        localUri = media.localUri,
+                        mediaType = media.mediaType
+                    )
+                } else {
+                    remoteMedia?.storagePath
+                        ?.takeIf { it.isNotBlank() }
+                        ?: defaultStoragePath
+                }
+
             val ref =
                 firestore
                     .collection("users")
@@ -180,12 +229,14 @@ class CloudSyncRepository(
                     "localUri" to media.localUri,
                     "mediaType" to media.mediaType,
                     "storagePath" to storagePath,
+                    "contentHash" to media.contentHash,
                     "createdAt" to media.createdAt,
                     "updatedAt" to media.updatedAt,
                     "isDeleted" to media.isDeleted,
                     "ownerUserId" to media.ownerUserId
                 )
             )
+
             syncDialog?.updateProgress(
                 current = index + 1,
                 total = total,
@@ -195,8 +246,58 @@ class CloudSyncRepository(
         }
 
         batch.commit().await()
+
         Log.d(TAG, "Media subidos: ${mediaItems.size}")
     }
+
+
+    private suspend fun uploadMediaFile(
+        uid: String,
+        mediaId: String,
+        localUri: String,
+        mediaType: String
+    ): String {
+
+        // uploadMediaFile() sube un archivo local a Firebase Storage y devuelve la ruta de almacenamiento remota.
+        // lo sube solo si el archivo existe localmente. Si no existe, registra una advertencia y devuelve una cadena vacía.
+        // la decision queda en uploadMedia()
+
+        val uri = Uri.parse(localUri)
+        val file = File(uri.path ?: "")
+
+        if (!file.exists()) {
+            Log.w(TAG, "Archivo local no existe para mediaId=$mediaId uri=$localUri")
+            return ""
+        }
+
+        val extension =
+            if (mediaType == "video") {
+                "mp4"
+            } else {
+                "jpg"
+            }
+
+        val storagePath = "users/$uid/media/$mediaId.$extension"
+
+        storage
+            .reference
+            .child(storagePath)
+            .putFile(Uri.fromFile(file))
+            .await()
+
+        Log.d(TAG, "Archivo subido: $storagePath")
+
+            return storagePath
+        }
+
+
+
+
+
+
+    ///////////////// DOWNLOAD
+
+
 
     suspend fun downloadAll(
         syncDialog: SyncProgressDialog? = null
@@ -265,7 +366,7 @@ class CloudSyncRepository(
                 .collection("users")
                 .document(uid)
                 .collection("categories")
-                .whereEqualTo("isDeleted", false)
+                //.whereEqualTo("isDeleted", false)
                 .get()
                 .await()
 
@@ -301,7 +402,7 @@ class CloudSyncRepository(
                 .collection("users")
                 .document(uid)
                 .collection("category_items")
-                .whereEqualTo("isDeleted", false)
+            //    .whereEqualTo("isDeleted", false)
                 .get()
                 .await()
 
@@ -335,7 +436,7 @@ class CloudSyncRepository(
                 .collection("users")
                 .document(uid)
                 .collection("media_items")
-                .whereEqualTo("isDeleted", false)
+                //.whereEqualTo("isDeleted", false)
                 .get()
                 .await()
 
@@ -347,6 +448,7 @@ class CloudSyncRepository(
             val displayName = doc.getString("displayName") ?: ""
             val mediaType = doc.getString("mediaType") ?: "image"
             val storagePath = doc.getString("storagePath") ?: ""
+            val contentHash = doc.getString("contentHash") ?: ""
 
             syncDialog?.updateProgress(
                 current = index,
@@ -357,14 +459,17 @@ class CloudSyncRepository(
 
             Log.d(TAG, "MEDIA_DOWNLOAD mediaId=$mediaId storagePath=$storagePath")
 
+            val localMedia = db.mediaDao().getById(mediaId)// consulta room y firestore y decide si descargar
+
             val localUri =
                 if (storagePath.isNotBlank()) {
                     downloadMediaFile(
-                        uid = uid,
                         mediaId = mediaId,
                         displayName = displayName,
                         mediaType = mediaType,
-                        storagePath = storagePath
+                        storagePath = storagePath,
+                        localContentHash = localMedia?.contentHash.orEmpty(),
+                        remoteContentHash = contentHash
                     )
                 } else {
                     doc.getString("localUri") ?: ""
@@ -380,7 +485,8 @@ class CloudSyncRepository(
                     updatedAt = doc.getLong("updatedAt") ?: System.currentTimeMillis(),
                     isDeleted = doc.getBoolean("isDeleted") ?: false,
                     ownerUserId = uid,
-                    storagePath = storagePath
+                    storagePath = storagePath,
+                    contentHash = contentHash
                 )
 
             db.mediaDao().upsert(media)
@@ -396,12 +502,14 @@ class CloudSyncRepository(
     }
 
     private suspend fun downloadMediaFile(
-        uid: String,
         mediaId: String,
         displayName: String,
         mediaType: String,
-        storagePath: String
+        storagePath: String,
+        localContentHash: String,
+        remoteContentHash: String
     ): String {
+        // downloadMedia() le dice sid escargar o no.
 
         val dir = File(context.filesDir, "media")
 
@@ -416,28 +524,22 @@ class CloudSyncRepository(
                 "jpg"
             }
 
-//        val safeName =
-//            if (displayName.isNotBlank()) {
-//                displayName
-//            } else {
-//                mediaId
-//            }
-//
-//        val file =
-//            File(dir, "$safeName.$extension")
-        val file =
-            File(
-                dir,
-                "$mediaId.$extension"
-            )
+        val file = File(dir, "$mediaId.$extension")
+
+        if (
+            file.exists() &&
+            localContentHash == remoteContentHash
+        ) {
+
+            Log.d(TAG, "Media sin cambios. No se descarga: $displayName")
+            return Uri.fromFile(file).toString()
+        }
 
         if (file.exists()) {
-            Log.d(
-                TAG,
-                "Archivo ya existe localmente: ${file.absolutePath}"
-            )
+            Log.d(TAG, "Media modificada. Descargando nueva versión: $displayName")
 
-            return Uri.fromFile(file).toString()
+        } else {
+            Log.d(TAG, "Media nueva. Descargando: $displayName")
         }
 
         storage
@@ -446,73 +548,20 @@ class CloudSyncRepository(
             .getFile(file)
             .await()
 
-        Log.d(
-            TAG,
-            "Archivo descargado: $storagePath -> ${file.absolutePath}"
-        )
+        Log.d(TAG, "Archivo descargado: $storagePath -> ${file.absolutePath}")
 
         return Uri.fromFile(file).toString()
     }
 
-    private suspend fun uploadMediaFile(
-        uid: String,
-        mediaId: String,
-        localUri: String,
-        mediaType: String
-    ): String {
 
-        val uri = Uri.parse(localUri)
-        val file = File(uri.path ?: "")
-
-        if (!file.exists()) {
-            Log.w(
-                TAG,
-                "Archivo local no existe para mediaId=$mediaId uri=$localUri"
-            )
-            return ""
-        }
-
-        val extension =
-            if (mediaType == "video") {
-                "mp4"
-            } else {
-                "jpg"
-            }
-
-        val storagePath = "users/$uid/media/$mediaId.$extension"
-
-        val storageRef =
-            storage.reference.child(storagePath)
-
-        try {
-
-            storageRef.metadata.await()
-
-            Log.d(
-                TAG,
-                "Archivo ya existe en Storage: $storagePath"
-            )
-
-            return storagePath
-
-        } catch (_: Exception) {
-
-            storageRef
-                .putFile(Uri.fromFile(file))
-                .await()
-
-            Log.d(
-                TAG,
-                "Archivo subido: $storagePath"
-            )
-
-            return storagePath
-        }
-    }
 
     private suspend fun verificarMediaLocal(
         userId: String
     ) {
+
+        // verificarMediaLocal() revisa todos los registros de media en la base de datos local y
+        // verifica si los archivos correspondientes existen en el almacenamiento local.
+        // Cuenta cuántos archivos existen y cuántos faltan, y registra advertencias para los archivos faltantes.
         val mediaItems =
             db.mediaDao()
                 .getAllMediaForSync(userId)
@@ -545,6 +594,13 @@ class CloudSyncRepository(
             "Verificación media local: total=${mediaItems.size}, existentes=$existentes, faltantes=$faltantes"
         )
     }
+
+
+    private data class RemoteMediaInfo(
+        val contentHash: String,
+        val storagePath: String,
+        val updatedAt: Long
+    )
 
 
     companion object {

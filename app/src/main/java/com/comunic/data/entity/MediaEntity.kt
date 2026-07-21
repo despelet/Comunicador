@@ -31,5 +31,10 @@ data class MediaEntity(
                 name = "storagePath",
                 defaultValue = "''"
         )
-        val storagePath: String = ""
+        val storagePath: String = "",
+
+        @ColumnInfo(defaultValue = "''") // almacenar el hash del contenido
+        // el hash se puede usar para verificar si el contenido del archivo ha cambiado, incluso si el nombre del archivo es el mismo.
+        // Esto es útil para detectar cambios en archivos que podrían tener el mismo nombre pero diferente contenido.
+        val contentHash: String = ""
 )

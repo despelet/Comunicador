@@ -3,6 +3,7 @@ package com.comunic.data.db
 import android.content.Context
 import android.net.Uri
 import com.comunic.data.entity.MediaEntity
+import com.comunic.utils.FileHash
 import java.io.File
 import java.util.UUID
 
@@ -36,10 +37,25 @@ class MediaRepository(
 
 //            val existente = db.mediaDao()
 //                .getActiveByDisplayName(displayName)
-            val existente = db.mediaDao()
-                .getAnyByDisplayName(displayName)
+//            val existente = db.mediaDao()
+//                .getAnyByDisplayName(displayName)
+//
+//            if (existente != null) {
+//                return@forEach
+//            }
+
+            val existente = db.mediaDao().getAnyByDisplayName(displayName)
 
             if (existente != null) {
+
+                if (existente.contentHash.isBlank()) {
+
+                    db.mediaDao().updateContentHash(
+                        existente.mediaId,
+                        FileHash.sha256(file)
+                    )
+                }
+
                 return@forEach
             }
 

@@ -79,6 +79,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.squareup.picasso.Picasso
 import com.comunic.interfaces.ZipImportListener
 import com.comunic.session.SessionManager
+import com.comunic.utils.FileHash
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CompletableDeferred
@@ -846,7 +847,8 @@ class HomeFragment : Fragment(),
                 isDeleted = false,
                 ownerUserId =
                 SessionManager(requireContext())
-                    .getCurrentUserId()
+                    .getCurrentUserId(),
+                contentHash = FileHash.sha256(savedUri)
             )
 
             db.mediaDao().upsert(media)

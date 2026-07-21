@@ -78,16 +78,28 @@
                 android:enabled="false"
                 android:visible="false" />
 
+
+            <item
+                android:id="@+id/nav_space1"
+                android:enabled="false"
+                android:actionLayout="@layout/menu_spacer"/>
+
+
             <item
                 android:id="@+id/nav_sincronizar"
-                android:title="Sincronizar ahora"
+                android:title="Sincronizar contenido"
                 android:icon="@drawable/ic_sync"
                 android:visible="false" />
             <item
                 android:id="@+id/nav_download"
-                android:title="Descargar cambios"
+                android:title="Descargar últimos cambios"
                 android:icon="@drawable/ic_download"
                 android:visible="false" />
+
+            <item
+                android:id="@+id/nav_space2"
+                android:enabled="false"
+                android:actionLayout="@layout/menu_spacer"/>
 
             <item
                 android:id="@+id/nav_cuenta_accion"

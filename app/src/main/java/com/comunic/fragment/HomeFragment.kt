@@ -201,6 +201,18 @@ class HomeFragment : Fragment(),
         recyclerView.adapter = mediaAdapter
         //binding.recyclerView.visibility = View.GONE
 
+        binding.btnCamera.setOnClickListener {
+            (activity as? MainActivity)?.launchImageCapture()
+        }
+
+        binding.btnVideo.setOnClickListener {
+            (activity as? MainActivity)?.launchVideoCapture()
+        }
+
+        binding.btnGallery.setOnClickListener {
+            (activity as? MainActivity)?.openGallery()
+        }
+
         // TOP 6
         lifecycleScope.launch {
             val now = System.currentTimeMillis()
@@ -317,44 +329,7 @@ class HomeFragment : Fragment(),
             binding.recyclerTop6.visibility = View.VISIBLE
         }
 
-        // Orden: (1) bucketCount desc, (2) bucketLastUsed desc, (3) globalCount desc, (4) globalLastUsed desc
-        /* val topFinalNombres = candidatos
-             .sortedWith(
-                 compareByDescending<String> { bucketCount[it] ?: 0 }
-                     .thenByDescending { bucketLastUsed[it] ?: 0L }
-                     // Desempates extra para los que vienen de global o para estabilidad
-                     .thenByDescending { globalCount[it] ?: 0 }
-                     .thenByDescending { globalLastUsed[it] ?: 0L }
-             )
-             .take(6)
 
-         // Convertimos a ItemLista (timestamp = ultima fecha real: bucket si existe, si no global)
-         val carpeta = File(requireContext().filesDir, "media")
-         val mediaItemsTop = topFinalNombres.mapNotNull { nombre ->
-             val archivoJpg = File(carpeta, "$nombre.jpg")
-             val archivoMp4 = File(carpeta, "$nombre.mp4")
-
-             val archivoExistente = when {
-                 archivoJpg.exists() -> archivoJpg
-                 archivoMp4.exists() -> archivoMp4
-                 else -> null
-             }
-
-             archivoExistente?.let { archivo ->
-                 val uri = Uri.fromFile(archivo)
-                 val esImagen = archivo.name.endsWith(".jpg", ignoreCase = true)
-
-                 val lastUsed = bucketLastUsed[nombre] ?: globalLastUsed[nombre] ?: now
-
-                 ItemLista(
-                     id = nombre,
-                     nombre = nombre,
-                     uri = uri,
-                     esImagen = esImagen,
-                     timestamp = lastUsed
-                 )
-             }
-         }*/
 
         loadImageData() // Cargar los datos (imágenes/videos)
 
@@ -1152,36 +1127,7 @@ class HomeFragment : Fragment(),
             listaDeArchivos.clear()
 
             // 2) Cargar USER media desde /files/media (tu lógica original)
-//            val mediaDir = File(requireContext().filesDir, "media")
-//
-//            if (mediaDir.exists()) {
-//                mediaDir.listFiles()?.forEach { file ->
-//                    val esImagen = file.extension.equals("jpg", ignoreCase = true)
-//                    val esVideo  = file.extension.equals("mp4", ignoreCase = true)
-//
-//                    if (!esImagen && !esVideo) return@forEach
-//                    val base = file.nameWithoutExtension
-//                    listaDeArchivos.add(
-////                        ItemLista(
-////                            nombre = file.nameWithoutExtension,
-////                            uri = Uri.fromFile(file),
-////                            esImagen = esImagen, // si esVideo => false
-////                            timestamp = file.lastModified()
-////                        )
-//
-//                        //ItemLista(
-//                            //id = base,
-//                        ItemLista(
-//                            id = ItemKey.media(base),
-//                            nombre = base,
-//                            uri = Uri.fromFile(file),
-//                            esImagen = esImagen,
-//                            timestamp = file.lastModified()
-//                        )
-//
-//                    )
-//                }
-//            }
+
 
             MediaRepository(requireContext(), db).ensureLocalMediaIndexed()
 

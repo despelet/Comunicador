@@ -26,6 +26,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
@@ -172,17 +173,58 @@ class Recientes : Fragment(),
 
         checkReadPermissionIfNeeded() // permisos
 
-        orderButton.setOnClickListener { view ->
-            val popup = PopupMenu(requireContext(), view)
-            popup.menuInflater.inflate(R.menu.menu_filtro_recientes, popup.menu)
+        orderButton.setOnClickListener {
 
-            popup.setOnMenuItemClickListener { item ->
-                saveOrdenSeleccionado(item.itemId)
-                aplicarOrden(item.itemId, orderButton)
+            val popupView = layoutInflater.inflate(R.layout.popup_menu_order, null)
+
+            val popup = PopupWindow(
+                popupView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
                 true
+            )
+
+            popup.elevation = 16f
+
+            val ordenActual = getOrdenSeleccionado()
+
+            popupView.findViewById<ImageView>(R.id.checkRecientes).visibility =
+                if (ordenActual == R.id.orden_reciente) View.VISIBLE else View.GONE
+
+            popupView.findViewById<ImageView>(R.id.checkAntiguos).visibility =
+                if (ordenActual == R.id.orden_viejo) View.VISIBLE else View.GONE
+
+            popupView.findViewById<ImageView>(R.id.checkAZ).visibility =
+                if (ordenActual == R.id.az) View.VISIBLE else View.GONE
+
+            popupView.findViewById<ImageView>(R.id.checkZA).visibility =
+                if (ordenActual == R.id.za) View.VISIBLE else View.GONE
+
+            popupView.findViewById<View>(R.id.opRecientes).setOnClickListener {
+                saveOrdenSeleccionado(R.id.orden_reciente)
+                aplicarOrden(R.id.orden_reciente, orderButton)
+                popup.dismiss()
             }
 
-            popup.show()
+            popupView.findViewById<View>(R.id.opAntiguos).setOnClickListener {
+                saveOrdenSeleccionado(R.id.orden_viejo)
+                aplicarOrden(R.id.orden_viejo, orderButton)
+                popup.dismiss()
+            }
+
+            popupView.findViewById<View>(R.id.opAZ).setOnClickListener {
+                saveOrdenSeleccionado(R.id.az)
+                aplicarOrden(R.id.az, orderButton)
+                popup.dismiss()
+            }
+
+            popupView.findViewById<View>(R.id.opZA).setOnClickListener {
+                saveOrdenSeleccionado(R.id.za)
+                aplicarOrden(R.id.za, orderButton)
+                popup.dismiss()
+            }
+
+            popup.showAsDropDown(orderButton, 0, 8)
         }
 
 
@@ -1833,23 +1875,28 @@ class Recientes : Fragment(),
 
     private fun aplicarOrden(itemId: Int, orderButton: Button) {
         when (itemId) {
+
             R.id.orden_reciente -> {
-                orderButton.text = "Ordenar por: Más recientes"
+                orderButton.text = "🕒 Recientes"
                 listaDeArchivos.sortByDescending { it.timestamp }
             }
+
             R.id.orden_viejo -> {
-                orderButton.text = "Ordenar por: Más viejos"
+                orderButton.text = "📅 Antiguos"
                 listaDeArchivos.sortBy { it.timestamp }
             }
+
             R.id.az -> {
-                orderButton.text = "Ordenar por: A-Z"
+                orderButton.text = "🔤 A-Z"
                 listaDeArchivos.sortBy { it.nombre.lowercase() }
             }
+
             R.id.za -> {
-                orderButton.text = "Ordenar por: Z-A"
+                orderButton.text = "🔠 Z-A"
                 listaDeArchivos.sortByDescending { it.nombre.lowercase() }
             }
         }
+
         mediaAdapter.notifyDataSetChanged()
     }
 

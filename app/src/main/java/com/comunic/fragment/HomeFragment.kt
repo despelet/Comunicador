@@ -1139,6 +1139,8 @@ class HomeFragment : Fragment(),
 //
 //        mediaAdapter.notifyDataSetChanged() // Notificar al adaptador
 //    }
+
+
     private fun loadImageData() {
         viewLifecycleOwner.lifecycleScope.launch {
 
@@ -1214,7 +1216,22 @@ class HomeFragment : Fragment(),
 
             // 4) Notificar
             mediaAdapter.notifyDataSetChanged()
+
+            val tieneContenidoPropio = mediaItems.isNotEmpty()
+
+            actualizarEstadoVacio(tieneContenidoPropio)
         }
+    }
+
+    private fun actualizarEstadoVacio(
+        tieneContenido: Boolean
+    ) {
+
+        binding.emptyState.root.visibility =
+            if (tieneContenido) View.GONE else View.VISIBLE
+
+        binding.recyclerView.visibility =
+            if (tieneContenido) View.VISIBLE else View.GONE
     }
 
     fun solicitarContrasena() {

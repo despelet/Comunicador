@@ -17,7 +17,7 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/constraintLayout"
             android:layout_width="match_parent"
-            android:layout_height="80dp"
+            android:layout_height="wrap_content"
             android:background="@color/color5"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -29,8 +29,19 @@
                 android:src="@android:drawable/ic_menu_sort_by_size"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintWidth_percent="0.15" />
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/imgPerfil"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="12dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/bicom_logo2"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:shapeAppearanceOverlay="@style/CircleImage" />
 
             <TextView
                 android:id="@+id/txtSaludoCuenta"
@@ -41,23 +52,14 @@
                 android:textStyle="bold"
                 android:textColor="@color/color1"
                 android:gravity="center_vertical"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="16dp"
                 android:layout_marginEnd="8dp"
-                app:layout_constraintStart_toEndOf="@id/menu"
-                app:layout_constraintEnd_toStartOf="@id/logoTitle"
-                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/menu"
                 app:layout_constraintBottom_toBottomOf="parent" />
 
-            <ImageView
-                android:id="@+id/logoTitle"
-                android:layout_width="96dp"
-                android:layout_height="80dp"
-                android:layout_marginEnd="16dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/bicom_logo2"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -83,35 +85,53 @@
     </LinearLayout>
 
     <!-- Menú de navegación lateral (derecha) -->
+
+
+    <!-- Menú de navegación lateral -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigation_view"
-        android:layout_width="wrap_content"
+        android:layout_width="320dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        app:menu="@menu/menu"
         android:background="@color/color5"
-        app:itemBackground="@drawable/nav_item_background"
-        app:itemTextColor="@color/nav_item_text_color"
-        app:itemIconTint="@color/nav_item_text_color"
-        app:itemTextAppearance="@style/NavDrawerText">
+        android:fitsSystemWindows="true">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_gravity="bottom"
-            android:gravity="end"
-            android:padding="16dp">
-
-            <ImageView
-                android:id="@+id/logo_image"
-                android:layout_width="120dp"
-                android:layout_height="120dp"
-                android:contentDescription="Logo"
-                android:layout_gravity="bottom|start"
-                android:src="@drawable/bicom_logo2" />
-        </LinearLayout>
+        <include
+            layout="@layout/drawer_content" />
 
     </com.google.android.material.navigation.NavigationView>
 
 </androidx.drawerlayout.widget.DrawerLayout>
+
+
+
+<!--<com.google.android.material.navigation.NavigationView-->
+<!--android:id="@+id/navigation_view"-->
+<!--android:layout_width="wrap_content"-->
+<!--android:layout_height="match_parent"-->
+<!--android:layout_gravity="start"-->
+<!--app:menu="@menu/menu"-->
+<!--android:background="@color/color5"-->
+<!--app:itemBackground="@drawable/nav_item_background"-->
+<!--app:itemTextColor="@color/nav_item_text_color"-->
+<!--app:itemIconTint="@color/nav_item_text_color"-->
+<!--app:itemTextAppearance="@style/NavDrawerText">-->
+
+<!--<LinearLayout-->
+<!--    android:layout_width="match_parent"-->
+<!--    android:layout_height="wrap_content"-->
+<!--    android:orientation="horizontal"-->
+<!--    android:layout_gravity="bottom"-->
+<!--    android:gravity="end"-->
+<!--    android:padding="16dp">-->
+
+<!--    <ImageView-->
+<!--        android:id="@+id/logo_image"-->
+<!--        android:layout_width="120dp"-->
+<!--        android:layout_height="120dp"-->
+<!--        android:contentDescription="Logo"-->
+<!--        android:layout_gravity="bottom|start"-->
+<!--        android:src="@drawable/bicom_logo2" />-->
+<!--</LinearLayout>-->
+
+<!--</com.google.android.material.navigation.NavigationView>-->

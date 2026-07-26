@@ -1,6 +1,316 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Contenido desplazable -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- ========================= -->
+            <!-- PERFILES -->
+            <!-- ========================= -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Perfiles"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:textSize="18sp"
+                android:textColor="@color/color7"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPerfilActual"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Paciente"
+                android:textSize="16sp"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_person"
+                app:iconTint="@color/color7"
+                android:textColor="@color/color7"
+                app:iconPadding="12dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAdministrarPerfiles"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Administrar perfiles"
+                android:textSize="16sp"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_lock"
+                app:iconTint="@color/color7"
+                android:textColor="@color/color7"
+                app:iconPadding="12dp"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="12dp"
+                android:background="#D8D8D8"/>
+
+            <!-- ========================= -->
+            <!-- COMPARTIR -->
+            <!-- ========================= -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Compartir"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:textSize="18sp"
+                android:textColor="@color/color7"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnExportar"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Exportar archivos"
+                android:textSize="16sp"
+                android:gravity="start|center_vertical"
+                android:textColor="@color/color7"
+                app:icon="@drawable/ic_export"
+                app:iconTint="@color/color7"
+                app:iconPadding="12dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnImportar"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Importar archivos"
+                android:textSize="16sp"
+                android:textColor="@color/color7"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_import"
+                app:iconTint="@color/color7"
+                app:iconPadding="12dp"/>
+
+            <View
+                android:id="@+id/dividerControlParental"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="8dp"
+                android:background="#D8D8D8"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/tvControlParental"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Control parental"
+                android:layout_marginBottom="8dp"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:textColor="@color/color7"
+                android:visibility="gone"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEditar"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Editar"
+                android:textSize="16sp"
+                android:textColor="@color/color7"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_edit"
+                app:iconTint="@color/color7"
+                android:visibility="gone"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEliminar"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="38dp"
+                android:layout_marginTop="4dp"
+                android:text="Eliminar"
+                android:textSize="16sp"
+                android:textColor="@color/color7"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_delete"
+                app:iconTint="@color/color7"
+                android:visibility="gone"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPapelera"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Papelera"
+                android:textSize="16sp"
+                android:textColor="@color/color7"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_delete_trash"
+                app:iconTint="@color/color7"
+                android:visibility="gone"/>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="12dp"
+                android:background="#D8D8D8"/>
+
+            <!-- ========================= -->
+            <!-- CUENTA -->
+            <!-- ========================= -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cuenta"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:textColor="@color/color7"/>
+
+            <TextView
+                android:id="@+id/txtCuenta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Sin iniciar sesión"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="@color/color7"/>
+
+
+            <TextView
+                android:id="@+id/txtEmail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="13sp"
+                android:textColor="@color/color7"
+                android:visibility="gone"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogin"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Iniciar sesión "
+                android:textSize="16sp"
+                android:textColor="@color/color7"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_login"
+                app:iconTint="@color/color7"
+                app:iconPadding="12dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSignup"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Crear cuenta "
+                android:textSize="16sp"
+                android:textColor="@color/color7"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_signup"
+                app:iconTint="@color/color7"
+                app:iconPadding="12dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSincronizar"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Sincronizar contenido"
+                android:textSize="16sp"
+                android:textColor="@color/color7"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_sync"
+                app:iconTint="@color/color7"
+                app:iconPadding="12dp"
+                android:visibility="gone"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDownload"
+                style="@style/DrawerButton"
+                android:layout_width="match_parent"
+                android:layout_marginHorizontal="10dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Descargar últimos cambios"
+                android:textSize="16sp"
+                android:textColor="@color/color7"
+                android:gravity="start|center_vertical"
+                app:icon="@drawable/ic_download"
+                app:iconTint="@color/color7"
+                app:iconPadding="12dp"
+                android:visibility="gone"/>
+
+
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <!-- Parte inferior fija -->
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+
+    <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCerrarSesion"
+            style="@style/DrawerButton"
+            android:layout_width="match_parent"
+            android:layout_marginHorizontal="10dp"
+            android:layout_height="wrap_content"
+            android:layout_marginVertical="20dp"
+            android:text="Cerrar sesión"
+            android:textSize="16sp"
+            android:textColor="@color/color7"
+            android:gravity="start|center_vertical"
+            app:icon="@drawable/ic_logout"
+            app:iconTint="@color/color7"
+            app:iconPadding="12dp"
+            android:visibility="gone"/>
+
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_gravity="bottom|start"
+            android:layout_marginTop="8dp"
+            android:src="@drawable/bicom_logo2"/>
+    </LinearLayout>
+
+</LinearLayout>

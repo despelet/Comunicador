@@ -22,7 +22,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.graphics.drawable.ColorDrawable
 import android.media.ExifInterface
@@ -53,24 +52,20 @@ import com.comunic.fragment.HomeFragment.Companion.PICK_MEDIA_REQUEST
 import com.comunic.fragment.HomeFragment.Companion.UCROP_REQUEST_CODE
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
-import com.squareup.picasso.Picasso
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.Dispatchers
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.util.UUID
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.bumptech.glide.Glide
+import androidx.core.view.isVisible
 import com.comunic.AddToListHost
 import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.R
-import com.comunic.Sugeridos
 import com.comunic.auth.AuthSessionManager
 import com.comunic.data.entity.MediaEntity
 import com.comunic.dialog.SyncProgressDialog
-import com.comunic.interfaces.DrawerMenuConfig
 import com.comunic.interfaces.ZipImportListener
 import com.comunic.migration.ImageOptimizationMigration
 import com.comunic.migration.LegacyMediaKeyMigrationRepository
@@ -81,6 +76,7 @@ import com.comunic.sync.CloudSyncRepository
 import com.comunic.sync.SyncEvents
 import com.comunic.utils.ImageCompressor
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.imageview.ShapeableImageView
 import kotlinx.coroutines.withContext
 import com.google.android.material.textfield.TextInputEditText
 
@@ -90,6 +86,27 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
     private lateinit var drawerLayout: DrawerLayout     // para el menu lateral
     private lateinit var navigationView: NavigationView
+    private lateinit var imgPerfil: ShapeableImageView
+
+    private lateinit var btnPerfilActual: MaterialButton
+    private lateinit var btnAdministrarPerfiles: MaterialButton
+    private lateinit var btnExportar: MaterialButton
+    private lateinit var btnImportar: MaterialButton
+    private lateinit var tvControlParental: TextView
+    private lateinit var dividerControlParental: View
+  //  private lateinit var btnProteger: MaterialButton
+    private lateinit var btnEditar: MaterialButton
+    private lateinit var btnEliminar: MaterialButton
+    private lateinit var btnPapelera: MaterialButton
+    private lateinit var txtCuenta: TextView
+    private lateinit var txtEmail: TextView
+    private lateinit var btnSincronizar: MaterialButton
+    private lateinit var btnDownload: MaterialButton
+    private lateinit var btnLogin: MaterialButton
+    private lateinit var btnSignup: MaterialButton
+    private lateinit var btnCerrarSesion: MaterialButton
+
+
     private lateinit var bottomNav: BottomNavigationView
 
     private var lastCapturedUri: Uri? = null
@@ -126,7 +143,29 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // MENU LATERAL
         drawerLayout = findViewById(R.id.drawer_layout) // inicializacion del drawer layout y navigation view
         navigationView = findViewById(R.id.navigation_view) // inicializacion del drawer layout y navigation view
-        navigationView.setNavigationItemSelectedListener(this) // Configurar NavigationView y su listener
+        imgPerfil = findViewById(R.id.imgPerfil)
+        //inicializaciones menu
+        //val drawer = navigationView.getHeaderView(0)
+        btnPerfilActual = navigationView.findViewById(R.id.btnPerfilActual)
+        btnAdministrarPerfiles = navigationView.findViewById(R.id.btnAdministrarPerfiles)
+        btnExportar = navigationView.findViewById(R.id.btnExportar)
+        btnImportar = navigationView.findViewById(R.id.btnImportar)
+        tvControlParental = navigationView.findViewById(R.id.tvControlParental)
+        dividerControlParental = navigationView.findViewById(R.id.dividerControlParental)
+       // btnProteger = navigationView.findViewById(R.id.btnProteger)
+        btnEditar = navigationView.findViewById(R.id.btnEditar)
+        btnEliminar = navigationView.findViewById(R.id.btnEliminar)
+        btnPapelera = navigationView.findViewById(R.id.btnPapelera)
+        txtCuenta = navigationView.findViewById(R.id.txtCuenta)
+        txtEmail = navigationView.findViewById(R.id.txtEmail)
+        btnSincronizar = navigationView.findViewById(R.id.btnSincronizar)
+        btnDownload = navigationView.findViewById(R.id.btnDownload)
+        btnLogin = navigationView.findViewById(R.id.btnLogin)
+        btnSignup = navigationView.findViewById(R.id.btnSignup)
+        btnCerrarSesion = navigationView.findViewById(R.id.btnCerrarSesion)
+        // fin inicializaciones menu
+
+       // navigationView.setNavigationItemSelectedListener(this) // Configurar NavigationView y su listener
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, GravityCompat.END)
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, GravityCompat.START)
 
@@ -161,17 +200,106 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             bottomNav.selectedItemId = R.id.menu_recientes
         }
 
+
+
+
+
         // -------- BOTTOM BAR --------
         //bottomNav.menu.findItem(R.id.menu_sugeridos)?.isVisible = false
         bottomNav.labelVisibilityMode =
             com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_SELECTED
 
         // -------- MENU LATERAL --------
-        val drawerMenu = navigationView.menu
+        //val drawerMenu = navigationView.menu
 
 //        drawerMenu.findItem(R.id.nav_proteger)?.isVisible = false
 //        drawerMenu.findItem(R.id.nav_editar)?.isVisible = false
 //        drawerMenu.findItem(R.id.nav_nosotros)?.isVisible = false
+
+        /////////////////////////// funciones menu lateral ///////////////////////////
+
+        btnLogin.setOnClickListener {
+            mostrarDialogoLogin()
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnSignup.setOnClickListener {
+            mostrarDialogoRegistro()
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnCerrarSesion.setOnClickListener {
+            mostrarDialogoCerrarSesion()
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnSincronizar.setOnClickListener {
+            sincronizarCuenta()
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnDownload.setOnClickListener {
+            sincronizarDownload()
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnAdministrarPerfiles.setOnClickListener {
+            if (sessionManager.isTutor()) {
+                sessionManager.deactivateTutorMode()
+                val current = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                if (current != null) {
+                    actualizarMenuLateralParaFragment(current)
+                    if (current is RoleAwareFragment) {
+                        current.onUserModeChanged()
+                    }
+                }
+                drawerLayout.closeDrawer(GravityCompat.START)
+                Toast.makeText(this, "Modo paciente activado", Toast.LENGTH_SHORT).show()
+            } else {
+                mostrarDialogoAdministrarPerfiles()
+                drawerLayout.closeDrawer(GravityCompat.START)
+
+            }
+        }
+        btnExportar.setOnClickListener {
+
+            val fragment =
+                supportFragmentManager.findFragmentById(R.id.fragment_container)
+
+            when (fragment) {
+                is HomeFragment -> fragment.mostrarDialogoSeleccionarElementos()
+                is Recientes -> fragment.mostrarDialogoSeleccionarElementos()
+                is CategoriaDetalleFragment -> fragment.mostrarDialogoSeleccionarElementos()
+            }
+
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnImportar.setOnClickListener {
+            val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            when (fragment) {
+                is HomeFragment -> fragment.importarArchivos()
+                is Recientes -> fragment.importarArchivos()
+                is Listas -> fragment.importarArchivos()
+            }
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnPapelera.setOnClickListener {
+
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, PapeleraFragment())
+                .addToBackStack(null)
+                .commit()
+
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnEliminar.setOnClickListener {
+            withHomeFragment { solicitarContrasena() }
+            val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            when (fragment) {
+                is Recientes -> fragment.solicitarContrasena()
+                is HomeFragment -> fragment.solicitarContrasena()
+                else ->
+                    Toast.makeText(this, "Fragmento no compatible", Toast.LENGTH_SHORT).show()
+            }
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+        /////////////////////////// funciones menu lateral ///////////////////////////
 
 
         drawerLayout.post {
@@ -188,7 +316,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 }
             }
 
-            navigationView.menu.close()
+            //navigationView.menu.close()
             navigationView.invalidate()
             navigationView.requestLayout()
         }
@@ -359,7 +487,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
     fun actualizarMenuLateralParaFragment(fragment: Fragment) {
 
-        val menu = navigationView.menu
+       // val menu = navigationView.menu
 
         // =========================
         // Permisos por rol
@@ -377,12 +505,19 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         val canSeeControlParental = canDelete || canEdit || canTrash
         // padre
-        menu.findItem(R.id.nav_control_parental)?.isVisible =canSeeControlParental
-        // hijos
-        menu.findItem(R.id.nav_proteger)?.isVisible =canSeeControlParental
-        menu.findItem(R.id.nav_editar)?.isVisible =  canEdit
-        menu.findItem(R.id.nav_eliminar)?.isVisible =canDelete
-        menu.findItem(R.id.nav_papelera)?.isVisible =canTrash
+//        menu.findItem(R.id.nav_control_parental)?.isVisible =canSeeControlParental
+//        // hijos
+//        menu.findItem(R.id.nav_proteger)?.isVisible =canSeeControlParental
+//        menu.findItem(R.id.nav_editar)?.isVisible =  canEdit
+//        menu.findItem(R.id.nav_eliminar)?.isVisible =canDelete
+//        menu.findItem(R.id.nav_papelera)?.isVisible =canTrash
+
+      //  btnProteger.isVisible = canSeeControlParental
+        btnEditar.isVisible = canEdit
+        btnEliminar.isVisible = canDelete
+        btnPapelera.isVisible = canTrash
+        tvControlParental.isVisible = canSeeControlParental
+        dividerControlParental.isVisible = canSeeControlParental
 
 //        menu.findItem(R.id.nav_usuario_a)?.isChecked =
 //            sessionManager.getCurrentUserId() == SessionManager.LOCAL_USER_A
@@ -394,16 +529,25 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // IMPORT / EXPORT
         // =========================
 
-        menu.findItem(R.id.exportar_archivos)?.isVisible = canImportExport
-        menu.findItem(R.id.importar_archivos)?.isVisible = canImportExport
+//        menu.findItem(R.id.exportar_archivos)?.isVisible = canImportExport
+//        menu.findItem(R.id.importar_archivos)?.isVisible = canImportExport
+        btnExportar.isVisible = canImportExport
+        btnImportar.isVisible = canImportExport
 
         // =========================
         // PERFILES
         // =========================
 
-        menu.findItem(R.id.nav_administrar_perfiles)?.isVisible =canManageProfiles
+        //menu.findItem(R.id.nav_administrar_perfiles)?.isVisible =canManageProfiles
+        btnAdministrarPerfiles.isVisible = canManageProfiles
 
-        menu.findItem(R.id.nav_administrar_perfiles)?.title =
+//        menu.findItem(R.id.nav_administrar_perfiles)?.title =
+//            if (sessionManager.isTutor()) {
+//                "Volver a modo paciente"
+//            } else {
+//                "Administrar perfiles"
+//            }
+        btnAdministrarPerfiles.text =
             if (sessionManager.isTutor()) {
                 "Volver a modo paciente"
             } else {
@@ -415,9 +559,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         // del fragment
         // =========================
 
-        if (fragment is DrawerMenuConfig) {
-            fragment.configureDrawerMenu(menu)
-        }
+//        if (fragment is DrawerMenuConfig) {
+//            fragment.configureDrawerMenu(menu)
+//        }
 
 
 
@@ -1237,7 +1381,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
     }
 
 
-    private fun mostrarDialogoCuentaActiva(
+  /*  private fun mostrarDialogoCuentaActiva(
         email: String
     ) {
 
@@ -1261,7 +1405,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 refrescarEstadoSesion()            }
             .setNegativeButton("Cancelar", null)
             .show()
-    }
+    }*/
 
     private fun mostrarDialogoLogin() {
 
@@ -1301,6 +1445,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 return@setOnClickListener
             }
 
+            val loading = mostrarDialogoCarga()
+
             lifecycleScope.launch {
                 try {
                     //AuthSessionManager(this@MainActivity).loginAndAdoptLocalData(email, password)
@@ -1312,12 +1458,21 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     CloudSyncRepository(this@MainActivity)
                         .downloadAll()
 
-                    Toast.makeText(this@MainActivity, "Sesión iniciada", Toast.LENGTH_SHORT).show()
+                    loading.dismiss()
+
+                    mostrarSnackbar(
+                        "Sesión iniciada correctamente",
+                        TipoSnackbar.EXITO
+                    )
                     dialog.dismiss()
                     refrescarEstadoSesion()
                     SyncEvents.notifyDataChanged()
                 } catch (e: Exception) {
-                    Toast.makeText(this@MainActivity, "Error al iniciar sesión: ${e.message}", Toast.LENGTH_LONG).show()
+                    mostrarSnackbar(
+                        "Error al iniciar sesión: ${e.message}",
+                        TipoSnackbar.ERROR
+                    )
+                    loading.dismiss()
                 }
             }
         }
@@ -1333,10 +1488,14 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             lifecycleScope.launch {
                 try {
                     AuthSessionManager(this@MainActivity).sendPasswordReset(email)
-                    Toast.makeText(this@MainActivity, "Te enviamos un email para recuperar la contraseña", Toast.LENGTH_LONG).show()
-                } catch (e: Exception) {
-                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                }
+                    mostrarSnackbar(
+                        "Te enviamos un correo para recuperar la contraseña",
+                        TipoSnackbar.EXITO
+                    )                } catch (e: Exception) {
+                    mostrarSnackbar(
+                        e.message ?: "Ocurrió un error",
+                        TipoSnackbar.ERROR
+                    )                }
             }
         }
 
@@ -1393,6 +1552,67 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         dialog.show()
     }
 
+    private fun mostrarDialogoCerrarSesion() {
+
+        val dialogView = layoutInflater.inflate(R.layout.login_dialog_logout, null)
+        val btnCerrarSesion = dialogView.findViewById<MaterialButton>(R.id.btnCerrarSesion)
+        val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
+
+        val dialog =
+            AlertDialog.Builder(this, R.style.ThemeOverlay_Comunic_AlertDialog)
+                .setView(dialogView)
+                .create()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        btnCerrarSesion.setOnClickListener {
+
+            AuthSessionManager(this).logout()
+
+            refrescarEstadoSesion()
+            SyncEvents.notifyDataChanged()
+
+            mostrarSnackbar(
+                "Sesión cerrada correctamente",
+                TipoSnackbar.EXITO
+            )
+
+            dialog.dismiss()
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun mostrarDialogoCarga(): AlertDialog {
+
+        val view = layoutInflater.inflate(
+            R.layout.login_dialog_loading,
+            null
+        )
+
+        val dialog =
+            AlertDialog.Builder(
+                this,
+                R.style.ThemeOverlay_Comunic_AlertDialog
+            )
+                .setView(view)
+                .create()
+
+        dialog.setCancelable(false)
+        dialog.window?.setBackgroundDrawable(
+            ColorDrawable(Color.TRANSPARENT)
+        )
+
+        dialog.show()
+
+        return dialog
+    }
+
+
     private fun actualizarSaludoCuenta() {
 
         val saludo = findViewById<TextView>(R.id.txtSaludoCuenta)
@@ -1421,7 +1641,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
     private fun actualizarBloqueCuentaMenu() {
 
-        val menu = navigationView.menu
+        //val menu = navigationView.menu
         val authSessionManager = AuthSessionManager(this)
         val email = authSessionManager.getCurrentEmail()
         Log.d(
@@ -1430,20 +1650,56 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         )
         val nombre = sessionManager.getDisplayName()
 
+//        if (!email.isNullOrBlank()) {
+//
+//            menu.findItem(R.id.nav_cuenta_info)?.title =  if (!nombre.isNullOrBlank()) nombre else "Cuenta activa"
+//            menu.findItem(R.id.nav_cuenta_email)?.title =  email
+//            menu.findItem(R.id.nav_cuenta_email)?.isVisible =true
+//            menu.findItem(R.id.nav_sincronizar)?.isVisible = true
+//            menu.findItem(R.id.nav_download)?.isVisible = true
+//            menu.findItem(R.id.nav_cuenta_accion)?.title =  "Cerrar sesión"
+//        } else {
+//            menu.findItem(R.id.nav_cuenta_info)?.title =  "Sin iniciar sesión"
+//            menu.findItem(R.id.nav_cuenta_email)?.isVisible = false
+//            menu.findItem(R.id.nav_sincronizar)?.isVisible = false
+//            menu.findItem(R.id.nav_download)?.isVisible = false
+//            menu.findItem(R.id.nav_cuenta_accion)?.title = "Iniciar sesión / Crear cuenta"
+//        }
         if (!email.isNullOrBlank()) {
 
-            menu.findItem(R.id.nav_cuenta_info)?.title =  if (!nombre.isNullOrBlank()) nombre else "Cuenta activa"
-            menu.findItem(R.id.nav_cuenta_email)?.title =  email
-            menu.findItem(R.id.nav_cuenta_email)?.isVisible =true
-            menu.findItem(R.id.nav_sincronizar)?.isVisible = true
-            menu.findItem(R.id.nav_download)?.isVisible = true
-            menu.findItem(R.id.nav_cuenta_accion)?.title =  "Cerrar sesión"
+            txtCuenta.text =
+                if (!nombre.isNullOrBlank())
+                    nombre
+                else
+                    "Cuenta activa"
+
+            txtEmail.text = email
+            txtEmail.isVisible = true
+
+            btnLogin.isVisible = false
+            btnSignup.isVisible = false
+
+            btnSincronizar.isVisible = true
+            btnDownload.isVisible = true
+            btnCerrarSesion.isVisible = true
+            imgPerfil.setImageResource(R.drawable.ic_person)
+
+
+
         } else {
-            menu.findItem(R.id.nav_cuenta_info)?.title =  "Sin iniciar sesión"
-            menu.findItem(R.id.nav_cuenta_email)?.isVisible = false
-            menu.findItem(R.id.nav_sincronizar)?.isVisible = false
-            menu.findItem(R.id.nav_download)?.isVisible = false
-            menu.findItem(R.id.nav_cuenta_accion)?.title = "Iniciar sesión / Crear cuenta"
+
+            txtCuenta.text = "Sin iniciar sesión"
+
+            txtEmail.isVisible = false
+
+            btnLogin.isVisible = true
+            btnSignup.isVisible = true
+
+            btnSincronizar.isVisible = false
+            btnDownload.isVisible = false
+            btnCerrarSesion.isVisible = false
+            imgPerfil.setImageResource(R.drawable.bicom_logo2)
+
         }
     }
 

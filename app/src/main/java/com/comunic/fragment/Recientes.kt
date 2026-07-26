@@ -489,6 +489,8 @@ class Recientes : Fragment(),
             val mediaItems =
                 db.mediaDao()
                     .getActiveMediaForUser(userId)
+
+
             val userMediaAsItems = mediaItems.map { media ->
 //                ItemLista(
 //                    id = ItemKey.media(media.displayName), // temporal: compatibilidad con listas existentes
@@ -519,10 +521,16 @@ class Recientes : Fragment(),
             listaDeArchivos.addAll(pictosAsItems)
 
             // 4) Notificar
+            // 4) Notificar
             mediaAdapter.notifyDataSetChanged()
 
             withContext(Dispatchers.Main) {
+
                 aplicarOrdenActual()
+
+                val tieneContenidoPropio = mediaItems.isNotEmpty()
+
+                actualizarEstadoVacio(tieneContenidoPropio)
             }
         }
     }
@@ -2095,6 +2103,15 @@ class Recientes : Fragment(),
                 )
             }
         }
+    }
+
+    private fun actualizarEstadoVacio(tieneContenido: Boolean) {
+
+        binding.emptyState.root.visibility =
+            if (tieneContenido) View.GONE else View.VISIBLE
+
+        binding.recyclerView.visibility =
+            if (tieneContenido) View.VISIBLE else View.GONE
     }
 
     companion object {

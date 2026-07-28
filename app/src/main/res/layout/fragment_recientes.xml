@@ -24,7 +24,7 @@
             android:id="@+id/cancelSelectionButton"
             android:layout_width="45dp"
             android:layout_height="45dp"
-            android:drawableBottom="@android:drawable/ic_menu_revert"
+            android:drawableBottom="@drawable/ic_arrow_back"
             android:layout_marginEnd="8dp"
             android:backgroundTint="@color/color5"
             android:textColor="@android:color/white" />

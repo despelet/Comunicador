@@ -32,13 +32,20 @@ ORDER BY orderIndex ASC
     // ===== Category items (placements) =====
 
     // Traer itemKeys de una categoría para armar el recycler del detalle
+    //categorías del sistema → ignoran ownerUserId
+    //categorías del usuario → siguen filtrando por usuario
     @Query("""
-    SELECT itemKey
-    FROM category_items
-    WHERE categoryId = :categoryId
-      AND isDeleted = 0
-      AND ownerUserId = :userId
-    ORDER BY orderIndex ASC
+SELECT ci.itemKey
+FROM category_items ci
+JOIN categories c
+    ON c.categoryId = ci.categoryId
+WHERE ci.categoryId = :categoryId
+  AND ci.isDeleted = 0
+  AND (
+        c.isSystem = 1
+        OR ci.ownerUserId = :userId
+      )
+ORDER BY ci.orderIndex ASC
 """)
     suspend fun getItemKeysForCategory(
         categoryId: String,
@@ -47,11 +54,16 @@ ORDER BY orderIndex ASC
 
     // Para calcular el próximo orderIndex al agregar
     @Query("""
-    SELECT COALESCE(MAX(orderIndex), -1)
-    FROM category_items
-    WHERE categoryId = :categoryId
-      AND isDeleted = 0
-      AND ownerUserId = :userId
+SELECT COALESCE(MAX(ci.orderIndex), -1)
+FROM category_items ci
+JOIN categories c
+    ON c.categoryId = ci.categoryId
+WHERE ci.categoryId = :categoryId
+  AND ci.isDeleted = 0
+  AND (
+        c.isSystem = 1
+        OR ci.ownerUserId = :userId
+      )
 """)
     suspend fun getMaxOrderIndex(
         categoryId: String,
@@ -78,14 +90,18 @@ ORDER BY orderIndex ASC
 
     // Para mostrar el nombre de la categoría aunque no tenga items, trayendo el itemKey del primer item para usarlo en el detalle de la categoría
     @Query("""
-    SELECT placementId
-    FROM category_items
-    WHERE categoryId = :categoryId
-      AND itemKey = :itemKey
-      AND isDeleted = 0
-      AND ownerUserId = :userId
-    ORDER BY orderIndex ASC
-    LIMIT 1
+SELECT ci.placementId
+FROM category_items ci
+JOIN categories c
+    ON c.categoryId = ci.categoryId
+WHERE ci.categoryId = :categoryId
+  AND ci.itemKey = :itemKey
+  AND ci.isDeleted = 0
+  AND (
+        c.isSystem = 1
+        OR ci.ownerUserId = :userId
+      )
+LIMIT 1
 """)
     suspend fun findPlacementId(
         categoryId: String,
@@ -119,15 +135,19 @@ ORDER BY c.orderIndex ASC
 
     // Para mostrar el ícono de check en el detalle del item si pertenece a la categoría
     @Query("""
-    SELECT EXISTS(
-        SELECT 1
-        FROM category_items
-        WHERE categoryId = :categoryId
-          AND itemKey = :itemKey
-          AND isDeleted = 0
-          AND ownerUserId = :userId
-        LIMIT 1
-    )
+SELECT EXISTS(
+    SELECT 1
+    FROM category_items ci
+    JOIN categories c
+        ON c.categoryId = ci.categoryId
+    WHERE ci.categoryId = :categoryId
+      AND ci.itemKey = :itemKey
+      AND ci.isDeleted = 0
+      AND (
+            c.isSystem = 1
+            OR ci.ownerUserId = :userId
+          )
+)
 """)
     suspend fun existsItemInCategory(
         categoryId: String,
@@ -143,17 +163,25 @@ ORDER BY c.orderIndex ASC
 
     // para que e actualice en el momento el litado de listas al agregar o quitar un item
     @Query("""
-SELECT c.categoryId AS categoryId,
-       c.name       AS name
+SELECT DISTINCT
+    c.categoryId,
+    c.name
 FROM categories c
-LEFT JOIN installed_packs ip ON ip.packId = c.packId
-JOIN category_items ci ON ci.categoryId = c.categoryId 
-WHERE ci.itemKey = :itemKey 
+JOIN category_items ci
+    ON ci.categoryId = c.categoryId
+WHERE ci.itemKey = :itemKey
+  AND ci.isDeleted = 0
   AND c.isDeleted = 0
-  AND (c.isSystem = 0 OR COALESCE(ip.enabled, 1) = 1)
-ORDER BY c.orderIndex ASC
+  AND (
+        c.isSystem = 1
+        OR ci.ownerUserId = :userId
+      )
+ORDER BY c.orderIndex
 """)
-    fun observeCategoriesForItemKey(itemKey: String): Flow<List<CategoryMiniRow>>
+    fun observeCategoriesForItemKey(
+        itemKey: String,
+        userId: String
+    ): Flow<List<CategoryMiniRow>>
 
     @Query("""
   SELECT * FROM categories
@@ -363,4 +391,22 @@ ORDER BY orderIndex ASC
         userId: String
     ):List<CategoryItemEntity>
 
+//    @Query("""
+//SELECT *
+//FROM category_items
+//WHERE categoryId = :categoryId
+//""")
+//    suspend fun debugCategoryItems(
+//        categoryId: String
+//    ): List<CategoryItemEntity>
+
+//    @Query("""
+//SELECT itemKey
+//FROM category_items
+//WHERE categoryId = :categoryId
+//ORDER BY orderIndex
+//""")
+//    suspend fun getItemKeysForCategoryDebug(
+//        categoryId: String
+//    ): List<String>
 }

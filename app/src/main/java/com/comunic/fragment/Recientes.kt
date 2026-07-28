@@ -602,22 +602,46 @@ class Recientes : Fragment(),
 
     fun solicitarContrasena() {
 
-        // si ya tengo los permisos, no necesito solicitar la contraseña
-        val sessionManager = SessionManager(requireContext())
-        val permissionManager = PermissionManager(sessionManager)
+        val view = layoutInflater.inflate(R.layout.dialog_contrasena, null)
 
-        if (!permissionManager.canDeleteMedia()) {
+        val editPassword = view.findViewById<TextInputEditText>(R.id.editPassword)
+        val btnAceptar = view.findViewById<MaterialButton>(R.id.btnAceptar)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrar)
 
-            Toast.makeText(
-                requireContext(),
-                "No tenés permisos para eliminar",
-                Toast.LENGTH_SHORT
-            ).show()
+        val dialog = AlertDialog.Builder(
+            requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setView(view)
+            .create()
 
-            return
+        dialog.show()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+        dialog.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
+
+        btnAceptar.setOnClickListener {
+
+            val password = editPassword.text.toString()
+
+            if (password == "1234") {
+                dialog.dismiss()
+                activarModoEliminacion()
+            } else {
+                editPassword.error = "Contraseña incorrecta"
+            }
         }
 
-        activarModoEliminacion()
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
+            dialog.dismiss()
+        }
     }
 
     private var modoEliminacionActivo = false
@@ -629,18 +653,60 @@ class Recientes : Fragment(),
     }
 
     override fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>) {
-        AlertDialog.Builder(requireContext(),
+
+        val view = layoutInflater.inflate(
+            R.layout.dialog_confirmar_eliminacion,
+            null
+        )
+
+        val txtMensaje = view.findViewById<TextView>(R.id.txtMensaje)
+        val btnEliminar = view.findViewById<MaterialButton>(R.id.btnEliminar)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrar)
+
+        txtMensaje.text =
+            "Se eliminarán ${seleccionados.size} elementos.\n\n¿Deseás continuar?"
+
+        val dialog = AlertDialog.Builder(
+            requireContext(),
             R.style.ThemeOverlay_Comunic_AlertDialog
         )
-            .setTitle("¿Eliminar elementos seleccionados?")
-            .setMessage("Se eliminarán ${seleccionados.size} elementos. ¿Desea continuar?")
-            .setPositiveButton("Eliminar") { _, _ ->
-                eliminarElementosSeleccionados(seleccionados)
-            }
-            .setNegativeButton("Cancelar") { _, _ ->
-                cancelarModoEliminacion()
-            }
-            .show()
+            .setView(view)
+            .create()
+
+        dialog.show()
+
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+
+        dialog.window?.setLayout(
+            width,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        dialog.setCancelable(false)
+
+        btnEliminar.setOnClickListener {
+
+            dialog.dismiss()
+            eliminarElementosSeleccionados(seleccionados)
+
+        }
+
+        btnCancelar.setOnClickListener {
+
+            dialog.dismiss()
+            cancelarModoEliminacion()
+
+        }
+
+        btnCerrar.setOnClickListener {
+
+            dialog.dismiss()
+            cancelarModoEliminacion()
+
+        }
     }
 
     private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {

@@ -26,6 +26,7 @@ import com.comunic.R
 import com.comunic.data.dao.CategoryDao
 import com.comunic.data.db.AppDatabase
 import com.comunic.databinding.CuadroImagenBinding
+import com.comunic.session.SessionManager
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -570,9 +571,10 @@ class CuadroImagen : DialogFragment() {
         catsJob?.cancel()
         catsJob = viewLifecycleOwner.lifecycleScope.launch {
             val itemKey = withContext(Dispatchers.IO) { normalizarItemKey(item.id) }
+            val userId = SessionManager(requireContext()).getCurrentUserId()
 
             db.categoryDao()
-                .observeCategoriesForItemKey(itemKey)
+                .observeCategoriesForItemKey(itemKey, userId)
                 .collect { cats ->
                     Log.d(
                         "CUADRO_CATS_FLOW",

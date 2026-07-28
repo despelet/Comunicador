@@ -177,6 +177,10 @@ class CategoriaDetalleFragment :
         binding.txtTitulo.text = categoryName
         val activity = activity as? MainActivity
 
+        binding.btnVolver.setOnClickListener {
+            parentFragmentManager.popBackStack()
+        }
+
         binding.btnAgregarElemento.setOnClickListener {
             abrirSelectorParaAgregar(categoryId)
         }
@@ -318,14 +322,24 @@ class CategoriaDetalleFragment :
     private fun loadCategory(categoryId: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             val keys = withContext(Dispatchers.IO) {
-                val userId =
-                    SessionManager(requireContext())
-                        .getCurrentUserId()
+
+                val userId = SessionManager(requireContext()).getCurrentUserId()
+
+                Log.d("CAT_DEBUG", "categoryId=$categoryId")
+                Log.d("CAT_DEBUG", "userId=$userId")
 
                 db.categoryDao().getItemKeysForCategory(
                     categoryId,
                     userId
                 )
+                //db.categoryDao().getItemKeysForCategoryDebug(categoryId)
+            }
+
+            Log.d("CAT_DEBUG", "====================")
+            Log.d("CAT_DEBUG", "category=$categoryName")
+            Log.d("CAT_DEBUG", "keys=${keys.size}")
+            keys.forEach {
+                Log.d("CAT_DEBUG", "KEY -> $it")
             }
             Log.d("CAT_DEBUG", "keys=${keys.joinToString()}")
 
@@ -336,13 +350,28 @@ class CategoriaDetalleFragment :
 //            }
             val items = withContext(Dispatchers.IO) {
                 keys.mapNotNull { key ->
-                    if (isSystemCategory && !isPackEnabled) {
-                        resolveItemKeyToItemListaAllowDisabled(requireContext(), key)
-                    } else {
-                        resolveItemKeyToItemLista(requireContext(), key)
-                    }
+
+                    val item =
+                        if (isSystemCategory && !isPackEnabled) {
+                            resolveItemKeyToItemListaAllowDisabled(requireContext(), key)
+                        } else {
+                            resolveItemKeyToItemLista(requireContext(), key)
+                        }
+
+                    Log.d(
+                        "CAT_DEBUG",
+                        "RESOLVE $key -> ${item != null}"
+                    )
+
+                    item
                 }
             }
+
+            Log.d("CAT_DEBUG", "ITEMS=${items.size}")
+
+            val userId = SessionManager(requireContext()).getCurrentUserId()
+
+            Log.d("CAT_DEBUG", "user=$userId")
 
             listaDeArchivos.clear()
             listaDeArchivos.addAll(items)

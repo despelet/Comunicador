@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
@@ -25,6 +27,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -1181,25 +1184,47 @@ class HomeFragment : Fragment(),
     }
 
     fun solicitarContrasena() {
-        val builder = AlertDialog.Builder(requireContext(),
+
+        val view = layoutInflater.inflate(R.layout.dialog_contrasena, null)
+
+        val editPassword = view.findViewById<TextInputEditText>(R.id.editPassword)
+        val btnAceptar = view.findViewById<MaterialButton>(R.id.btnAceptar)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrar)
+
+        val dialog = AlertDialog.Builder(
+            requireContext(),
             R.style.ThemeOverlay_Comunic_AlertDialog
         )
-        builder.setTitle("Ingrese la contraseña")
+            .setView(view)
+            .create()
 
-        val input = EditText(requireContext())
-        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        builder.setView(input)
+        dialog.show()
 
-        builder.setPositiveButton("Aceptar") { _, _ ->
-            val passwordIngresada = input.text.toString()
-            if (passwordIngresada == "1234") { // Reemplaza con la contraseña correcta
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+        dialog.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
+
+        btnAceptar.setOnClickListener {
+
+            val password = editPassword.text.toString()
+
+            if (password == "1234") {
+                dialog.dismiss()
                 activarModoEliminacion()
             } else {
-                Toast.makeText(requireContext(), "Contraseña incorrecta", Toast.LENGTH_SHORT).show()
+                editPassword.error = "Contraseña incorrecta"
             }
         }
-        builder.setNegativeButton("Cancelar") { dialog, _ -> dialog.cancel() }
-        builder.show()
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
+            dialog.dismiss()
+        }
     }
 
     private var modoEliminacionActivo = false

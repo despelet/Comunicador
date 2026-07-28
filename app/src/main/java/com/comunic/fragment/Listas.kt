@@ -15,6 +15,7 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -298,7 +299,7 @@ class Listas : Fragment(), MenuHandler,
 //            .addToBackStack(null)
 //            .commit()
 //    }
-private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
+    private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
     parentFragmentManager.beginTransaction()
         .replace(
             R.id.fragment_container,
@@ -470,49 +471,138 @@ private fun abrirCategoriaDetalle(categoryId: String, categoryName: String) {
 
     private fun mostrarOpcionesCategoria(cat: CategoryPreview) {
 
-        Log.d("LISTAS_DEBUG", "LongClick cat=${cat.name} id=${cat.categoryId} isSystem=${cat.isSystem} packId=${cat.packId} packEnabled=${cat.packEnabled}")
+        Log.d(
+            "LISTAS_DEBUG",
+            "LongClick cat=${cat.name} id=${cat.categoryId} isSystem=${cat.isSystem} packId=${cat.packId} packEnabled=${cat.packEnabled}"
+        )
+
+        if (!cat.isSystem && !puedeEliminarListas()) return
+
+        // =========================
+        // DIÁLOGO DE OPCIONES
+        // =========================
+
+        val opcionesView = layoutInflater.inflate(
+            R.layout.dialog_opciones_categoria,
+            null
+        )
+
+        val txtTitulo = opcionesView.findViewById<TextView>(R.id.txtTitulo)
+        val txtAccion = opcionesView.findViewById<TextView>(R.id.txtAccion)
+        val imgAccion = opcionesView.findViewById<ImageView>(R.id.imgAccion)
+        val opcionPrincipal = opcionesView.findViewById<View>(R.id.opcionPrincipal)
+        val btnCancelar = opcionesView.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnCerrar = opcionesView.findViewById<ImageButton>(R.id.btnCerrar)
+
+        txtTitulo.text = cat.name
 
         if (cat.isSystem) {
-            val titulo = cat.name
-            val opciones = if (cat.packEnabled) {
-                arrayOf("Desactivar pack")
+            if (cat.packEnabled) {
+                txtAccion.text = "Deshabilitar pack"
+                imgAccion.setImageResource(R.drawable.ic_visibility_off)
             } else {
-                arrayOf("Habilitar pack")
+                txtAccion.text = "Habilitar pack"
+                imgAccion.setImageResource(R.drawable.ic_check_circle)
             }
-
-
-            AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-                .setTitle(titulo)
-                .setItems(opciones) { _, which ->
-                    when {
-                        cat.packEnabled -> deshabilitarPack(cat.packId)
-                        else -> habilitarPack(cat.packId)
-                    }
-                }
-                .setNegativeButton("Cancelar", null)
-                .show()
-
-            return
+        } else {
+            txtAccion.text = "Eliminar lista"
+            imgAccion.setImageResource(R.drawable.ic_delete)
         }
 
-        // USER: eliminar lista
-        if (!puedeEliminarListas()) return
+        val dialogOpciones = AlertDialog.Builder(
+            requireContext(),
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setView(opcionesView)
+            .create()
 
-        AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-            .setTitle(cat.name)
-            .setItems(arrayOf("Eliminar lista")) { _, _ ->
+        dialogOpciones.show()
 
-                AlertDialog.Builder(requireContext(), R.style.ThemeOverlay_Comunic_AlertDialog)
-                    .setTitle("Eliminar lista")
-                    .setMessage("¿Seguro que querés eliminar \"${cat.name}\"?")
-                    .setPositiveButton("Eliminar") { _, _ ->
-                        eliminarCategoria(cat.categoryId)
-                    }
-                    .setNegativeButton("Cancelar", null)
-                    .show()
+        dialogOpciones.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialogOpciones.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.85).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        opcionPrincipal.setOnClickListener {
+
+            dialogOpciones.dismiss()
+
+            // =========================
+            // PACK
+            // =========================
+
+            if (cat.isSystem) {
+
+                if (cat.packEnabled) {
+                    deshabilitarPack(cat.packId)
+                } else {
+                    habilitarPack(cat.packId)
+                }
+
+                return@setOnClickListener
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+
+            // =========================
+            // CONFIRMAR ELIMINAR LISTA
+            // =========================
+
+            val confirmarView = layoutInflater.inflate(
+                R.layout.dialog_confirmar_eliminar_lista,
+                null
+            )
+
+            val txtMensaje =
+                confirmarView.findViewById<TextView>(R.id.txtMensaje)
+
+            val btnEliminar =
+                confirmarView.findViewById<MaterialButton>(R.id.btnEliminar)
+
+            val btnCancelar2 =
+                confirmarView.findViewById<MaterialButton>(R.id.btnCancelar)
+
+            val btnCerrar2 =
+                confirmarView.findViewById<ImageButton>(R.id.btnCerrar)
+
+            txtMensaje.text =
+                "¿Seguro que querés eliminar la lista\n\n\"${cat.name}\"?\n\nEsta acción no se puede deshacer."
+
+            val dialogEliminar = AlertDialog.Builder(
+                requireContext(),
+                R.style.ThemeOverlay_Comunic_AlertDialog
+            )
+                .setView(confirmarView)
+                .create()
+
+            dialogEliminar.show()
+
+            dialogEliminar.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            dialogEliminar.window?.setLayout(
+                (resources.displayMetrics.widthPixels * 0.85).toInt(),
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+
+            btnEliminar.setOnClickListener {
+                dialogEliminar.dismiss()
+                eliminarCategoria(cat.categoryId)
+            }
+
+            btnCancelar2.setOnClickListener {
+                dialogEliminar.dismiss()
+            }
+
+            btnCerrar2.setOnClickListener {
+                dialogEliminar.dismiss()
+            }
+        }
+
+        btnCancelar.setOnClickListener {
+            dialogOpciones.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
+            dialogOpciones.dismiss()
+        }
     }
 
     private fun deshabilitarPack(packId: String) {

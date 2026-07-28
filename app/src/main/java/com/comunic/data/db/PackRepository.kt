@@ -68,6 +68,11 @@ class PackRepository(
             corePack.version >= 3 &&
             foodPack.version >= 3
         ) {
+            val countCore = db.categoryDao().getItemKeysForCategory("basic_core", "local_user").size
+            val countFood = db.categoryDao().getItemKeysForCategory("basic_food", "local_user").size
+
+            Log.d("PACK_TEST", "core local=$countCore")
+            Log.d("PACK_TEST", "food local=$countFood")
             return
         }
 
@@ -169,49 +174,6 @@ class PackRepository(
         db.pictogramDao().insertPlacements(foodPlacements)
 
     }
-
-//    private suspend fun ensurePackRow(packId: String, now: Long) {
-//        val dao = db.installedPackDao()
-//        val existing = dao.get(packId)
-//        if (existing == null) {
-//            dao.upsert(
-//                InstalledPackEntity(
-//                    packId = packId,
-//                    version = 1,
-//                    installedAt = now,
-//                    enabled = true,
-//                    isSystem = true
-//                )
-//            )
-//        } else {
-//            dao.upsert(existing.copy(isSystem = true)) // no lo fuerces a enabled=true acá
-//        }
-//    }
-
-//    private suspend fun ensurePackRow(packId: String, now: Long) {
-//
-//        val dao = db.installedPackDao()
-//        val existing = dao.get(packId)
-//
-//        if (existing == null) {
-//            dao.insert(
-//                InstalledPackEntity(
-//                    packId = packId,
-//                    version = 1,
-//                    installedAt = now,
-//                    enabled = true,
-//                    isSystem = true
-//                )
-//            )
-//        } else {
-//            // mantener preferencias del usuario
-//            dao.update(
-//                existing.copy(
-//                    isSystem = true
-//                )
-//            )
-//        }
-//    }
 
     private suspend fun ensurePackRow(
         packId: String,

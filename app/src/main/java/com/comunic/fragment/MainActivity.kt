@@ -40,6 +40,7 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
@@ -59,6 +60,7 @@ import java.io.FileOutputStream
 import java.util.UUID
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.isVisible
+import androidx.core.widget.doOnTextChanged
 import com.comunic.AddToListHost
 import com.comunic.ItemKey
 import com.comunic.ItemLista
@@ -79,6 +81,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.imageview.ShapeableImageView
 import kotlinx.coroutines.withContext
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -249,7 +252,10 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     }
                 }
                 drawerLayout.closeDrawer(GravityCompat.START)
-                Toast.makeText(this, "Modo paciente activado", Toast.LENGTH_SHORT).show()
+                mostrarSnackbar(
+                    "Modo paciente activado",
+                    TipoSnackbar.ADVERTENCIA
+                )
             } else {
                 mostrarDialogoAdministrarPerfiles()
                 drawerLayout.closeDrawer(GravityCompat.START)
@@ -1185,58 +1191,76 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
     private fun mostrarDialogoAdministrarPerfiles() {
 
-        val input = EditText(this).apply {
-            inputType =
-                InputType.TYPE_CLASS_TEXT or
-                        InputType.TYPE_TEXT_VARIATION_PASSWORD
-            hint = "Contraseña"
-        }
+        val view = layoutInflater.inflate(R.layout.dialog_administrar_perfiles, null)
 
-        AlertDialog.Builder(
+        val editPassword = view.findViewById<TextInputEditText>(R.id.editPassword)
+        val passwordLayout = view.findViewById<TextInputLayout>(R.id.passwordLayout)
+        val btnIngresar = view.findViewById<MaterialButton>(R.id.btnIngresar)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+        val btnCerrar = view.findViewById<ImageButton>(R.id.btnCerrar)
+
+        val dialog = AlertDialog.Builder(
             this,
             R.style.ThemeOverlay_Comunic_AlertDialog
         )
-            .setTitle("ADMINISTRAR PERFILES")
-            .setMessage("Ingresá la contraseña de tutor")
-            .setView(input)
-            .setPositiveButton("INGRESAR") { _, _ ->
+            .setView(view)
+            .create()
 
-                val password = input.text.toString()
+        dialog.show()
 
-                if (password == "1234") {
-                    sessionManager.activateTutorMode()
-                    val current =
-                        supportFragmentManager.findFragmentById(
-                            R.id.fragment_container
-                        )
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
 
-                    if (current != null) {
-                        actualizarMenuLateralParaFragment(current)
-                    }
+        val width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+        dialog.window?.setLayout(
+            width,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
 
-                    navigationView.menu.findItem(R.id.nav_administrar_perfiles)?.isChecked = false
-                    navigationView.menu.close()
-                    navigationView.invalidate()
-                    navigationView.requestLayout()
+        dialog.setCancelable(false)
 
-                    Toast.makeText(
-                        this,
-                        "Modo tutor activado",
-                        Toast.LENGTH_SHORT
-                    ).show()
+        btnIngresar.setOnClickListener {
 
-                } else {
-                    Toast.makeText(
-                        this,
-                        "Contraseña incorrecta",
-                        Toast.LENGTH_SHORT
-                    ).show()
+            val password = editPassword.text.toString()
+            if (password == "1234") {
+
+                dialog.dismiss()
+                sessionManager.activateTutorMode()
+                val current = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                current?.let {
+                    actualizarMenuLateralParaFragment(it)
+                }
+
+                navigationView.menu.findItem(R.id.nav_administrar_perfiles)?.isChecked = false
+                navigationView.menu.close()
+                navigationView.invalidate()
+                navigationView.requestLayout()
+
+                mostrarSnackbar(
+                    "Modo tutor activado",
+                    TipoSnackbar.EXITO
+                )
+
+            } else {
+
+                passwordLayout.error = "Contraseña incorrecta"
+                editPassword.requestFocus()
+                dialog.window?.setSoftInputMode(
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+                )
+                editPassword.doOnTextChanged { _, _, _, _ ->
+                    passwordLayout.error = null
                 }
             }
-            .setNegativeButton("CANCELAR", null)
-            .show()
-    }
+        }
 
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
+            dialog.dismiss()
+        }
+    }
     private fun cambiarUsuarioDebug(userId: String) {
 
         sessionManager.setCurrentUserId(userId)

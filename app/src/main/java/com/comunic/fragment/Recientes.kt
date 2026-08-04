@@ -265,6 +265,10 @@ class Recientes : Fragment(),
             (activity as? MainActivity)?.openGallery()
         }
 
+        binding.fabAgregar.setOnClickListener {
+            mostrarMenuAgregar(it)
+        }
+
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             if (modoEliminacionActivo) {
                 cancelarModoEliminacion()
@@ -2225,6 +2229,45 @@ class Recientes : Fragment(),
 
         binding.recyclerView.visibility =
             if (tieneContenido) View.VISIBLE else View.GONE
+    }
+
+    private fun mostrarMenuAgregar(anchor: View) {
+
+        val popupView = layoutInflater.inflate(R.layout.dialog_agregar_elemento, null)
+
+        val popup = PopupWindow(
+            popupView,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        )
+
+        popup.elevation = 12f
+
+        popupView.findViewById<View>(R.id.opCamara).setOnClickListener {
+            popup.dismiss()
+            (activity as? MainActivity)?.launchImageCapture()
+        }
+
+        popupView.findViewById<View>(R.id.opVideo).setOnClickListener {
+            popup.dismiss()
+            (activity as? MainActivity)?.launchVideoCapture()
+        }
+
+        popupView.findViewById<View>(R.id.opGaleria).setOnClickListener {
+            popup.dismiss()
+            (activity as? MainActivity)?.openGallery()
+        }
+
+        popupView.measure(
+            View.MeasureSpec.UNSPECIFIED,
+            View.MeasureSpec.UNSPECIFIED
+        )
+
+        val xOff = -(popupView.measuredWidth - anchor.width)
+        val yOff = -(popupView.measuredHeight + anchor.height + 16)
+
+        popup.showAsDropDown(anchor, xOff, yOff)
     }
 
     companion object {

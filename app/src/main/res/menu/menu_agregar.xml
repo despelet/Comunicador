@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/action_camara"
+        android:icon="@drawable/ic_camera"
+        android:title="Cámara"/>
+
+    <item
+        android:id="@+id/action_video"
+        android:icon="@drawable/ic_videocam"
+        android:title="Video"/>
+
+    <item
+        android:id="@+id/action_galeria"
+        android:icon="@drawable/ic_gallery"
+        android:title="Galería"/>
+
+</menu>

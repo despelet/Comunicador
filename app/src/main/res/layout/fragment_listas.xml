@@ -1,26 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/color5">
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
+        <!-- Título -->
+        <TextView
+            android:id="@+id/tituloCategorias"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Mis grupos"
+            android:textSize="22sp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:textAllCaps="true"
+            android:textStyle="bold"
+            android:textColor="@color/color1"
+            android:padding="16dp" />
 
-    <!-- Contenido central: solo el cartel de sección no disponible -->
-    <TextView
-        android:id="@+id/textoSeccionNoDisponible"
+        <!-- Recycler -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerCategorias"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:textAllCaps="true"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:padding="12dp"
+            android:paddingBottom="24dp" />
+
+    </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabNuevaLista"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="16dp"
-        android:text="Sección en desarrollo"
-        android:textSize="18sp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="2dp"
+        app:backgroundTint="@color/color9"
+        app:tint="@color/color5"
+        android:contentDescription="Nueva lista"
+        android:src="@android:drawable/ic_input_add" />
 
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

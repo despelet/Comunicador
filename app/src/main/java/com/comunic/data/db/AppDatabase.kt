@@ -1,0 +1,501 @@
+package com.comunic.data.db
+
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.migration.Migration
+import com.comunic.data.dao.CategoryDao
+import com.comunic.data.dao.InstalledPackDao
+import com.comunic.data.dao.ItemUsadoBucketDao
+import com.comunic.data.dao.ItemUsadoDao
+import com.comunic.data.dao.MediaDao
+import com.comunic.data.dao.PictogramDao
+import com.comunic.data.dao.UserProfileDao
+import com.comunic.data.entity.CategoryEntity
+import com.comunic.data.entity.CategoryItemEntity
+import com.comunic.data.entity.InstalledPackEntity
+import com.comunic.data.entity.ItemUsado
+import com.comunic.data.entity.ItemUsadoBucket
+import com.comunic.data.entity.MediaEntity
+import com.comunic.data.entity.PictogramEntity
+import com.comunic.data.entity.PictogramOverrideEntity
+import com.comunic.data.entity.UserProfileEntity
+
+@Database(
+    entities = [
+        ItemUsado::class,
+        ItemUsadoBucket::class,
+        InstalledPackEntity::class,
+        CategoryEntity::class,
+        PictogramEntity::class,
+        CategoryItemEntity::class,
+        PictogramOverrideEntity::class,
+        MediaEntity::class,
+        UserProfileEntity::class
+    ],
+    version = 17
+)
+abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun itemUsadoDao(): ItemUsadoDao // Agregado el DAO para ItemUsadoEntity
+    abstract fun itemUsadoBucketDao(): ItemUsadoBucketDao // Agregado el DAO para ItemUsadoBucketEntity
+
+    abstract fun installedPackDao(): InstalledPackDao // Agregado el DAO para InstalledPackEntity
+    abstract fun categoryDao(): CategoryDao // Agregado el DAO para CategoryEntity
+    abstract fun pictogramDao(): PictogramDao // Agregado el DAO para PictogramEntity
+
+    abstract fun mediaDao(): MediaDao // Agregado el DAO para MediaEntity
+
+    abstract fun userProfileDao():  UserProfileDao // Agregado el DAO para UserProfileEntity
+
+    companion object {
+        @Volatile private var INSTANCE: AppDatabase? = null
+
+        fun getDatabase(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "items_usados_db"
+                )
+                    .addMigrations(MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6,
+                        MIGRATION_6_7,
+                        MIGRATION_7_8,
+                        MIGRATION_8_9,
+                        MIGRATION_9_10,
+                        MIGRATION_10_11,
+                        MIGRATION_11_12,
+                        MIGRATION_12_13,
+                        MIGRATION_13_14,
+                        MIGRATION_14_15,
+                        MIGRATION_15_16,
+                        MIGRATION_16_17
+
+                    ).build()
+                INSTANCE = instance
+                instance
+            }
+        }
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS items_usados_bucket (
+                        nombreArchivo TEXT NOT NULL,
+                        bucketId INTEGER NOT NULL,
+                        cantidadDeUsos INTEGER NOT NULL,
+                        ultimaFechaUso INTEGER NOT NULL,
+                        PRIMARY KEY(nombreArchivo, bucketId)
+                    )
+                """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS installed_packs (
+                        packId TEXT NOT NULL PRIMARY KEY,
+                        version INTEGER NOT NULL,
+                        installedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS categories (
+                        categoryId TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        orderIndex INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS pictograms (
+                        pictogramId TEXT NOT NULL PRIMARY KEY,
+                        packId TEXT NOT NULL,
+                        baseLabel TEXT NOT NULL,
+                        baseImageUri TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS category_items (
+                        placementId TEXT NOT NULL PRIMARY KEY,
+                        categoryId TEXT NOT NULL,
+                        pictogramId TEXT NOT NULL,
+                        orderIndex INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                  CREATE INDEX IF NOT EXISTS index_category_items_categoryId_orderIndex
+                  ON category_items(categoryId, orderIndex)
+                """.trimIndent())
+
+                                db.execSQL("""
+                  CREATE INDEX IF NOT EXISTS index_category_items_pictogramId
+                  ON category_items(pictogramId)
+                """.trimIndent())
+
+
+                db.execSQL("""
+                      CREATE INDEX IF NOT EXISTS index_pictograms_packId
+                      ON pictograms(packId)
+                    """.trimIndent())
+
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS pictogram_overrides (
+                        pictogramId TEXT NOT NULL PRIMARY KEY,
+                        customLabel TEXT,
+                        customImageUri TEXT,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 1) Crear tabla nueva
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS category_items_new (
+                placementId TEXT NOT NULL,
+                categoryId TEXT NOT NULL,
+                itemKey TEXT NOT NULL,
+                orderIndex INTEGER NOT NULL,
+                PRIMARY KEY(placementId)
+            )
+        """.trimIndent())
+
+                // 2) Copiar datos viejos: pictogramId -> itemKey
+                db.execSQL("""
+            INSERT INTO category_items_new (placementId, categoryId, itemKey, orderIndex)
+            SELECT placementId, categoryId, 'PIC:' || pictogramId, orderIndex
+            FROM category_items
+        """.trimIndent())
+
+                // 3) Borrar vieja y renombrar
+                db.execSQL("DROP TABLE category_items")
+                db.execSQL("ALTER TABLE category_items_new RENAME TO category_items")
+
+                // 4) Re-crear índices
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_category_items_categoryId_orderIndex ON category_items(categoryId, orderIndex)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_category_items_itemKey ON category_items(itemKey)")
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+
+                // installed_packs: enabled + isSystem
+                db.execSQL("ALTER TABLE installed_packs ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE installed_packs ADD COLUMN isSystem INTEGER NOT NULL DEFAULT 0")
+
+                // categories: packId + isSystem + isDeleted
+                db.execSQL("ALTER TABLE categories ADD COLUMN packId TEXT NOT NULL DEFAULT 'user'")
+                db.execSQL("ALTER TABLE categories ADD COLUMN isSystem INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE categories ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0")
+
+                // índices útiles
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_installed_packs_enabled ON installed_packs(enabled)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_categories_packId ON categories(packId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_categories_isDeleted ON categories(isDeleted)")
+            }
+        }
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // borra el pack agrupador viejo que ya no usamos
+                db.execSQL("DELETE FROM installed_packs WHERE packId = 'basic'")
+            }
+        }
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+
+                // 1) Pasar pictos del pack viejo "basic" al nuevo pack correspondiente
+                db.execSQL("""
+            UPDATE pictograms
+            SET packId = 'basic_food'
+            WHERE packId = 'basic'
+              AND pictogramId LIKE 'food_%'
+        """.trimIndent())
+
+                db.execSQL("""
+            UPDATE pictograms
+            SET packId = 'basic_core'
+            WHERE packId = 'basic'
+              AND pictogramId LIKE 'basic_%'
+        """.trimIndent())
+
+                // 2) (opcional) si quedó alguno raro, mandalo a core por defecto
+                db.execSQL("""
+            UPDATE pictograms
+            SET packId = 'basic_core'
+            WHERE packId = 'basic'
+        """.trimIndent())
+
+                // 3) Asegurar que existan filas en installed_packs para los nuevos
+                db.execSQL("""
+            INSERT OR IGNORE INTO installed_packs(packId, version, installedAt, enabled, isSystem)
+            VALUES ('basic_core', 1, strftime('%s','now')*1000, 1, 1)
+        """.trimIndent())
+
+                db.execSQL("""
+            INSERT OR IGNORE INTO installed_packs(packId, version, installedAt, enabled, isSystem)
+            VALUES ('basic_food', 1, strftime('%s','now')*1000, 1, 1)
+        """.trimIndent())
+
+                // 4) Ahora sí: borrar el pack viejo (ya no lo necesitás)
+                db.execSQL("DELETE FROM installed_packs WHERE packId='basic'")
+            }
+        }
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // no-op
+            }
+        }
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // no-op
+            }
+        }
+
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+            CREATE TABLE IF NOT EXISTS media_items (
+                mediaId TEXT NOT NULL PRIMARY KEY,
+                displayName TEXT NOT NULL,
+                localUri TEXT NOT NULL,
+                mediaType TEXT NOT NULL,
+                createdAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL,
+                isDeleted INTEGER NOT NULL DEFAULT 0
+            )
+        """.trimIndent())
+
+                db.execSQL("""
+            CREATE INDEX IF NOT EXISTS index_media_items_isDeleted
+            ON media_items(isDeleted)
+        """.trimIndent())
+
+                db.execSQL("""
+            CREATE INDEX IF NOT EXISTS index_media_items_createdAt
+            ON media_items(createdAt)
+        """.trimIndent())
+
+                db.execSQL("""
+            CREATE INDEX IF NOT EXISTS index_media_items_displayName
+            ON media_items(displayName)
+        """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+
+                db.execSQL("""
+            ALTER TABLE categories
+            ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0
+        """.trimIndent())
+
+                db.execSQL("""
+            UPDATE categories
+            SET updatedAt = createdAt
+            WHERE updatedAt = 0
+        """.trimIndent())
+            }
+        }
+
+        private val MIGRATION_11_12 =
+            object : Migration(11, 12) {
+
+                override fun migrate(
+                    db: SupportSQLiteDatabase
+                ) {
+
+                    db.execSQL("""
+                ALTER TABLE category_items
+                ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0
+            """.trimIndent())
+
+                    db.execSQL("""
+                ALTER TABLE category_items
+                ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0
+            """.trimIndent())
+
+                    db.execSQL("""
+                ALTER TABLE category_items
+                ADD COLUMN isDeleted INTEGER NOT NULL DEFAULT 0
+            """.trimIndent())
+
+                    db.execSQL("""
+                UPDATE category_items
+                SET
+                    createdAt =
+                        strftime('%s','now') * 1000,
+                    updatedAt =
+                        strftime('%s','now') * 1000
+            """.trimIndent())
+
+                    db.execSQL("""
+                CREATE INDEX IF NOT EXISTS
+                index_category_items_isDeleted
+                ON category_items(isDeleted)
+            """.trimIndent())
+                }
+            }
+
+        private val MIGRATION_12_13 =
+            object : Migration(12, 13) {
+
+                override fun migrate(
+                    db: SupportSQLiteDatabase
+                ) {
+
+                    db.execSQL("""
+                ALTER TABLE media_items
+                ADD COLUMN ownerUserId TEXT NOT NULL
+                DEFAULT 'local_user'
+            """.trimIndent())
+
+                    db.execSQL("""
+                ALTER TABLE categories
+                ADD COLUMN ownerUserId TEXT NOT NULL
+                DEFAULT 'local_user'
+            """.trimIndent())
+
+                    db.execSQL("""
+                ALTER TABLE category_items
+                ADD COLUMN ownerUserId TEXT NOT NULL
+                DEFAULT 'local_user'
+            """.trimIndent())
+                }
+            }
+
+        private val MIGRATION_13_14 =
+            object : Migration(13, 14) {
+
+                override fun migrate(
+                    db: SupportSQLiteDatabase
+                ) {
+
+                    db.execSQL("""
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    userId TEXT NOT NULL,
+                    displayName TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    isActive INTEGER NOT NULL DEFAULT 1,
+                    PRIMARY KEY(userId)
+                )
+            """.trimIndent())
+
+                    db.execSQL("""
+                INSERT INTO user_profiles (
+                    userId,
+                    displayName,
+                    role,
+                    createdAt,
+                    isActive
+                )
+                VALUES (
+                    'local_user',
+                    'Usuario principal',
+                    'patient',
+                    strftime('%s','now') * 1000,
+                    1
+                )
+            """.trimIndent())
+                }
+            }
+
+        private val MIGRATION_14_15 =
+            object : Migration(14, 15) {
+
+                override fun migrate(db: SupportSQLiteDatabase) {
+
+                    db.execSQL("""
+                ALTER TABLE items_usados
+                ADD COLUMN ownerUserId TEXT NOT NULL
+                DEFAULT 'local_user'
+            """.trimIndent())
+
+                    db.execSQL("""
+                CREATE TABLE IF NOT EXISTS items_usados_bucket_new (
+                    nombreArchivo TEXT NOT NULL,
+                    bucketId INTEGER NOT NULL,
+                    cantidadDeUsos INTEGER NOT NULL,
+                    ultimaFechaUso INTEGER NOT NULL,
+                    ownerUserId TEXT NOT NULL DEFAULT 'local_user',
+                    PRIMARY KEY(nombreArchivo, bucketId, ownerUserId)
+                )
+            """.trimIndent())
+
+                    db.execSQL("""
+                INSERT INTO items_usados_bucket_new (
+                    nombreArchivo,
+                    bucketId,
+                    cantidadDeUsos,
+                    ultimaFechaUso,
+                    ownerUserId
+                )
+                SELECT
+                    nombreArchivo,
+                    bucketId,
+                    cantidadDeUsos,
+                    ultimaFechaUso,
+                    'local_user'
+                FROM items_usados_bucket
+            """.trimIndent())
+
+                    db.execSQL("DROP TABLE items_usados_bucket")
+
+                    db.execSQL("""
+                ALTER TABLE items_usados_bucket_new
+                RENAME TO items_usados_bucket
+            """.trimIndent())
+                }
+            }
+
+        private val MIGRATION_15_16 =
+            object : Migration(15, 16) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+
+                    db.execSQL("""
+                ALTER TABLE media_items
+                ADD COLUMN storagePath TEXT NOT NULL
+                DEFAULT ''
+            """.trimIndent())
+
+                }
+            }
+
+        private val MIGRATION_16_17 =
+            object : Migration(16, 17) {
+                // agrega hash de contenido para detectar cambios en archivos con el mismo nombre
+                override fun migrate(db: SupportSQLiteDatabase) {
+
+                    db.execSQL("""
+                ALTER TABLE media_items
+                ADD COLUMN contentHash TEXT NOT NULL
+                DEFAULT ''
+            """.trimIndent())
+
+                }
+            }
+    }
+}
+
+
+

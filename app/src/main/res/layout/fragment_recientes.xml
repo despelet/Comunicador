@@ -24,7 +24,7 @@
             android:id="@+id/cancelSelectionButton"
             android:layout_width="45dp"
             android:layout_height="45dp"
-            android:drawableBottom="@android:drawable/ic_menu_revert"
+            android:drawableBottom="@drawable/ic_arrow_back"
             android:layout_marginEnd="8dp"
             android:backgroundTint="@color/color5"
             android:textColor="@android:color/white" />
@@ -55,20 +55,73 @@
         android:background="@color/color5"
         android:padding="8dp"
         android:orientation="horizontal"
-        android:gravity="end">
+        android:gravity="center_vertical">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCamera"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            android:text="Cámara"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5"
+            app:icon="@drawable/ic_camera" />
+
+        <Space
+            android:layout_width="5dp"
+            android:layout_height="1dp" />
+
+        <!-- VIDEO (NUEVO) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVideo"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:text=""
+            app:icon="@drawable/ic_videocam"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5" />
+
+        <Space
+            android:layout_width="5dp"
+            android:layout_height="1dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGallery"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            android:text="Galería"
+            app:icon="@drawable/ic_gallery"
+            app:strokeColor="@color/color5"
+            app:iconTint="@color/color7" />
+
+        <!-- Empuja el botón ordenar a la derecha -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/orderButton"
             style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/ordenar"
-            app:iconTint="@android:color/black"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:icon="@drawable/ic_tune"
             android:textColor="@color/color1"
-            android:textAlignment="center"
             android:textStyle="bold"
             android:textSize="12sp"
-            app:strokeWidth="0dp" />
+            app:strokeColor="@color/color5"
+            app:iconTint="@color/color7"/>
+
     </LinearLayout>
 
     <!-- RecyclerView para mostrar las imágenes/vídeos recientes -->
@@ -83,5 +136,30 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/filterBar"
         app:layout_constraintVertical_bias="0.0" />
+
+    <include
+        android:id="@+id/emptyState"
+        layout="@layout/empty_state"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/filterBar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAgregar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="2dp"
+
+        android:contentDescription="Agregar"
+        android:src="@android:drawable/ic_input_add"
+        app:backgroundTint="@color/color9"
+        app:tint="@color/color5"
+
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

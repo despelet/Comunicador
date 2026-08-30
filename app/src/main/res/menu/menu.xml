@@ -1,68 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+
+
+    <group android:id="@+id/group_control_parental">
+
+        <item
+            android:id="@+id/nav_eliminar"
+            android:icon="@drawable/eliminar"
+            android:textAllCaps="true"
+            android:title="@string/eliminar_elemento" />
+
+        <item
+            android:id="@+id/nav_papelera"
+            android:title="Papelera"
+            android:icon="@drawable/ic_bin" />
+
+    </group>
+
     <item
-        android:id="@+id/nav_nosotros"
-        android:icon="@drawable/info"
-        android:title="Sobre BiCom" />
-
-        <item android:title="@string/control_parental"
-            android:id="@+id/nav_control_parental"
-            android:icon="@drawable/control_parental">
-            <menu>
-                <group android:checkableBehavior="single">
-                    <item
-                        android:id="@+id/nav_proteger"
-                        android:icon="@drawable/proteger"
-                        android:title="@string/proteger" />
-                </group>
-                <group android:checkableBehavior="single">
-                    <item
-                        android:id="@+id/nav_editar"
-                        android:icon="@drawable/editar"
-                        android:title="@string/editar_elemento" />
-                    <item
-                        android:id="@+id/nav_eliminar"
-                        android:icon="@drawable/eliminar"
-                        android:title="@string/eliminar_elemento" />
-                </group>
-            </menu>
-        </item>
-<!--    <item-->
-<!--        android:id="@+id/drive"-->
-<!--        android:title="@string/Google_Drive">-->
-<!--        <menu>-->
-<!--            <group android:checkableBehavior="single">-->
-<!--                <item-->
-<!--                    android:id="@+id/nav_drive"-->
-<!--                    android:title="@string/conectar_con_google_drive"/>-->
-<!--                <item-->
-<!--                    android:id="@+id/nav_cambiar_cuenta"-->
-<!--                    android:title="@string/cambiar_cuenta"/>-->
-<!--            </group>-->
-<!--        </menu>-->
-<!--    </item>-->
-    <item android:title="@string/contacto">
+        android:id="@+id/Perfiles"
+        android:textAllCaps="true"
+        android:title="Perfiles">
         <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/nav_modo_paciente"
+                    android:title="Usuario"
+                    android:icon="@drawable/ic_person" />
 
+
+                <item
+                    android:id="@+id/nav_administrar_perfiles"
+                    android:title="Administrar perfiles"
+                    android:icon="@drawable/ic_lock" />
+
+
+            </group>
         </menu>
     </item>
+
     <item
         android:id="@+id/compartir"
+        android:textAllCaps="true"
         android:title="@string/Compartir">
         <menu>
             <group android:checkableBehavior="single">
                 <item
                     android:id="@+id/exportar_archivos"
                     android:title="@string/exportar_archivos"
+                    android:textAllCaps="true"
                     android:icon="@android:drawable/ic_menu_share"
                     app:showAsAction="ifRoom" />
                 <item
                     android:id="@+id/importar_archivos"
                     android:title="@string/importar_archivos"
+                    android:textAllCaps="true"
                     android:icon="@android:drawable/ic_menu_upload"
                     app:showAsAction="ifRoom" />
             </group>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/group_cuenta"
+        android:title="Cuenta">
+        <menu>
+            <item
+                android:id="@+id/nav_cuenta_info"
+                android:title="Sin iniciar sesión"
+                android:icon="@drawable/ic_login"
+                android:enabled="false" />
+
+            <item
+                android:id="@+id/nav_cuenta_email"
+                android:title=""
+                android:enabled="false"
+                android:visible="false" />
+
+
+            <item
+                android:id="@+id/nav_space1"
+                android:enabled="false"
+                android:actionLayout="@layout/menu_spacer"/>
+
+
+            <item
+                android:id="@+id/nav_sincronizar"
+                android:title="Sincronizar contenido"
+                android:icon="@drawable/ic_sync"
+                android:visible="false" />
+            <item
+                android:id="@+id/nav_download"
+                android:title="Descargar últimos cambios"
+                android:icon="@drawable/ic_download"
+                android:visible="false" />
+
+            <item
+                android:id="@+id/nav_space2"
+                android:enabled="false"
+                android:actionLayout="@layout/menu_spacer"/>
+
+            <item
+                android:id="@+id/nav_cuenta_accion"
+                android:title="Iniciar sesión / Crear cuenta"
+                android:icon="@drawable/ic_logout" />
         </menu>
     </item>
 

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@color/color5">
+
+    <!-- TABS -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabExportacion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:background="@color/color5"
+        app:tabIndicatorColor="@color/color9"
+        app:tabIndicatorHeight="3dp"
+        app:tabMode="fixed"
+        app:tabRippleColor="@android:color/transparent"
+        app:tabSelectedTextColor="@color/color1"
+        app:tabTextColor="@color/color1">
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exportar elementos"/>
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Exportar listas"/>
+    </com.google.android.material.tabs.TabLayout>
+
+    <!-- CONTENIDO ELEMENTOS -->
+    <LinearLayout
+        android:id="@+id/layoutExportarElementos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- BOTONES SUPERIORES -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSeleccionarTodos"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:textSize="10sp"
+                android:text="@string/seleccionar_todos"
+                android:textAllCaps="true"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:textColor="@color/color9"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/color9"/>
+
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="1dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeseleccionarTodos"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Quitar Selección"
+                android:textSize="10sp"
+                android:textAllCaps="true"
+                android:textColor="@color/color9"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/color9"/>
+        </LinearLayout>
+
+        <!-- LISTA -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerItems"
+            android:layout_width="match_parent"
+            android:layout_height="400dp"
+            android:layout_marginTop="8dp"
+            android:background="@color/color5"/>
+
+        <!-- BOTÓN EXPORTAR -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Exportar"
+            android:textAllCaps="true"
+            android:textColor="@color/color5"
+            app:backgroundTint="@color/color9"
+            app:cornerRadius="12dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Cancelar"
+            android:textAllCaps="true"
+            android:textColor="@color/color9"
+            app:backgroundTint="@color/color5"
+            app:cornerRadius="12dp"
+            app:strokeColor="@color/color9"
+            app:strokeWidth="1dp"/>
+    </LinearLayout>
+
+    <!-- CONTENIDO LISTAS -->
+    <!-- CONTENIDO LISTAS -->
+    <LinearLayout
+        android:id="@+id/layoutExportarListas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <!-- BOTONES SUPERIORES -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSeleccionarTodas"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Seleccionar todas"
+                android:textSize="10sp"
+                android:textAllCaps="true"
+                android:textColor="@color/color1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/color7"/>
+
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="1dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeseleccionarTodas"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Quitar selección"
+                android:textSize="10sp"
+                android:textAllCaps="true"
+                android:textColor="@color/color1"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/color7"/>
+        </LinearLayout>
+
+        <!-- LISTA -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerListas"
+            android:layout_width="match_parent"
+            android:layout_height="400dp"
+            android:layout_marginTop="8dp"
+            android:background="@color/color5"/>
+
+        <!-- EXPORTAR -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportarListas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Exportar listas"
+            android:textAllCaps="true"
+            android:textColor="@color/color5"
+            app:backgroundTint="@color/color9"
+            app:cornerRadius="12dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelarListas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Cancelar"
+            android:textAllCaps="true"
+            android:textColor="@color/color9"
+            app:backgroundTint="@color/color5"
+            app:cornerRadius="12dp"
+            app:strokeColor="@color/color9"
+            app:strokeWidth="1dp"/>
+
+    </LinearLayout>
+
+</LinearLayout>

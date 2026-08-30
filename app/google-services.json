@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "478080617345",
+    "project_id": "bicom-7b58c",
+    "storage_bucket": "bicom-7b58c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:478080617345:android:3c7c6f775c2a8958097680",
+        "android_client_info": {
+          "package_name": "com.comunic"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDi_-79-ODlFTysartck4FkqkOMhkTbkGI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

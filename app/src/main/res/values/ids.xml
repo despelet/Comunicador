@@ -9,4 +9,15 @@
     <item name="nav_eliminar" type="id"/>
     <item name="nav_proteger" type="id"/>
     <item name="nav_nosotros" type="id"/>
+    <item name="btnAgregarElemento" type="id"/>
+    <item name="txtTitulo" type="id"/>
+    <item name="btnEliminarCategoria" type="id"/>
+    <item name="recyclerPictos" type="id"/>
+    <item name="btnSeleccionarTodos" type="id"/>
+    <item name="btnDeseleccionarTodos" type="id"/>
+    <item name="btnExportar" type="id"/>
+    <item name="editText" type="id"/>
+    <item name="btnIrARegistro" type="id"/>
+    <item name="btnLogin" type="id"/>
+    <item name="btnRecuperar" type="id"/>
 </resources>

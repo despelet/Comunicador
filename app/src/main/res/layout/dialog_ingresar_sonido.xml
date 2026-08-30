@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    app:cardCornerRadius="24dp"
+    app:cardBackgroundColor="@color/color5"
+    app:cardElevation="8dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="center"
+        android:padding="16dp"
+        android:background="@color/color5">
+
+
+    <!-- TÍTULO -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp">
+
+        <TextView
+            android:id="@+id/txtTitulo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sonido"
+            android:textColor="@color/color1"
+            android:textStyle="bold"
+            android:textSize="25sp"
+            android:textAllCaps="true"
+            android:layout_centerVertical="true"/>
+
+        <ImageButton
+            android:id="@+id/btnCerrar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_close"
+            android:contentDescription="Cerrar"
+            android:elevation="0dp"
+            android:stateListAnimator="@null"
+            app:tint="@color/color1" />
+
+    </RelativeLayout>
+
+    <!-- PREVIEW -->
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="270dp"
+        android:layout_marginHorizontal="60dp"
+        android:layout_marginBottom="12dp">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnEditar"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center|top"
+            android:elevation="0dp"
+            android:stateListAnimator="@null"
+            android:layout_marginStart="0dp"
+            android:contentDescription="Editar"
+            app:srcCompat="@drawable/edit"
+            app:backgroundTint="@color/color5"
+            app:tint="@color/color1"/>
+
+        <FrameLayout
+            android:layout_width="220dp"
+            android:layout_height="220dp"
+            android:layout_gravity="bottom|center">
+
+            <ImageView
+                android:id="@+id/imagePreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="@drawable/rounded_border_item"/>
+
+        </FrameLayout>
+
+    </FrameLayout>
+
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Escribí el sonido de tu imagen"
+        android:textSize="14sp"
+        android:textColor="@color/color1"
+        android:gravity="start"
+        android:layout_marginTop="8dp"
+        />
+    <!-- INPUT -->
+    <EditText
+        android:id="@+id/editNombre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Ejemplo: Perro."
+        android:textColor="@color/color1"
+        android:textColorHint="@color/color1"
+        android:backgroundTint="@color/color7"
+        android:layout_marginBottom="12dp"
+        android:textSize="16sp"
+        android:textAllCaps="true"
+        android:inputType="textCapCharacters"/>
+
+    <!-- BOTONES -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGuardar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Guardar"
+            android:textColor="@color/color5"
+            app:backgroundTint="@color/color9"
+            app:cornerRadius="16dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelar"
+            android:layout_width="match_parent"
+            app:cornerRadius="16dp"
+            android:text="Cancelar"
+            android:textColor="@color/color1"
+            app:backgroundTint="@color/color5"
+            android:layout_height="wrap_content"/>
+
+
+    </LinearLayout>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
+

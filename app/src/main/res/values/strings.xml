@@ -25,9 +25,20 @@
     <string name="Compartir">Compartir</string>
     <string name="inicio">Inicio</string>
     <string name="recientes">Recientes</string>
-    <string name="Listas">Listas\n</string>
+    <string name="Listas">Mis grupos</string>
     <string name="sugeridos">Sugeridos</string>
     <string name="ordenar">Ordenar por</string>
     <string name="Modos">Modos</string>
+    <string name="_0_elementos_seleccionados">0 elementos seleccionados</string>
+    <string name="eliminar_elementos">Eliminar elementos</string>
+    <string name="secci_n_en_desarrollo">Sección en desarrollo</string>
+    <string name="eliminar_seleccion">Eliminar selección</string>
+    <string name="seleccionar_todos">Seleccionar todos</string>
+    <string name="anterior">anterior\n</string>
+    <string name="siguiente">siguiente</string>
+    <string name="mas_opciones">Más opciones</string>
+    <string name="opciones">Opciones</string>
+    <string name="habilitar_pack">Habilitar pack</string>
+    <string name="olvidaste_tu_contrasena"><u>¿Olvidaste tu contraseña?</u></string>
 
 </resources>

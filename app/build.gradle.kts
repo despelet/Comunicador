@@ -1,31 +1,23 @@
-import org.jetbrains.kotlin.storage.CacheResetOnProcessCanceled
-import org.jetbrains.kotlin.storage.CacheResetOnProcessCanceled.enabled
-
-
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     kotlin("kapt")
     id("org.jetbrains.kotlin.plugin.parcelize")
-
+    id("com.google.gms.google-services")
 }
 
-
 android {
-
     namespace = "com.comunic"
     compileSdk = 35
 
-    //namespace = "mobile.template"
     testNamespace = "com.comunic.free"
 
     defaultConfig {
         applicationId = "com.comunic"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.6"
+        versionCode = 14
+        versionName = "1.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -35,12 +27,11 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("C:/Users/delfi/AndroidStudioProjects/Comunic/bicom.jks")  // Reemplaza con la ruta de tu archivo .jks
-            storePassword = "bicom2024"    // Reemplaza con la contraseña de tu keystore
-            keyAlias = "bicom_key"                       // Reemplaza con el alias de tu clave
-            keyPassword = "bicom2024"         // Reemplaza con la contraseña de tu clave
+            storeFile = file("C:/Users/delfi/AndroidStudioProjects/Comunic/bicom.jks")
+            storePassword = "bicom2024"
+            keyAlias = "bicom_key"
+            keyPassword = "bicom2024"
         }
-
     }
 
     buildTypes {
@@ -50,35 +41,34 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")  // Aquí estamos asociando la configuración de firma
+            signingConfig = signingConfigs.getByName("release")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
         viewBinding = true
     }
+
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-
-    packagingOptions {
-        resources {
-            excludes += "META-INF/DEPENDENCIES"
-        }
-    }
-
+    useLibrary("org.apache.http.legacy")
 }
 
 dependencies {
@@ -92,50 +82,78 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.constraintlayout)
-    // implementation(libs.androidx.appcompat)
+
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    // para agregar la biblioteca RecyclerView
+
     implementation(libs.androidx.recyclerview)
-    // para agregar Picasso para trabajar con imagenes
     implementation(libs.picasso)
-    // para agregar temas
-    //implementation(libs.androidx.appcompat.v161)
-    implementation(libs.androidx.appcompat.v161)
+
+    // ⚠️ Dejar SOLO una versión de material
     implementation(libs.material)
-    //implementation(libs.glide)
-    implementation(libs.play.services.auth) // Para autenticación
-    implementation(libs.google.api.client.android) // Cliente API
-    implementation(libs.google.api.services.drive) // API Drive
+
+    // 🔥 Google APIs (LIMPIO + SIN HTTPCLIENT)
+//    implementation(libs.google.api.client.android.v1332) {
+//        exclude(group = "org.apache.httpcomponents", module = "httpclient")
+//        exclude(group = "commons-logging", module = "commons-logging")
+//    }
+
+//    implementation(libs.google.api.services.drive.vv3rev3051250) {
+//        exclude(group = "org.apache.httpcomponents", module = "httpclient")
+//        exclude(group = "commons-logging", module = "commons-logging")
+//    }
+//
+//    implementation(libs.google.http.client.gson) {
+//        exclude(group = "org.apache.httpcomponents", module = "httpclient")
+//        exclude(group = "commons-logging", module = "commons-logging")
+//    }
+
     implementation(libs.gms.play.services.auth.v2070)
-    implementation(libs.google.api.client.android.v1332)
-    implementation(libs.google.http.client.gson)
-    implementation(libs.google.api.services.drive.vv3rev3051250)
-    implementation(libs.zip4j) // Para trabajar con archivos zip
 
-    configurations.all {
-        resolutionStrategy.force("com.google.api-client:google-api-client-android:1.33.2")
-    }
+    // ✅ Networking moderno
+    implementation(libs.okhttp)
 
+    implementation(libs.zip4j)
     implementation(libs.ucrop)
     implementation(libs.glide.v4160)
-    //kapt(libs.compiler) // si usás anotaciones
+    implementation(libs.flexbox)
 
-    // ROOM: bases de datos
-    val roomVersion = "2.6.1"
+    // ROOM
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-   //ksp(libs.androidx.room.compiler) // Recomendado
-    kapt(libs.androidx.room.compiler) // Si usás kapt en lugar de KSP
+    kapt(libs.androidx.room.compiler)
+
     implementation(libs.kotlinx.coroutines.android)
 
-    implementation(libs.material.v1110)
+    implementation(libs.androidx.core.splashscreen.v101)
+    implementation(libs.gson) // json para exportar listas
+
+    // Import the Firebase BoM
+    implementation(platform(libs.firebase.bom))
+
+    implementation(libs.firebase.auth)
+    // TODO: Add the dependencies for Firebase products you want to use
+    // When using the BoM, don't specify versions in Firebase dependencies
+ //   implementation(libs.firebase.analytics)
+
+
+    // Add the dependencies for any other desired Firebase products
+    // https://firebase.google.com/docs/android/setup#available-libraries
+
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
+
+    implementation(libs.picasso.transformations)
 
 }
+
+
 
 

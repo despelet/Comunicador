@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/color5">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="TIPO DE EXPORTACIÓN"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:textColor="@color/color1"
+        android:gravity="center"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnArchivos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="COMPARTIR ARCHIVOS SUELTOS"
+        app:backgroundTint="@color/color9"
+        android:textColor="@color/color5"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnZip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="EXPORTAR COMO ZIP"
+        app:backgroundTint="@color/color5"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/color9"
+        android:textColor="@color/color9"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnCancelar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="CANCELAR"
+        app:backgroundTint="@color/color5"
+        android:textColor="@color/color9"/>
+
+</LinearLayout>

@@ -4,7 +4,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
 
 
 
@@ -18,7 +19,7 @@
         android:padding="8dp"
         android:gravity="center_vertical"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/constraintLayout"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -37,15 +38,81 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:textColor="@android:color/black"
-            android:text="0 elementos seleccionados" />
+            android:text="@string/_0_elementos_seleccionados" />
 
         <Button
             android:id="@+id/deleteSelectedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Eliminar elementos"
+            android:text="@string/eliminar_elementos"
             android:backgroundTint="@android:color/holo_red_dark"
             android:textColor="@android:color/white" />
+    </LinearLayout>
+
+    <!-- Barra de filtros -->
+    <LinearLayout
+        android:id="@+id/filterBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/selectionPanel"
+        android:background="@color/color5"
+        android:padding="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCamera"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            android:text="Cámara"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5"
+            app:icon="@drawable/ic_camera" />
+
+        <Space
+            android:layout_width="5dp"
+            android:layout_height="1dp" />
+
+        <!-- VIDEO (NUEVO) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVideo"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:text=""
+            app:icon="@drawable/ic_videocam"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5" />
+
+        <Space
+            android:layout_width="5dp"
+            android:layout_height="1dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGallery"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            android:text="Galería"
+            app:icon="@drawable/ic_gallery"
+            app:strokeColor="@color/color5"
+            app:iconTint="@color/color7" />
+
+        <!-- Empuja el botón ordenar a la derecha -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+
+
     </LinearLayout>
 
     <!-- RecyclerView para mostrar las imágenes -->
@@ -53,24 +120,31 @@
         android:id="@+id/recyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toBottomOf="@id/selectionPanel"
+        app:layout_constraintTop_toBottomOf="@id/filterBar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:background="@color/color5"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        />
+
+
 
     <ScrollView
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:background="@color/color5">
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/filterBar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:background="@android:color/white"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/filterBar"
+
             android:orientation="vertical"
             android:padding="8dp">
 
@@ -88,6 +162,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/recientes"
                     android:textSize="18sp"
+                    android:textAllCaps="true"
                     android:textStyle="bold"
                     android:paddingBottom="4dp"/>
 
@@ -97,6 +172,7 @@
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false"
                     android:overScrollMode="never"
+                    android:textAllCaps="true"
                     android:layout_marginTop="4dp"/>
 
             </LinearLayout>
@@ -117,17 +193,17 @@
                     android:text="@string/Listas"
                     android:textSize="18sp"
                     android:textStyle="bold"
+                    android:textAllCaps="true"
                     android:paddingBottom="4dp"/>
 
-                <!-- 🔵 REEMPLAZA SOLO ESTA PARTE (Recycler + texto) -->
                 <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="100dp">
+                    android:layout_height="wrap_content">
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/recyclerCategorias"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false"
                         android:overScrollMode="never"/>
 
@@ -135,68 +211,48 @@
                         android:id="@+id/textoDesarrolloCategorias"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Sección en desarrollo"
+                        android:text="@string/secci_n_en_desarrollo"
+                        android:textAllCaps="true"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:layout_gravity="center"
                         android:padding="16dp"/>
 
                 </FrameLayout>
-                <!-- 🔵 HASTA ACÁ -->
-
             </LinearLayout>
-
-            <!-- CONTENEDOR 3:  -->
-            <LinearLayout
-                android:id="@+id/contenedor_3"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="8dp"
-                android:layout_marginTop="12dp"
-                android:background="@color/color5">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/Modos"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:paddingBottom="4dp"/>
-
-                <!-- 🔵 REEMPLAZA SOLO ESTA PARTE (Recycler + texto) -->
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="100dp">
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/recyclerModos"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:nestedScrollingEnabled="false"
-                    android:overScrollMode="never"/>
-
-                <TextView
-                    android:id="@+id/textoDesarrolloModos"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sección en desarrollo"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:layout_gravity="center"
-                    android:padding="16dp"/>
-                </FrameLayout>
-
-            </LinearLayout>
-
         </LinearLayout>
     </ScrollView>
-</androidx.constraintlayout.widget.ConstraintLayout>
 
+    <include
+        android:id="@+id/emptyState"
+        layout="@layout/empty_state"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/filterBar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-<!--&lt;!&ndash; CONTENEDOR 2: CATEGORÍAS &ndash;&gt;-->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAgregar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="2dp"
+
+        android:contentDescription="Agregar"
+        android:src="@android:drawable/ic_input_add"
+        app:backgroundTint="@color/color9"
+        app:tint="@color/color5"
+
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- CONTENEDOR 3:  -->
 <!--<LinearLayout-->
-<!--android:id="@+id/contenedor_categorias"-->
+<!--android:id="@+id/contenedor_3"-->
 <!--android:layout_width="match_parent"-->
 <!--android:layout_height="wrap_content"-->
 <!--android:orientation="vertical"-->
@@ -207,32 +263,31 @@
 <!--<TextView-->
 <!--    android:layout_width="wrap_content"-->
 <!--    android:layout_height="wrap_content"-->
-<!--    android:text="@string/Listas"-->
+<!--    android:text="@string/Modos"-->
 <!--    android:textSize="18sp"-->
 <!--    android:textStyle="bold"-->
 <!--    android:paddingBottom="4dp"/>-->
 
-<!--<androidx.recyclerview.widget.RecyclerView-->
-<!--    android:id="@+id/recyclerCategorias"-->
+<!--<FrameLayout-->
 <!--    android:layout_width="match_parent"-->
-<!--    android:layout_height="wrap_content"-->
-<!--    android:nestedScrollingEnabled="false"-->
-<!--    android:overScrollMode="never"/>-->
+<!--    android:layout_height="100dp">-->
 
-<!--<TextView-->
-<!--    android:id="@+id/textoDesarrolloCategorias"-->
-<!--    android:layout_width="wrap_content"-->
-<!--    android:layout_height="wrap_content"-->
-<!--    android:text="Sección en desarrollo"-->
-<!--    android:textSize="14sp"-->
-<!--    android:textColor="@color/color3"-->
-<!--    android:paddingTop="8dp"-->
-<!--    android:paddingBottom="8dp"/>-->
+<!--    <androidx.recyclerview.widget.RecyclerView-->
+<!--        android:id="@+id/recyclerModos"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:nestedScrollingEnabled="false"-->
+<!--        android:overScrollMode="never"/>-->
+
+<!--    <TextView-->
+<!--        android:id="@+id/textoDesarrolloModos"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="@string/secci_n_en_desarrollo"-->
+<!--        android:textSize="12sp"-->
+<!--        android:textStyle="bold"-->
+<!--        android:layout_gravity="center"-->
+<!--        android:padding="16dp"/>-->
+<!--</FrameLayout>-->
+
 <!--</LinearLayout>-->
-
-<!--<androidx.recyclerview.widget.RecyclerView-->
-<!--android:id="@+id/recyclerModos"-->
-<!--android:layout_width="match_parent"-->
-<!--android:layout_height="wrap_content"-->
-<!--android:nestedScrollingEnabled="false"-->
-<!--android:overScrollMode="never"/>-->

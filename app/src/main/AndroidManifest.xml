@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.comunic"
+
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permisos para versiones de Android anteriores a 13 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERNET" />
+
 
     <!-- Permiso para versiones de Android 13 y superiores -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -18,25 +18,38 @@
     <uses-permission android:name="android.permission.INTERNET"/> <!-- Permiso de internet para google drive -->
     <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
 
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/> <!-- Permiso para modificar la configuración de audio, necesario para grabar audio -->
+
 
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/logo2"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/logo2_round"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Comunic"
 
         tools:targetApi="31">
         <activity
-            android:name="com.comunic.MainActivity"
+            android:name="com.comunic.fragment.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Comunic">
+            android:theme="@style/Theme.Comunic.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="bicom-7b58c.firebaseapp.com"
+                    android:pathPrefix="/__/auth/links" />
             </intent-filter>
         </activity>
         <provider

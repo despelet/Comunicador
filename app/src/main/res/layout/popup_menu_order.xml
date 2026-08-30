@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="8dp"
+    app:cardBackgroundColor="@color/color5"
+    app:strokeColor="@color/color12_10"
+    app:strokeWidth="6dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+
+        android:padding="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ordenar por"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="@color/color1"
+            android:padding="12dp"/>
+
+        <LinearLayout
+            android:id="@+id/opRecientes"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:background="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_schedule"
+                app:tint="@color/color7"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="Más recientes"
+                android:textColor="@color/color1"/>
+
+            <ImageView
+                android:id="@+id/checkRecientes"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginHorizontal="5dp"
+                android:src="@drawable/ic_check"
+                app:tint="@color/color7"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/opAntiguos"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:background="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_history"
+                app:tint="@color/color7"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="Más antiguos"
+                android:textColor="@color/color1"/>
+
+            <ImageView
+                android:id="@+id/checkAntiguos"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:visibility="gone"
+                android:layout_marginHorizontal="5dp"
+                android:src="@drawable/ic_check"
+                app:tint="@color/color7"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/opAZ"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:background="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_sort_alpha"
+                app:tint="@color/color7"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="A-Z"
+                android:textColor="@color/color1"/>
+
+            <ImageView
+                android:id="@+id/checkAZ"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:visibility="gone"
+                android:layout_marginHorizontal="5dp"
+                android:src="@drawable/ic_check"
+                app:tint="@color/color7"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/opZA"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:background="?attr/selectableItemBackground">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_sort_alpha"
+                android:rotation="180"
+                app:tint="@color/color7"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="Z-A"
+                android:textColor="@color/color1"/>
+
+            <ImageView
+                android:id="@+id/checkZA"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:visibility="gone"
+                android:layout_marginHorizontal="5dp"
+                android:src="@drawable/ic_check"
+                app:tint="@color/color7"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
+

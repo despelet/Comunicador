@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/color5"
+    android:padding="12dp">
+
+    <!-- TÍTULO -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="20dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/btnVolver"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Volver"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/color1"/>
+
+        <TextView
+            android:id="@+id/txtTitulo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Categoría"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textAllCaps="true"
+            android:textColor="@color/color1"/>
+
+    </LinearLayout>
+
+    <!-- ACCIONES -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:background="@color/color5"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <!-- AGREGAR -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAgregarElemento"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:icon="@android:drawable/ic_input_add"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5" />
+
+        <Space
+            android:layout_width="5dp"
+            android:layout_height="1dp" />
+
+        <!-- CÁMARA -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCamera"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:icon="@drawable/ic_camera"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5" />
+
+        <Space
+            android:layout_width="5dp"
+            android:layout_height="1dp" />
+
+        <!-- VIDEO -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVideo"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:icon="@drawable/ic_videocam"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5" />
+
+        <Space
+            android:layout_width="5dp"
+            android:layout_height="1dp" />
+
+        <!-- GALERÍA -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGallery"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:icon="@drawable/ic_gallery"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5" />
+
+        <!-- Empuja el botón eliminar al extremo derecho -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- ELIMINAR -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnEliminarCategoria"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:icon="@android:drawable/ic_menu_delete"
+            app:iconSize="32dp"
+            app:iconPadding="10dp"
+            app:iconTint="@color/color7"
+            app:strokeColor="@color/color5" />
+
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnHabilitarPack"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="HABILITAR"
+        android:textStyle="bold"
+        android:visibility="gone"
+        android:minHeight="56dp"
+        app:cornerRadius="16dp"
+        android:backgroundTint="@color/color5"
+        android:textColor="@color/color1"/>
+
+    <!-- PANEL DE SELECCIÓN -->
+    <LinearLayout
+        android:id="@+id/selectionPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/color5"
+        android:padding="8dp"
+        android:gravity="center_vertical"
+        android:visibility="gone"
+        android:layout_marginBottom="8dp">
+
+        <Button
+            android:id="@+id/cancelSelectionButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:drawableBottom="@android:drawable/ic_menu_revert"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@color/color5"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:id="@+id/selectionCountText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0 elementos seleccionados"
+            android:textColor="@android:color/black"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/deleteSelectedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="Quitar"
+            android:backgroundTint="@android:color/holo_red_dark"
+            android:textColor="@android:color/white" />
+
+    </LinearLayout>
+
+    <!-- LISTA -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerPictos"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:textAllCaps="true"
+        android:layout_weight="1"
+        android:clipToPadding="false"/>
+
+</LinearLayout>
+

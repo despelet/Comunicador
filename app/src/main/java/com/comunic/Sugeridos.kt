@@ -23,7 +23,7 @@ class Sugeridos : Fragment(), MenuHandler {
         _binding = FragmentListasBinding.inflate(inflater, container, false)
 
         // Texto fijo por ahora
-        binding.textoSeccionNoDisponible.text = "Sección en desarrollo"
+        //binding.textoSeccionNoDisponible.text = "Sección en desarrollo"
 
         return binding.root
     }

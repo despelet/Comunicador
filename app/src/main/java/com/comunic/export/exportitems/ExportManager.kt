@@ -14,6 +14,8 @@ import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
 import com.comunic.export.exportlista.ExportCategoryItem
 import com.comunic.export.exportlista.ExportCategoryMetadata
+import com.comunic.export.exportlista.ExportMediaItem
+import com.comunic.export.exportlista.ExportMediaMetadata
 import com.comunic.session.SessionManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -70,101 +72,199 @@ object ExportManager {
         )
     }
 
-    fun exportarElementosComoZip( fragment: Fragment, elementos: List<ItemLista>, nombreZip: String   ) {
-        if (elementos.isEmpty()) {
-            Toast.makeText(
-                fragment.requireContext(),
-                "No seleccionaste elementos",
-                Toast.LENGTH_SHORT
-            ).show()
-            return
+
+fun exportarElementosComoZip(
+    fragment: Fragment,
+    elementos: List<ItemLista>,
+    nombreZip: String
+) {
+    if (elementos.isEmpty()) {
+        Toast.makeText(
+            fragment.requireContext(),
+            "No seleccionaste elementos",
+            Toast.LENGTH_SHORT
+        ).show()
+        return
+    }
+
+    val context = fragment.requireContext()
+
+    val zipFile = File(
+        context.cacheDir,
+        nombreZip
+    )
+
+    try {
+
+        val gson = Gson()
+
+        /*
+         * ============================================================
+         * 1. Construir metadata de los elementos
+         * ============================================================
+         */
+
+        val exportItems = elementos.mapNotNull { item ->
+
+            if (!ItemKey.isMedia(item.id)) {
+                null
+            } else {
+
+                val mediaId = ItemKey.mediaId(item.id)
+
+                ExportMediaItem(
+                    mediaId = mediaId,
+                    displayName = item.nombre,
+                    mediaType = if (item.esImagen) "image" else "video"
+                )
+            }
         }
 
-        val zipFile = File(
-            fragment.requireContext().cacheDir,
-            nombreZip
+        val metadata = ExportMediaMetadata(
+            version = 2,
+            items = exportItems
         )
 
-        try {
+        val metadataJson = gson.toJson(metadata)
 
-            ZipOutputStream(
-                BufferedOutputStream(
-                    FileOutputStream(zipFile)
-                )
-            ).use { zos ->
+        /*
+         * ============================================================
+         * 2. Crear ZIP
+         * ============================================================
+         */
 
-                for (item in elementos) {
+        ZipOutputStream(
+            BufferedOutputStream(
+                FileOutputStream(zipFile)
+            )
+        ).use { zos ->
 
-                    val inputStream = fragment.requireContext()
-                        .contentResolver
+            /*
+             * --------------------------------------------------------
+             * metadata.json
+             * --------------------------------------------------------
+             */
+
+            val metadataEntry = ZipEntry("metadata.json")
+
+            zos.putNextEntry(metadataEntry)
+            zos.write(metadataJson.toByteArray())
+            zos.closeEntry()
+
+            /*
+             * --------------------------------------------------------
+             * Archivos multimedia
+             * --------------------------------------------------------
+             */
+
+            for (item in elementos) {
+
+                if (!ItemKey.isMedia(item.id)) {
+                    continue
+                }
+
+                val mediaId = ItemKey.mediaId(item.id)
+
+                val inputStream =
+                    context.contentResolver
                         .openInputStream(item.uri)
                         ?: continue
 
-                    var extension = File(item.uri.path ?: "")
-                        .extension
-                        .lowercase(Locale.ROOT)
+                var extension = File(
+                    item.uri.path ?: ""
+                )
+                    .extension
+                    .lowercase(Locale.ROOT)
 
-                    if (extension.isBlank()) {
+                /*
+                 * Si la URI no tiene extensión, intentamos obtenerla
+                 * mediante el MIME type.
+                 */
+                if (extension.isBlank()) {
 
-                        val mimeType = fragment.requireContext()
-                            .contentResolver
+                    val mimeType =
+                        context.contentResolver
                             .getType(item.uri)
 
-                        extension = MimeTypeMap
+                    extension =
+                        MimeTypeMap
                             .getSingleton()
                             .getExtensionFromMimeType(mimeType)
                             ?.lowercase(Locale.ROOT)
                             ?: ""
-                    }
-
-                    val fileName =
-                        if (
-                            extension.isNotBlank() &&
-                            !item.nombre.endsWith(".$extension")
-                        ) {
-                            "${item.nombre}.$extension"
-                        } else {
-                            item.nombre
-                        }
-
-                    val entry = ZipEntry(fileName)
-
-                    zos.putNextEntry(entry)
-
-                    inputStream.copyTo(zos)
-
-                    zos.closeEntry()
-                    inputStream.close()
                 }
-            }
 
-            val uriZip = FileProvider.getUriForFile(
-                fragment.requireContext(),
+                if (extension.isBlank()) {
+                    inputStream.close()
+                    continue
+                }
+
+                /*
+                 * El archivo se identifica por UUID, NO por displayName.
+                 *
+                 * Ejemplo:
+                 * MED_550e8400-e29b-41d4-a716-446655440000.jpg
+                 */
+                val fileName =
+                    "MED_${mediaId}.$extension"
+
+                val mediaEntry =
+                    ZipEntry("media/$fileName")
+
+                zos.putNextEntry(mediaEntry)
+
+                inputStream.copyTo(zos)
+
+                zos.closeEntry()
+                inputStream.close()
+            }
+        }
+
+        /*
+         * ============================================================
+         * 3. Compartir ZIP
+         * ============================================================
+         */
+
+        val uriZip =
+            FileProvider.getUriForFile(
+                context,
                 "com.comunic.fileprovider",
                 zipFile
             )
 
-            val intent = Intent(Intent.ACTION_SEND).apply {
+        val intent =
+            Intent(Intent.ACTION_SEND).apply {
                 type = "application/zip"
-                putExtra(Intent.EXTRA_STREAM, uriZip)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+                putExtra(
+                    Intent.EXTRA_STREAM,
+                    uriZip
+                )
+
+                addFlags(
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
 
-            fragment.startActivity(
-                Intent.createChooser(intent, "Compartir ZIP")
+        fragment.startActivity(
+            Intent.createChooser(
+                intent,
+                "Compartir ZIP"
             )
+        )
 
-        } catch (e: Exception) {
+    } catch (e: Exception) {
 
-            e.printStackTrace()
+        e.printStackTrace()
 
-            Toast.makeText(
-                fragment.requireContext(),
-                "Error al crear ZIP",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+        Toast.makeText(
+            context,
+            "Error al crear ZIP",
+            Toast.LENGTH_SHORT
+        ).show()
     }
+}
 
     fun pedirNombreZip(
         fragment: Fragment,
@@ -251,6 +351,7 @@ object ExportManager {
     ) {
         val context = fragment.requireContext()
         val db = AppDatabase.getDatabase(context)
+
         val userId =
             SessionManager(context)
                 .getCurrentUserId()
@@ -259,6 +360,7 @@ object ExportManager {
             context.cacheDir,
             "listas_export.zip"
         )
+
         val gson = Gson()
 
         ZipOutputStream(
@@ -266,65 +368,239 @@ object ExportManager {
                 FileOutputStream(zipFile)
             )
         ).use { zos ->
+
             for (categoria in categorias) {
+
+                /*
+                 * ============================================================
+                 * 1. OBTENER ELEMENTOS DE LA CATEGORÍA
+                 * ============================================================
+                 */
+
                 val itemKeys =
                     db.categoryDao()
-                        .getItemKeysForCategory(categoria.categoryId, userId)
+                        .getItemKeysForCategory(
+                            categoria.categoryId,
+                            userId
+                        )
+
+                /*
+                 * Resolver cada itemKey una sola vez.
+                 *
+                 * Esto nos permite obtener:
+                 * - displayName
+                 * - mediaType
+                 * - URI
+                 *
+                 * y reutilizar esa información después.
+                 */
+
+                val resolvedItems =
+                    itemKeys.mapNotNull { key ->
+
+                        val item =
+                            resolveItemKeyToItemLista(
+                                context,
+                                key
+                            )
+
+                        if (item != null) {
+                            key to item
+                        } else {
+                            null
+                        }
+                    }.toMap()
+
+                /*
+                 * ============================================================
+                 * 2. CONSTRUIR METADATA
+                 * ============================================================
+                 */
+
                 val exportItems =
-                    itemKeys.mapIndexed { index, key ->
+                    itemKeys.mapIndexedNotNull { index, key ->
+
+                        /*
+                         * Los pictogramas no tienen MediaEntity,
+                         * por lo que no tienen displayName/mediaType
+                         * multimedia.
+                         *
+                         * Los conservamos igualmente.
+                         */
+
+                        val item =
+                            resolvedItems[key]
+
                         ExportCategoryItem(
                             itemKey = key,
-                            orderIndex = index
+                            orderIndex = index,
+                            displayName = item?.nombre,
+                            mediaType =
+                            if (item == null) {
+                                null
+                            } else if (item.esImagen) {
+                                "image"
+                            } else {
+                                "video"
+                            }
                         )
                     }
+
                 val metadata =
                     ExportCategoryMetadata(
                         categoryId = categoria.categoryId,
                         name = categoria.name,
                         createdAt = categoria.createdAt,
-                        items = exportItems
+                        items = exportItems,
+                        version = 2
                     )
 
-                val metadataJson = gson.toJson(metadata)
-                val safeFolderName = sanitizarNombreArchivo(categoria.name)
+                val metadataJson =
+                    gson.toJson(metadata)
 
-                val metadataEntry = ZipEntry("$safeFolderName/metadata.json")
+                val safeFolderName =
+                    sanitizarNombreArchivo(
+                        categoria.name
+                    )
+
+                /*
+                 * ============================================================
+                 * 3. GUARDAR metadata.json
+                 * ============================================================
+                 */
+
+                val metadataEntry =
+                    ZipEntry(
+                        "$safeFolderName/metadata.json"
+                    )
 
                 zos.putNextEntry(metadataEntry)
-                zos.write(metadataJson.toByteArray())
+
+                zos.write(
+                    metadataJson.toByteArray()
+                )
+
                 zos.closeEntry()
 
+                /*
+                 * ============================================================
+                 * 4. GUARDAR ARCHIVOS MULTIMEDIA
+                 * ============================================================
+                 */
+
                 for (itemKey in itemKeys) {
-                    if (!ItemKey.isMedia(itemKey)) continue
+
+                    /*
+                     * Solo los MED: tienen archivo multimedia.
+                     */
+                    if (!ItemKey.isMedia(itemKey)) {
+                        continue
+                    }
+
                     val item =
-                        resolveItemKeyToItemLista(
-                            context,
-                            itemKey
-                        ) ?: continue
-                    val inputStream =context.contentResolver.openInputStream(item.uri)?: continue
-                    val extension =File(item.uri.path ?: "").extension
+                        resolvedItems[itemKey]
+                            ?: continue
+
+                    val inputStream =
+                        context.contentResolver
+                            .openInputStream(item.uri)
+                            ?: continue
+
+                    var extension =
+                        File(
+                            item.uri.path ?: ""
+                        )
+                            .extension
+                            .lowercase(Locale.ROOT)
+
+                    /*
+                     * Si la URI no tiene extensión,
+                     * intentar obtenerla mediante MIME type.
+                     */
+                    if (extension.isBlank()) {
+
+                        val mimeType =
+                            context.contentResolver
+                                .getType(item.uri)
+
+                        extension =
+                            MimeTypeMap
+                                .getSingleton()
+                                .getExtensionFromMimeType(
+                                    mimeType
+                                )
+                                ?.lowercase(Locale.ROOT)
+                                ?: ""
+                    }
+
+                    if (extension.isBlank()) {
+                        inputStream.close()
+                        continue
+                    }
+
+                    /*
+                     * El archivo conserva el UUID.
+                     *
+                     * MED:UUID
+                     *      ↓
+                     * MED_UUID.ext
+                     */
+
                     val fileName =
-                        itemKey .replace(":", "_") + ".$extension"
-                    val mediaEntry = ZipEntry("$safeFolderName/media/$fileName")
-                    zos.putNextEntry(mediaEntry)
+                        itemKey
+                            .replace(":", "_") +
+                                ".$extension"
+
+                    val mediaEntry =
+                        ZipEntry(
+                            "$safeFolderName/media/$fileName"
+                        )
+
+                    zos.putNextEntry(
+                        mediaEntry
+                    )
+
                     inputStream.copyTo(zos)
+
                     zos.closeEntry()
                     inputStream.close()
                 }
             }
         }
-        val uriZip = FileProvider.getUriForFile(
-            context,
-            "com.comunic.fileprovider",
-            zipFile
-        )
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "application/zip"
-            putExtra(Intent.EXTRA_STREAM, uriZip)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
+
+        /*
+         * ================================================================
+         * 5. COMPARTIR ZIP
+         * ================================================================
+         */
+
+        val uriZip =
+            FileProvider.getUriForFile(
+                context,
+                "com.comunic.fileprovider",
+                zipFile
+            )
+
+        val intent =
+            Intent(Intent.ACTION_SEND).apply {
+
+                type = "application/zip"
+
+                putExtra(
+                    Intent.EXTRA_STREAM,
+                    uriZip
+                )
+
+                addFlags(
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+
         fragment.startActivity(
-            Intent.createChooser(intent, "Compartir ZIP")
+            Intent.createChooser(
+                intent,
+                "Compartir ZIP"
+            )
         )
     }
 }

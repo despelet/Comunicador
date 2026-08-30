@@ -23,9 +23,9 @@
             android:layout_height="48dp"
             android:text="Seleccionar todas"
             android:textAllCaps="true"
-            android:textColor="@color/color9"
+            android:textColor="@color/color7"
             app:cornerRadius="12dp"
-            app:strokeColor="@color/color9"/>
+            app:strokeColor="@color/color7"/>
 
         <Space
             android:layout_width="6dp"
@@ -38,9 +38,9 @@
             android:layout_height="48dp"
             android:text="Quitar selección"
             android:textAllCaps="true"
-            android:textColor="@color/color9"
+            android:textColor="@color/color7"
             app:cornerRadius="12dp"
-            app:strokeColor="@color/color9"/>
+            app:strokeColor="@color/color7"/>
     </LinearLayout>
 
     <!-- LISTA -->

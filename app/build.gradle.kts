@@ -16,8 +16,8 @@ android {
         applicationId = "com.comunic"
         minSdk = 23
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.13"
+        versionCode = 14
+        versionName = "1.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -97,7 +97,7 @@ dependencies {
     implementation(libs.picasso)
 
     // ⚠️ Dejar SOLO una versión de material
-    implementation(libs.material.v1110)
+    implementation(libs.material)
 
     // 🔥 Google APIs (LIMPIO + SIN HTTPCLIENT)
 //    implementation(libs.google.api.client.android.v1332) {

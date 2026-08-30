@@ -28,6 +28,22 @@ ORDER BY orderIndex ASC
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(category: CategoryEntity)
 
+    @Query("""
+    UPDATE categories
+    SET name = :newName,
+        updatedAt = :updatedAt
+    WHERE categoryId = :categoryId
+      AND ownerUserId = :userId
+      AND isSystem = 0
+      AND isDeleted = 0
+""")
+    suspend fun updateCategoryName(
+        categoryId: String,
+        newName: String,
+        updatedAt: Long,
+        userId: String
+    ): Int
+
 
     // ===== Category items (placements) =====
 
@@ -81,10 +97,12 @@ WHERE ci.categoryId = :categoryId
     SET isDeleted = 1,
         updatedAt = :updatedAt
     WHERE placementId = :placementId
+      AND ownerUserId = :userId
 """)
     suspend fun softDeletePlacement(
         placementId: String,
-        updatedAt: Long
+        updatedAt: Long,
+        userId: String
     )
 
 

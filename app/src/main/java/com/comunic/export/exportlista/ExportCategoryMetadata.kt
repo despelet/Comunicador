@@ -4,5 +4,6 @@ data class ExportCategoryMetadata(
     val categoryId: String,
     val name: String,
     val createdAt: Long,
-    val items: List<ExportCategoryItem>
+    val items: List<ExportCategoryItem>,
+    val version: Int = 2
 )

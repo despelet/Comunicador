@@ -26,7 +26,7 @@
             <group android:checkableBehavior="single">
                 <item
                     android:id="@+id/nav_modo_paciente"
-                    android:title="Paciente"
+                    android:title="Usuario"
                     android:icon="@drawable/ic_person" />
 
 

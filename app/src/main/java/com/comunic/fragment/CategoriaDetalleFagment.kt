@@ -325,8 +325,8 @@ class CategoriaDetalleFragment :
 
                 val userId = SessionManager(requireContext()).getCurrentUserId()
 
-                Log.d("CAT_DEBUG", "categoryId=$categoryId")
-                Log.d("CAT_DEBUG", "userId=$userId")
+//                Log.d("CAT_DEBUG", "categoryId=$categoryId")
+//                Log.d("CAT_DEBUG", "userId=$userId")
 
                 db.categoryDao().getItemKeysForCategory(
                     categoryId,
@@ -335,13 +335,13 @@ class CategoriaDetalleFragment :
                 //db.categoryDao().getItemKeysForCategoryDebug(categoryId)
             }
 
-            Log.d("CAT_DEBUG", "====================")
-            Log.d("CAT_DEBUG", "category=$categoryName")
-            Log.d("CAT_DEBUG", "keys=${keys.size}")
-            keys.forEach {
-                Log.d("CAT_DEBUG", "KEY -> $it")
-            }
-            Log.d("CAT_DEBUG", "keys=${keys.joinToString()}")
+//            Log.d("CAT_DEBUG", "====================")
+//            Log.d("CAT_DEBUG", "category=$categoryName")
+//            Log.d("CAT_DEBUG", "keys=${keys.size}")
+//            keys.forEach {
+//                Log.d("CAT_DEBUG", "KEY -> $it")
+//            }
+//            Log.d("CAT_DEBUG", "keys=${keys.joinToString()}")
 
 //            val items = withContext(Dispatchers.IO) {
 //                keys.mapNotNull { key ->
@@ -358,20 +358,20 @@ class CategoriaDetalleFragment :
                             resolveItemKeyToItemLista(requireContext(), key)
                         }
 
-                    Log.d(
-                        "CAT_DEBUG",
-                        "RESOLVE $key -> ${item != null}"
-                    )
+//                    Log.d(
+//                        "CAT_DEBUG",
+//                        "RESOLVE $key -> ${item != null}"
+//                    )
 
                     item
                 }
             }
 
-            Log.d("CAT_DEBUG", "ITEMS=${items.size}")
+//            Log.d("CAT_DEBUG", "ITEMS=${items.size}")
 
             val userId = SessionManager(requireContext()).getCurrentUserId()
 
-            Log.d("CAT_DEBUG", "user=$userId")
+//            Log.d("CAT_DEBUG", "user=$userId")
 
             listaDeArchivos.clear()
             listaDeArchivos.addAll(items)
@@ -391,7 +391,8 @@ class CategoriaDetalleFragment :
                 if (placementId != null) {
                     db.categoryDao().softDeletePlacement(
                         placementId = placementId,
-                        updatedAt = System.currentTimeMillis()
+                        updatedAt = System.currentTimeMillis(),
+                        userId = userId
                     )
                 }
             }
@@ -413,7 +414,8 @@ class CategoriaDetalleFragment :
                     if (placementId != null) {
                         db.categoryDao().softDeletePlacement(
                             placementId = placementId,
-                            updatedAt = System.currentTimeMillis()
+                            updatedAt = System.currentTimeMillis(),
+                            userId = userId
                         )
                     }
                 }
@@ -893,8 +895,10 @@ class CategoriaDetalleFragment :
         val btnExportarListas =      dialogView.findViewById<MaterialButton>(R.id.btnExportarListas)
         val btnSeleccionarTodas = dialogView.findViewById<MaterialButton>(R.id.btnSeleccionarTodas)
         val btnDeseleccionarTodas = dialogView.findViewById<MaterialButton>(R.id.btnDeseleccionarTodas)
+        val btnCancelarListas = dialogView.findViewById<MaterialButton>(R.id.btnCancelarListas)
+        val userId = SessionManager(requireContext()).getCurrentUserId()
 
-        viewLifecycleOwner.lifecycleScope.launch { val categorias = db.categoryDao().getUserActive()
+        viewLifecycleOwner.lifecycleScope.launch { val categorias = db.categoryDao().getUserActiveForUser(userId)
             val cantidades = categorias.associate { categoria ->
                 val userId =
                     SessionManager(requireContext())
@@ -975,8 +979,12 @@ class CategoriaDetalleFragment :
                 }
                 adapterListas.notifyDataSetChanged()
             }
+            btnCancelarListas.setOnClickListener {
+                dialog.dismiss()
+            }
         }
         dialog.show()
+
     }
 
 

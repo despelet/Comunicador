@@ -21,7 +21,7 @@ object FileHash {
         val digest = MessageDigest.getInstance("SHA-256")
 
         FileInputStream(file).use { input ->
-
+                                                  
             val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
             while (true) {

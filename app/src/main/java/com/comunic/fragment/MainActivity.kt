@@ -61,7 +61,9 @@ import java.util.UUID
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
+import com.bumptech.glide.Glide
 import com.comunic.AddToListHost
+import com.comunic.CategoryPreview
 import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.R
@@ -76,12 +78,14 @@ import com.comunic.session.RoleAwareFragment
 import com.comunic.session.SessionManager
 import com.comunic.sync.CloudSyncRepository
 import com.comunic.sync.SyncEvents
+import com.comunic.utils.FileHash
 import com.comunic.utils.ImageCompressor
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.imageview.ShapeableImageView
 import kotlinx.coroutines.withContext
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.squareup.picasso.Picasso
 
 
 class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelectedListener {
@@ -128,6 +132,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
     private var lastPreviewUri: Uri? = null
     private var pendingNombreTexto: String = ""
+
+    private var mediaEnEdicion: ItemLista? = null
+    private var dialogEdicionMedia: AlertDialog? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -253,7 +260,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 }
                 drawerLayout.closeDrawer(GravityCompat.START)
                 mostrarSnackbar(
-                    "Modo paciente activado",
+                    "Modo usuario activado",
                     TipoSnackbar.ADVERTENCIA
                 )
             } else {
@@ -264,12 +271,11 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
         btnExportar.setOnClickListener {
 
-            val fragment =
-                supportFragmentManager.findFragmentById(R.id.fragment_container)
-
+            val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
             when (fragment) {
                 is HomeFragment -> fragment.mostrarDialogoSeleccionarElementos()
                 is Recientes -> fragment.mostrarDialogoSeleccionarElementos()
+                is Listas -> fragment.mostrarDialogoSeleccionarElementos()
                 is CategoriaDetalleFragment -> fragment.mostrarDialogoSeleccionarElementos()
             }
 
@@ -290,6 +296,44 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 .replace(R.id.fragment_container, PapeleraFragment())
                 .addToBackStack(null)
                 .commit()
+
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        btnEditar.setOnClickListener {
+
+            if (!permissionManager.canEditMedia()) {
+                return@setOnClickListener
+            }
+
+            val fragment =
+                supportFragmentManager.findFragmentById(
+                    R.id.fragment_container
+                )
+
+            when (fragment) {
+                is HomeFragment -> {
+                    navigateTo(
+                        R.id.menu_recientes,
+                        Recientes()
+                    )
+                }
+
+                is Recientes -> {
+                    fragment.activarModoEdicion()
+                }
+
+                is Listas -> {
+                    fragment.activarModoEdicion()
+                }
+
+                else -> {
+                    Toast.makeText(
+                        this,
+                        "Esta pantalla no permite editar elementos",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
 
             drawerLayout.closeDrawer(GravityCompat.START)
         }
@@ -326,6 +370,43 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             navigationView.invalidate()
             navigationView.requestLayout()
         }
+        lifecycleScope.launch {
+
+            val dao =
+                AppDatabase
+                    .getDatabase(applicationContext)
+                    .categoryDao()
+
+            val placements =
+                withContext(Dispatchers.IO) {
+                    dao.getActiveMediaPlacements()
+                }
+
+            Log.d(
+                "MED_MIGRATION_CHECK",
+                "Cantidad de referencias MED activas: ${placements.size}"
+            )
+
+            placements.forEach { placement ->
+
+                Log.d(
+                    "MED_MIGRATION_CHECK",
+                    "placementId=${placement.placementId} " +
+                            "categoryId=${placement.categoryId} " +
+                            "itemKey=${placement.itemKey} " +
+                            "isUuid=${ItemKey.isMediaUuid(placement.itemKey)}"
+                )
+            }
+            supportFragmentManager.addOnBackStackChangedListener {
+                val fragment = supportFragmentManager
+                    .findFragmentById(R.id.fragment_container)
+
+                if (fragment != null) {
+                    actualizarMenuLateralParaFragment(fragment)
+                }
+            }
+        }
+        procesarEnlaceFirebase(intent)
     }
 
     private fun openFragment(fragment: Fragment) {
@@ -421,7 +502,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
                     Toast.makeText(
                         this,
-                        "Modo paciente activado",
+                        "Modo usuario activado",
                         Toast.LENGTH_SHORT
                     ).show()
 
@@ -451,6 +532,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 when (fragment) {
                     is HomeFragment -> fragment.mostrarDialogoSeleccionarElementos()
                     is Recientes -> fragment.mostrarDialogoSeleccionarElementos()
+                    is Listas -> fragment.mostrarDialogoSeleccionarElementos()
                     is CategoriaDetalleFragment -> fragment.mostrarDialogoSeleccionarElementos()
                     //else -> Toast.makeText(this, "Fragmento no compatible", Toast.LENGTH_SHORT).show()
                 }
@@ -538,7 +620,11 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 //        menu.findItem(R.id.exportar_archivos)?.isVisible = canImportExport
 //        menu.findItem(R.id.importar_archivos)?.isVisible = canImportExport
         btnExportar.isVisible = canImportExport
-        btnImportar.isVisible = canImportExport
+        Log.d(
+            "MENU_DEBUG",
+            "Fragment: ${fragment::class.simpleName}, ocultarImportar=${fragment is CategoriaDetalleFragment}"
+        )
+        btnImportar.isVisible = canImportExport && fragment !is CategoriaDetalleFragment
 
         // =========================
         // PERFILES
@@ -555,7 +641,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 //            }
         btnAdministrarPerfiles.text =
             if (sessionManager.isTutor()) {
-                "Volver a modo paciente"
+                "Volver a modo usuario"
             } else {
                 "Administrar perfiles"
             }
@@ -678,6 +764,8 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         navigateTo(R.id.menu_listas, Listas())
     }
 
+
+
 //    fun irASugeridosDesdeHome() {
 //        navigateTo(R.id.menu_sugeridos, Sugeridos())
 //    }
@@ -752,37 +840,6 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         return contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)!!
     }
 
-    private fun createVideoUri(): Uri {
-        val values = ContentValues().apply {
-            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
-        }
-        return contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)!!
-    }
-
-    private fun startCrop(uri: Uri) {
-        val destinationUri = Uri.fromFile(
-            File(cacheDir, "imagen_editada_${System.currentTimeMillis()}.jpg")
-        )
-
-        val options = UCrop.Options().apply {
-            setCompressionFormat(Bitmap.CompressFormat.JPEG)
-            setCompressionQuality(90)
-            setFreeStyleCropEnabled(true)
-
-            setToolbarColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
-            setStatusBarColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
-            setToolbarWidgetColor(ContextCompat.getColor(this@MainActivity, R.color.color1))
-            setActiveControlsWidgetColor(ContextCompat.getColor(this@MainActivity, R.color.color1))
-            setRootViewBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
-        }
-
-        UCrop.of(uri, destinationUri)
-            .withOptions(options)
-            .withAspectRatio(1f, 1f)
-            .start(this)
-    }
-
     // funcion para manejar los resultados de las actividades de captura, selección e importación
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onActivityResult(
@@ -835,16 +892,50 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 CAPTURE_VIDEO_REQUEST -> lastCapturedUri
                 else -> null
             }
+//            mediaUri?.let {
+//                val mime = contentResolver.getType(it)
+//                if (mime?.startsWith("image/") == true) {
+//                    val uriNormalizada = normalizarImagenParaPreview(it)
+//                    ingresarNombreArchivo(uriNormalizada, true)
+//                } else if (mime?.startsWith("video/") == true) {
+//                    ingresarNombreArchivo(it, false)
+//                }
+//            }
             mediaUri?.let {
-                val mime = contentResolver.getType(it)
-                if (mime?.startsWith("image/") == true) {
-                    val uriNormalizada = normalizarImagenParaPreview(it)
-                    ingresarNombreArchivo(uriNormalizada, true)
-                } else if (mime?.startsWith("video/") == true) {
-                    ingresarNombreArchivo(it, false)
-                }
+                procesarMediaSeleccionado(it)
             }
         }
+    }
+
+    private fun createVideoUri(): Uri {
+        val values = ContentValues().apply {
+            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+            put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Comunic")
+        }
+        return contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)!!
+    }
+
+    private fun startCrop(uri: Uri) {
+        val destinationUri = Uri.fromFile(
+            File(cacheDir, "imagen_editada_${System.currentTimeMillis()}.jpg")
+        )
+
+        val options = UCrop.Options().apply {
+            setCompressionFormat(Bitmap.CompressFormat.JPEG)
+            setCompressionQuality(90)
+            setFreeStyleCropEnabled(true)
+
+            setToolbarColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
+            setStatusBarColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
+            setToolbarWidgetColor(ContextCompat.getColor(this@MainActivity, R.color.color1))
+            setActiveControlsWidgetColor(ContextCompat.getColor(this@MainActivity, R.color.color1))
+            setRootViewBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.color5))
+        }
+
+        UCrop.of(uri, destinationUri)
+            .withOptions(options)
+            .withAspectRatio(1f, 1f)
+            .start(this)
     }
 
     // funcion para mostrar un dialog personalizado para ingresar el nombre del archivo, con preview de la imagen/video y validación de campo vacío
@@ -1362,7 +1453,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         syncDialog.show(supportFragmentManager, "sync_dialog")
         syncDialog.showIndeterminate("Preparando sincronización...")
 
-        lifecycleScope.launch {
+        val syncJob = lifecycleScope.launch {
             try {
                 val repo = CloudSyncRepository(this@MainActivity)
                 repo.uploadAll(syncDialog)
@@ -1372,6 +1463,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                     e.message ?: "Error desconocido"
                 )
             }
+        }
+        syncDialog.onCancelSync = {
+            syncJob.cancel()
         }
     }
 
@@ -1388,7 +1482,7 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
             "Preparando descarga..."
         )
 
-        lifecycleScope.launch {
+        val syncJob = lifecycleScope.launch {
 
             try {
 
@@ -1402,34 +1496,12 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
                 )
             }
         }
+        syncDialog.onCancelSync = {
+            syncJob.cancel()
+        }
     }
 
 
-  /*  private fun mostrarDialogoCuentaActiva(
-        email: String
-    ) {
-
-        AlertDialog.Builder(
-            this,
-            R.style.ThemeOverlay_Comunic_AlertDialog
-        )
-            .setTitle("Cuenta")
-            .setMessage("Sesión iniciada como:\n$email")
-            .setPositiveButton("Cerrar sesión") { _, _ ->
-
-                AuthSessionManager(this)
-                    .logout()
-
-                Toast.makeText(
-                    this,
-                    "Sesión cerrada",
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                refrescarEstadoSesion()            }
-            .setNegativeButton("Cancelar", null)
-            .show()
-    }*/
 
     private fun mostrarDialogoLogin() {
 
@@ -1503,24 +1575,9 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
 
         btnRecuperar.setOnClickListener {
 
-            val email = editEmail.text?.toString()?.trim().orEmpty()
-            if (email.isBlank()) {
-                Toast.makeText(this, "Ingresá tu email para recuperar la contraseña", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
+            dialog.dismiss()
 
-            lifecycleScope.launch {
-                try {
-                    AuthSessionManager(this@MainActivity).sendPasswordReset(email)
-                    mostrarSnackbar(
-                        "Te enviamos un correo para recuperar la contraseña",
-                        TipoSnackbar.EXITO
-                    )                } catch (e: Exception) {
-                    mostrarSnackbar(
-                        e.message ?: "Ocurrió un error",
-                        TipoSnackbar.ERROR
-                    )                }
-            }
+            mostrarDialogoRecuperarContrasena()
         }
 
         btnIrARegistro.setOnClickListener {
@@ -1533,6 +1590,312 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         }
 
         dialog.show()
+    }
+
+    private fun mostrarDialogoRecuperarContrasena() {
+
+        val dialogView = layoutInflater.inflate(R.layout.login_dialog_password_reset, null)
+        val editEmail = dialogView.findViewById<TextInputEditText>(R.id.editEmailReset)
+        val btnEnviar = dialogView.findViewById<MaterialButton>(R.id.btnEnviarReset)
+        val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelarReset)
+        val dialog = AlertDialog.Builder(this, R.style.ThemeOverlay_Comunic_AlertDialog)
+                .setView(dialogView)
+                .create()
+
+        dialog.window?.setBackgroundDrawable(
+            ColorDrawable(Color.TRANSPARENT)
+        )
+
+        btnEnviar.setOnClickListener {
+            val email =
+                editEmail.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+
+            if (email.isBlank()) {
+                Toast.makeText(
+                    this,
+                    "Ingresá tu correo electrónico",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+
+                try {
+
+                    btnEnviar.isEnabled = false
+
+                    AuthSessionManager(this@MainActivity)
+                        .sendPasswordReset(email)
+
+                    dialog.dismiss()
+
+                    mostrarSnackbar(
+                        "Te enviamos un correo para recuperar la contraseña",
+                        TipoSnackbar.EXITO
+                    )
+
+                } catch (e: Exception) {
+
+                    btnEnviar.isEnabled = true
+
+                    mostrarSnackbar(
+                        e.message ?: "No se pudo enviar el correo",
+                        TipoSnackbar.ERROR
+                    )
+                }
+            }
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun procesarEnlaceFirebase(intent: Intent) {
+
+        val data = intent.data ?: return
+
+        Log.d(
+            "PASSWORD_RESET",
+            "Enlace recibido: $data"
+        )
+
+        // Firebase coloca el enlace real dentro del parámetro "link"
+        val firebaseLink =
+            data.getQueryParameter("link")
+
+        if (firebaseLink.isNullOrBlank()) {
+            Log.d(
+                "PASSWORD_RESET",
+                "No se encontró parámetro link"
+            )
+            return
+        }
+
+        Log.d(
+            "PASSWORD_RESET",
+            "Firebase link: $firebaseLink"
+        )
+
+        val firebaseUri =
+            Uri.parse(firebaseLink)
+
+        val mode =
+            firebaseUri.getQueryParameter("mode")
+
+        val oobCode =
+            firebaseUri.getQueryParameter("oobCode")
+
+        Log.d(
+            "PASSWORD_RESET",
+            "mode=$mode"
+        )
+
+        Log.d(
+            "PASSWORD_RESET",
+            "oobCode presente=${!oobCode.isNullOrBlank()}"
+        )
+
+        if (
+            mode == "resetPassword" &&
+            !oobCode.isNullOrBlank()
+        ) {
+
+            lifecycleScope.launch {
+
+                try {
+
+                    val email =
+                        AuthSessionManager(this@MainActivity)
+                            .verifyPasswordResetCode(oobCode)
+
+                    Log.d(
+                        "PASSWORD_RESET",
+                        "Código válido para: $email"
+                    )
+
+                    mostrarDialogoNuevaContrasena(
+                        oobCode
+                    )
+
+                } catch (e: Exception) {
+
+                    Log.e(
+                        "PASSWORD_RESET",
+                        "Código inválido o expirado",
+                        e
+                    )
+
+                    mostrarSnackbar(
+                        "El enlace de recuperación no es válido o ya expiró",
+                        TipoSnackbar.ERROR
+                    )
+                }
+            }
+        }
+    }
+    private fun mostrarDialogoNuevaContrasena(
+        code: String
+    ) {
+
+        val dialogView =
+            layoutInflater.inflate(
+                R.layout.login_dialog_new_password,
+                null
+            )
+
+        val editNewPassword =
+            dialogView.findViewById<TextInputEditText>(
+                R.id.editNewPassword
+            )
+
+        val editRepeatPassword =
+            dialogView.findViewById<TextInputEditText>(
+                R.id.editRepeatPassword
+            )
+
+        val btnConfirmar =
+            dialogView.findViewById<MaterialButton>(
+                R.id.btnConfirmarReset
+            )
+
+        val dialog =
+            AlertDialog.Builder(
+                this,
+                R.style.ThemeOverlay_Comunic_AlertDialog
+            )
+                .setView(dialogView)
+                .create()
+
+        dialog.window?.setBackgroundDrawable(
+            ColorDrawable(Color.TRANSPARENT)
+        )
+
+        btnConfirmar.setOnClickListener {
+
+            val newPassword =
+                editNewPassword.text
+                    ?.toString()
+                    .orEmpty()
+
+            val repeatPassword =
+                editRepeatPassword.text
+                    ?.toString()
+                    .orEmpty()
+
+            if (newPassword.isBlank() || repeatPassword.isBlank()) {
+
+                Toast.makeText(
+                    this,
+                    "Completá ambos campos",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return@setOnClickListener
+            }
+
+            if (newPassword != repeatPassword) {
+
+                Toast.makeText(
+                    this,
+                    "Las contraseñas no coinciden",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return@setOnClickListener
+            }
+
+            if (newPassword.length < 6) {
+
+                Toast.makeText(
+                    this,
+                    "La contraseña debe tener al menos 6 caracteres",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+
+                try {
+
+                    btnConfirmar.isEnabled = false
+
+                    AuthSessionManager(this@MainActivity)
+                        .confirmPasswordReset(
+                            code,
+                            newPassword
+                        )
+
+                    dialog.dismiss()
+
+                    mostrarDialogoPasswordResetExitoso()
+
+                } catch (e: Exception) {
+
+                    btnConfirmar.isEnabled = true
+
+                    mostrarSnackbar(
+                        e.message
+                            ?: "No se pudo cambiar la contraseña",
+                        TipoSnackbar.ERROR
+                    )
+                }
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun mostrarDialogoPasswordResetExitoso() {
+
+        val dialogView =
+            layoutInflater.inflate(
+                R.layout.login_dialog_password_reset_success,
+                null
+            )
+
+        val btnIngresar =
+            dialogView.findViewById<MaterialButton>(
+                R.id.btnIrAIngresar
+            )
+
+        val dialog =
+            AlertDialog.Builder(
+                this,
+                R.style.ThemeOverlay_Comunic_AlertDialog
+            )
+                .setView(dialogView)
+                .create()
+
+        dialog.window?.setBackgroundDrawable(
+            ColorDrawable(Color.TRANSPARENT)
+        )
+
+        btnIngresar.setOnClickListener {
+
+            dialog.dismiss()
+
+            mostrarDialogoLogin()
+        }
+
+        dialog.show()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+
+        setIntent(intent)
+
+        procesarEnlaceFirebase(intent)
     }
 
     private fun mostrarDialogoRegistro() {
@@ -1743,5 +2106,890 @@ class MainActivity : AppCompatActivity(),  NavigationView.OnNavigationItemSelect
         navigationView.invalidate()
         navigationView.requestLayout()
     }
+
+    fun iniciarEdicionMedia(item: ItemLista) {
+
+        if (!permissionManager.canEditMedia()) {
+            return
+        }
+
+        mostrarDialogoEditarMedia(item)
+    }
+
+    private fun mostrarDialogoEditarMedia(item: ItemLista) {
+
+        val view = layoutInflater.inflate(
+            R.layout.dialog_editar_sonido,
+            null
+        )
+
+        val txtTitulo = view.findViewById<TextView>(
+            R.id.txtTitulo
+        )
+
+        val imagePreview = view.findViewById<ImageView>(
+            R.id.imagePreview
+        )
+
+        val btnCameraEditar = view.findViewById<MaterialButton>(
+            R.id.btnCameraEditar
+        )
+
+        val btnVideoEditar = view.findViewById<MaterialButton>(
+            R.id.btnVideoEditar
+        )
+
+        val btnGalleryEditar = view.findViewById<MaterialButton>(
+            R.id.btnGalleryEditar
+        )
+
+        val editNombre = view.findViewById<EditText>(
+            R.id.editNombre
+        )
+
+        val btnGuardar = view.findViewById<MaterialButton>(
+            R.id.btnGuardar
+        )
+
+        val btnCancelar = view.findViewById<MaterialButton>(
+            R.id.btnCancelar
+        )
+
+        val btnCerrar = view.findViewById<ImageButton>(
+            R.id.btnCerrar
+        )
+
+        txtTitulo.text = "EDITAR ELEMENTO"
+
+        editNombre.setText(item.nombre)
+
+        if (item.esImagen) {
+
+            Picasso.get()
+                .load(item.uri)
+                .fit()
+                .centerCrop()
+                .into(imagePreview)
+
+        } else {
+
+            Glide.with(this)
+                .asBitmap()
+                .load(item.uri)
+                .frame(1000)
+                .centerCrop()
+                .into(imagePreview)
+        }
+
+        val dialog = AlertDialog.Builder(
+            this,
+            R.style.ThemeOverlay_Comunic_AlertDialog
+        )
+            .setView(view)
+            .create()
+
+        dialog.window?.setBackgroundDrawable(
+            ColorDrawable(Color.TRANSPARENT)
+        )
+
+        imagePreview.setOnClickListener {
+
+            mediaEnEdicion = item
+            dialogEdicionMedia = dialog
+
+
+        }
+
+        btnGuardar.setOnClickListener {
+
+            val nuevoNombre = editNombre.text
+                ?.toString()
+                ?.trim()
+                .orEmpty()
+
+            if (nuevoNombre.isBlank()) {
+                editNombre.error = "Ingresá un nombre"
+                return@setOnClickListener
+            }
+
+            guardarEdicionMedia(
+                item = item,
+                nuevoNombre = nuevoNombre,
+                dialog = dialog
+            )
+        }
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnCameraEditar.setOnClickListener {
+
+            mediaEnEdicion = item
+            dialogEdicionMedia = dialog
+
+            launchImageCapture()
+        }
+
+        btnVideoEditar.setOnClickListener {
+
+            mediaEnEdicion = item
+            dialogEdicionMedia = dialog
+
+            launchVideoCapture()
+        }
+
+        btnGalleryEditar.setOnClickListener {
+
+            mediaEnEdicion = item
+            dialogEdicionMedia = dialog
+
+            openGallery()
+        }
+
+        dialog.show()
+
+        val width =
+            (resources.displayMetrics.widthPixels * 0.85).toInt()
+
+        dialog.window?.setLayout(
+            width,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+    }
+
+    private fun guardarEdicionMedia(
+        item: ItemLista,
+        nuevoNombre: String,
+        dialog: AlertDialog
+    ) {
+
+        lifecycleScope.launch {
+
+            val userId =
+                sessionManager.getCurrentUserId()
+
+            val mediaId = when {
+
+                ItemKey.isMedia(item.id) ->
+                    ItemKey.mediaBase(item.id)
+
+                else -> {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "No se pudo identificar el elemento",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@launch
+                }
+            }
+
+            val now = System.currentTimeMillis()
+
+            withContext(Dispatchers.IO) {
+
+                AppDatabase
+                    .getDatabase(applicationContext)
+                    .mediaDao()
+                    .updateDisplayName(
+                        mediaId = mediaId,
+                        newName = nuevoNombre,
+                        updatedAt = now,
+                        userId = userId
+                    )
+            }
+
+            dialog.dismiss()
+
+            Toast.makeText(
+                this@MainActivity,
+                "Elemento actualizado",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            SyncEvents.notifyDataChanged()
+//            val fragment =
+//            supportFragmentManager.findFragmentById(
+//                R.id.fragment_container
+//            )
+//
+//            if (fragment is Recientes) {
+//                fragment.recargarMedia()
+//            }
+
+        }
+    }
+
+    private fun copiarMediaParaEdicion(
+        sourceUri: Uri,
+        mediaId: String,
+        mediaType: String
+    ): File? {
+        //esta funcion copia el archivo de media desde su ubicación original (galería o cámara) a una
+        // carpeta privada de la app, usando el mediaId como
+        // nombre del archivo y la extensión según el tipo de media.
+        // Retorna el archivo copiado o null si hubo un error.
+
+        return try {
+
+            val mediaDir = File(filesDir, "media")
+            if (!mediaDir.exists()) {
+                mediaDir.mkdirs()
+            }
+
+            val extension = when (mediaType) {
+                "image" -> "jpg"
+                "video" -> "mp4"
+                else -> return null
+            }
+
+            // Por ahora usamos el mismo mediaId como nombre físico.
+            // Esto evita depender del nombre visible del elemento.
+//            val destinationFile = File(
+//                mediaDir,
+//                "$mediaId.$extension"
+//            )
+
+            val version = System.currentTimeMillis()
+
+            val destinationFile = File(
+                mediaDir,
+                "${mediaId}_$version.$extension"
+            )
+            contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(destinationFile).use { output ->
+                    input.copyTo(output)
+                }
+            } ?: return null
+            destinationFile
+        } catch (e: Exception) {
+            Log.e(
+                "EDIT_MEDIA",
+                "Error copiando media para edición",
+                e
+            )
+            null
+        }
+    }
+
+    private fun reemplazarMediaExistente(
+        item: ItemLista,
+        nuevaUri: Uri,
+        mediaType: String,
+        onComplete: (Boolean) -> Unit
+    ) {
+
+        lifecycleScope.launch {
+            try {
+                val userId = sessionManager.getCurrentUserId()
+                val mediaId = when {
+                    ItemKey.isMedia(item.id) ->
+                        ItemKey.mediaBase(item.id)
+                    else -> {
+                        Toast.makeText(this@MainActivity, "No se pudo identificar el elemento", Toast.LENGTH_SHORT).show()
+                        onComplete(false)
+                        return@launch
+                    }
+                }
+                val dao = AppDatabase.getDatabase(applicationContext).mediaDao()
+                // Buscar el MediaEntity ORIGINAL
+                val mediaAnterior =
+                    withContext(Dispatchers.IO) {
+                        dao.getById(mediaId)
+                    }
+                if (mediaAnterior == null) {
+                    Toast.makeText(this@MainActivity, "No se encontró el elemento", Toast.LENGTH_SHORT).show()
+                    onComplete(false)
+                    return@launch
+                }
+
+                // -------------------------------------------------
+                // 1. COPIAR EL NUEVO ARCHIVO
+                // -------------------------------------------------
+                val nuevoArchivo = withContext(Dispatchers.IO) {
+                        copiarMediaParaEdicion(
+                            sourceUri = nuevaUri,
+                            mediaId = mediaId,
+                            mediaType = mediaType
+                        )
+                    }
+                if (nuevoArchivo == null) {
+                    Toast.makeText(this@MainActivity, "No se pudo guardar el nuevo archivo", Toast.LENGTH_SHORT).show()
+                    onComplete(false)
+                    return@launch
+                }
+
+                // -------------------------------------------------
+                // 2. CALCULAR HASH
+                // -------------------------------------------------
+                val nuevoHash =
+                    withContext(Dispatchers.IO) {
+                        FileHash.sha256(nuevoArchivo)
+                    }
+                val nuevaLocalUri = Uri.fromFile(nuevoArchivo).toString()
+                val ahora = System.currentTimeMillis()
+
+                // -------------------------------------------------
+                // 3. ACTUALIZAR ROOM
+                // -------------------------------------------------
+
+                withContext(Dispatchers.IO) {
+                    dao.updateMediaContent(
+                        mediaId = mediaId,
+                        localUri = nuevaLocalUri,
+                        mediaType = mediaType,
+                        contentHash = nuevoHash,
+                        updatedAt = ahora,
+                        userId = userId
+                    )
+                }
+
+                // -------------------------------------------------
+                // 4. ELIMINAR ARCHIVO ANTERIOR
+                // -------------------------------------------------
+
+                val uriAnterior = Uri.parse(mediaAnterior.localUri)
+                if (uriAnterior.scheme == "file") {
+                    val archivoAnterior =
+                        uriAnterior.path?.let {
+                            File(it)
+                        }
+
+                    if (
+                        archivoAnterior != null &&
+                        archivoAnterior.exists() &&
+                        archivoAnterior.absolutePath !=
+                        nuevoArchivo.absolutePath
+                    ) {
+                        archivoAnterior.delete()
+                    }
+                }
+
+                Log.d(
+                    "EDIT_MEDIA",
+                    """
+                Media reemplazado correctamente
+                mediaId=$mediaId
+                oldUri=${mediaAnterior.localUri}
+                newUri=$nuevaLocalUri
+                mediaType=$mediaType
+                contentHash=$nuevoHash
+                """.trimIndent()
+                )
+
+                onComplete(true)
+
+            } catch (e: Exception) {
+                Log.e("EDIT_MEDIA", "Error reemplazando media", e)
+                Toast.makeText(this@MainActivity, "No se pudo reemplazar el archivo", Toast.LENGTH_SHORT).show()
+                onComplete(false)
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun procesarMediaSeleccionado(uri: Uri) {
+
+        val itemEnEdicion = mediaEnEdicion
+
+        // =========================================================
+        // MODO EDICIÓN
+        // =========================================================
+
+        if (itemEnEdicion != null) {
+            val mime = contentResolver.getType(uri)
+            val mediaType = when {
+                mime?.startsWith("image/") == true -> "image"
+                mime?.startsWith("video/") == true -> "video"
+                else -> {
+                    Toast.makeText(this, "Formato de archivo no compatible", Toast.LENGTH_SHORT).show()
+                    return
+                }
+            }
+
+            reemplazarMediaExistente(
+                item = itemEnEdicion,
+                nuevaUri = uri,
+                mediaType = mediaType
+            ) { correcto ->
+
+                if (!correcto) {
+                    return@reemplazarMediaExistente
+                }
+
+                // La imagen/video nuevo se guardó correctamente.
+                Toast.makeText(
+                    this,
+                    "Contenido actualizado",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                dialogEdicionMedia?.dismiss()
+
+                mediaEnEdicion = null
+                dialogEdicionMedia = null
+
+//                val fragment =
+//                    supportFragmentManager
+//                        .findFragmentById(
+//                            R.id.fragment_container
+//                        )
+//
+//                if (fragment is Recientes) {
+//                    fragment.recargarMedia()
+//                }
+
+                SyncEvents.notifyDataChanged()
+            }
+
+            return
+        }
+
+        // =========================================================
+        // MODO CREACIÓN
+        // =========================================================
+
+        val mime =
+            contentResolver.getType(uri)
+
+        if (mime?.startsWith("image/") == true) {
+
+            val uriNormalizada =
+                normalizarImagenParaPreview(uri)
+
+            ingresarNombreArchivo(
+                uriNormalizada,
+                true
+            )
+
+        } else if (mime?.startsWith("video/") == true) {
+
+            ingresarNombreArchivo(
+                uri,
+                false
+            )
+
+        } else {
+
+            Toast.makeText(
+                this,
+                "Formato de archivo no compatible",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    fun editarCategoriaDesdeListas(cat: CategoryPreview) {
+// funcion para editar una categoría desde el fragment Listas, se llama
+        // desde el adaptador de la lista de categorías cuando el usuario
+        // selecciona "Editar" en una categoría.
+        // Se encarga de verificar permisos y mostrar el diálogo de edición.
+
+        // Seguridad adicional
+        if (!permissionManager.canEditMedia()) {
+            return
+        }
+
+        if (cat.isSystem) {
+            Toast.makeText(this,  "Esta lista no se puede editar", Toast.LENGTH_SHORT ).show()
+            return
+        }
+        mostrarDialogoEditarCategoria(cat)
+    }
+
+    private fun mostrarDialogoEditarCategoria(
+        cat: CategoryPreview
+    ) {
+        val view = layoutInflater.inflate(R.layout.dialog_editar_lista, null)
+
+        val txtTitulo = view.findViewById<TextView>(R.id.txtTitulo)
+        val btnCerrar = view.findViewById<ImageButton>( R.id.btnCerrar)
+        val img1 = view.findViewById<ImageView>(R.id.img1)
+        val img2 = view.findViewById<ImageView>(R.id.img2)
+        val img3 = view.findViewById<ImageView>(R.id.img3)
+        val img4 = view.findViewById<ImageView>(R.id.img4)
+        val editNombre = view.findViewById<EditText>(R.id.editNombreLista)
+        val btnGuardar = view.findViewById<MaterialButton>(R.id.btnGuardar)
+        val btnCancelar = view.findViewById<MaterialButton>(R.id.btnCancelar)
+
+        txtTitulo.text = "EDITAR LISTA"
+        editNombre.setText(cat.name)
+
+        // =========================================================
+        // PREVIEW
+        // =========================================================
+
+        val imageViews = listOf(
+            img1,
+            img2,
+            img3,
+            img4
+        )
+
+        imageViews.forEach {
+            it.setImageDrawable(null)
+        }
+
+        cat.previewUris
+            .take(4)
+            .forEachIndexed { index, uri ->
+
+                loadCategoryPreviewInto(
+                    imageViews[index],
+                    uri
+                )
+            }
+
+        // =========================================================
+        // DIALOG
+        // =========================================================
+
+        val dialog = AlertDialog.Builder(this, R.style.ThemeOverlay_Comunic_AlertDialog)
+                .setView(view)
+                .create()
+
+        dialog.window?.setBackgroundDrawable(
+            ColorDrawable(Color.TRANSPARENT)
+        )
+
+        // =========================================================
+        // GUARDAR
+        // =========================================================
+
+        btnGuardar.setOnClickListener {
+
+            val nuevoNombre =
+                editNombre.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+
+            if (nuevoNombre.isBlank()) {
+
+                editNombre.error =
+                    "Ingresá un nombre"
+
+                return@setOnClickListener
+            }
+
+            guardarEdicionCategoria(
+                categoria = cat,
+                nuevoNombre = nuevoNombre,
+                dialog = dialog
+            )
+        }
+
+        // =========================================================
+        // CANCELAR
+        // =========================================================
+
+        btnCancelar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnCerrar.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.setOnShowListener {
+            val width =
+                (
+                        resources.displayMetrics.widthPixels * 0.85
+                        ).toInt()
+
+            dialog.window?.setLayout(
+                width,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        dialog.show()
+    }
+
+    private fun loadCategoryPreviewInto(
+        imageView: ImageView,
+        uriOrRes: String
+    ) {
+
+        if (uriOrRes.isBlank()) {
+            imageView.setImageDrawable(null)
+            return
+        }
+
+        // =========================================================
+        // PATH ABSOLUTO
+        // =========================================================
+
+        if (uriOrRes.startsWith("/")) {
+
+            val file = File(uriOrRes)
+
+            if (!file.exists()) {
+                imageView.setImageDrawable(null)
+                return
+            }
+
+            val ext =
+                file.extension.lowercase()
+
+            val esVideo =
+                ext in listOf(
+                    "mp4",
+                    "mkv",
+                    "avi",
+                    "mov",
+                    "webm"
+                )
+
+            if (esVideo) {
+
+                Glide.with(this)
+                    .asBitmap()
+                    .load(file)
+                    .frame(1000)
+                    .centerCrop()
+                    .into(imageView)
+
+            } else {
+
+                Picasso.get()
+                    .load(file)
+                    .fit()
+                    .centerCrop()
+                    .into(imageView)
+            }
+
+            return
+        }
+
+        // =========================================================
+        // DRAWABLE
+        // =========================================================
+
+        val cleaned =
+            uriOrRes
+                .removePrefix("@drawable/")
+                .removePrefix("drawable/")
+
+        val isProbablyDrawableName =
+            !uriOrRes.contains("://") &&
+                    cleaned.matches(
+                        Regex("^[a-z0-9_]+$")
+                    )
+
+        if (isProbablyDrawableName) {
+
+            val resId =
+                resources.getIdentifier(
+                    cleaned,
+                    "drawable",
+                    packageName
+                )
+
+            if (resId != 0) {
+
+                Picasso.get()
+                    .load(resId)
+                    .fit()
+                    .centerCrop()
+                    .into(imageView)
+
+                return
+            }
+        }
+
+        // =========================================================
+        // URI
+        // =========================================================
+
+        val uri =
+            try {
+                Uri.parse(uriOrRes)
+            } catch (
+                e: Exception
+            ) {
+                null
+            }
+
+        if (uri == null) {
+            imageView.setImageDrawable(null)
+            return
+        }
+
+        if (uri.scheme == "file") {
+
+            val path = uri.path
+
+            if (path.isNullOrBlank()) {
+                imageView.setImageDrawable(null)
+                return
+            }
+
+            val file = File(path)
+
+            if (!file.exists()) {
+                imageView.setImageDrawable(null)
+                return
+            }
+
+            val ext =
+                file.extension.lowercase()
+
+            val esVideo =
+                ext in listOf(
+                    "mp4",
+                    "mkv",
+                    "avi",
+                    "mov",
+                    "webm"
+                )
+
+            if (esVideo) {
+
+                Glide.with(this)
+                    .asBitmap()
+                    .load(file)
+                    .frame(1000)
+                    .centerCrop()
+                    .into(imageView)
+
+            } else {
+
+                Picasso.get()
+                    .load(file)
+                    .fit()
+                    .centerCrop()
+                    .into(imageView)
+            }
+
+            return
+        }
+
+        // =========================================================
+        // CONTENT URI
+        // =========================================================
+
+        val lower =
+            uriOrRes.lowercase()
+
+        val esVideo =
+            lower.endsWith(".mp4") ||
+                    lower.endsWith(".mkv") ||
+                    lower.endsWith(".avi") ||
+                    lower.endsWith(".mov") ||
+                    lower.endsWith(".webm")
+
+        if (esVideo) {
+
+            Glide.with(this)
+                .asBitmap()
+                .load(uri)
+                .frame(1000)
+                .centerCrop()
+                .into(imageView)
+
+        } else {
+
+            Picasso.get()
+                .load(uri)
+                .fit()
+                .centerCrop()
+                .into(imageView)
+        }
+    }
+
+    private fun guardarEdicionCategoria(
+        categoria: CategoryPreview,
+        nuevoNombre: String,
+        dialog: AlertDialog
+    ) {
+
+        lifecycleScope.launch {
+
+            try {
+
+                val userId =
+                    sessionManager.getCurrentUserId()
+
+                val ahora =
+                    System.currentTimeMillis()
+
+                val dao =
+                    AppDatabase
+                        .getDatabase(applicationContext)
+                        .categoryDao()
+
+                val filasActualizadas =
+                    withContext(Dispatchers.IO) {
+
+                        dao.updateCategoryName(
+                            categoryId = categoria.categoryId,
+                            newName = nuevoNombre,
+                            updatedAt = ahora,
+                            userId = userId
+                        )
+                    }
+
+                // ==========================================
+                // Verificar que realmente se haya actualizado
+                // ==========================================
+
+                if (filasActualizadas == 0) {
+
+                    Toast.makeText(
+                        this@MainActivity,
+                        "No se pudo actualizar la lista",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@launch
+                }
+
+                // ==========================================
+                // ÉXITO
+                // ==========================================
+
+                dialog.dismiss()
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "Lista actualizada",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                val fragment =
+                    supportFragmentManager.findFragmentById(
+                        R.id.fragment_container
+                    )
+
+                if (fragment is Listas) {
+                    fragment.recargarCategorias()
+                }
+
+                // Avisar al resto de la aplicación
+                SyncEvents.notifyDataChanged()
+
+            } catch (e: Exception) {
+
+                Log.e(
+                    "EDIT_CATEGORY",
+                    "Error actualizando categoría",
+                    e
+                )
+
+                Toast.makeText(
+                    this@MainActivity,
+                    "No se pudo actualizar la lista",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+
 
 }

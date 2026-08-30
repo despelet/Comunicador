@@ -1,5 +1,6 @@
 package com.comunic.auth
 
+import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.tasks.await
 import com.google.firebase.auth.UserProfileChangeRequest
@@ -68,11 +69,46 @@ class FirebaseAuthRepository {
         return auth.currentUser?.displayName
     }
 
-        suspend fun sendPasswordReset(
-            email: String
-        ) {
-            auth.sendPasswordResetEmail(email).await()
-        }
+    suspend fun sendPasswordReset(
+        email: String
+    ) {
+        val actionCodeSettings =
+            ActionCodeSettings.newBuilder()
+                .setUrl(
+                    "https://bicom-7b58c.firebaseapp.com/finishPasswordReset"
+                )
+                .setHandleCodeInApp(true)
+                .setAndroidPackageName(
+                    "com.comunic",
+                    true,
+                    null
+                )
+                .build()
+
+        auth.sendPasswordResetEmail(
+            email,
+            actionCodeSettings
+        ).await()
+    }
+
+    suspend fun verifyPasswordResetCode(
+        code: String
+    ): String {
+        return auth
+            .verifyPasswordResetCode(code)
+            .await()
+    }
+    suspend fun confirmPasswordReset(
+        code: String,
+        newPassword: String
+    ) {
+        auth
+            .confirmPasswordReset(
+                code,
+                newPassword
+            )
+            .await()
+    }
 
         fun getCurrentUid(): String? {
             return auth.currentUser?.uid

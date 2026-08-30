@@ -14,6 +14,8 @@ import kotlinx.coroutines.tasks.await
 import android.net.Uri
 import com.comunic.dialog.SyncProgressDialog
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import java.io.File
 
 class CloudSyncRepository(
@@ -149,7 +151,23 @@ class CloudSyncRepository(
 
         verificarMediaLocal(userId)
 
-        val mediaItems = db.mediaDao().getAllMediaForSync(userId)
+        //val mediaItems = db.mediaDao().getAllMediaForSync(userId) // getAllMediaForSync sube los isDelete=true tamvbien. no me sirve esto
+
+        val mediaItems =
+            db.mediaDao()
+                .getMediaForUpload(userId) // no se sincronzian eliminados ni archivos inexistentes
+                .filter { media ->
+                    val file = File(Uri.parse(media.localUri).path ?: "")
+                    if (!file.exists()) {
+                        Log.w(
+                            TAG,
+                            "No se sincroniza ${media.displayName}: archivo inexistente."
+                        )
+                    }
+
+                    file.exists()
+                }
+
         val uid = auth.currentUser?.uid ?: return
 
         // Leemos UNA SOLA VEZ todos los metadatos remotos.
@@ -177,6 +195,7 @@ class CloudSyncRepository(
         val total = mediaItems.size
 
         mediaItems.forEachIndexed { index, media ->
+            currentCoroutineContext().ensureActive()
             syncDialog?.updateProgress(
                 current = index,
                 total = total,
@@ -443,7 +462,7 @@ class CloudSyncRepository(
         val total = snapshot.size()
 
         snapshot.documents.forEachIndexed { index, doc ->
-
+            currentCoroutineContext().ensureActive()
             val mediaId = doc.getString("mediaId") ?: doc.id
             val displayName = doc.getString("displayName") ?: ""
             val mediaType = doc.getString("mediaType") ?: "image"
@@ -562,9 +581,9 @@ class CloudSyncRepository(
         // verificarMediaLocal() revisa todos los registros de media en la base de datos local y
         // verifica si los archivos correspondientes existen en el almacenamiento local.
         // Cuenta cuántos archivos existen y cuántos faltan, y registra advertencias para los archivos faltantes.
-        val mediaItems =
-            db.mediaDao()
-                .getAllMediaForSync(userId)
+
+       // val mediaItems = db.mediaDao().getAllMediaForSync(userId)
+        val mediaItems = db.mediaDao().getMediaForUpload(userId) //verifica los archivos que deberían existir localmente
 
         var existentes = 0
         var faltantes = 0

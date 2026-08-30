@@ -58,6 +58,18 @@ open class MediaAdapter(
         notifyDataSetChanged()
     }
 
+    fun setModoEdicion(activar: Boolean) {
+        edicion = activar
+
+        if (activar) {
+            // No podemos estar editando y eliminando al mismo tiempo
+            modoEliminacion = false
+            seleccionados.clear()
+        }
+
+        notifyDataSetChanged()
+    }
+
     // Interfaz para avisar al MainActivity
     interface OnEliminarSeleccionListener {
         fun onEliminarSeleccionSolicitada(seleccionados: List<ItemLista>)
@@ -112,11 +124,13 @@ open class MediaAdapter(
                 if (bloquearClicks()) {
                     return@setOnClickListener
                 }
-
-                onItemClickOverride?.invoke(mediaItem)
-                if (onItemClickOverride != null) {
+                // modo edicion
+                if (edicion) {
+                    onItemClickOverride?.invoke(mediaItem)
                     return@setOnClickListener
                 }
+
+               // modo eliminacion
 
                 if (modoEliminacion) {
                         toggleSeleccion(holder, mediaItem)
@@ -187,8 +201,8 @@ open class MediaAdapter(
                     return@setOnClickListener
                 }
 
-                onItemClickOverride?.invoke(mediaItem)
-                if (onItemClickOverride != null) {
+                if (edicion) {
+                    onItemClickOverride?.invoke(mediaItem)
                     return@setOnClickListener
                 }
 
@@ -312,6 +326,7 @@ open class MediaAdapter(
         // Si no se encuentra el índice o la lista está vacía
         return emptyList()
     }
+
     override fun getItemCount(): Int = mediaList.size
 
     fun actualizarTimeStamp(uri: Uri) {

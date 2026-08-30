@@ -25,6 +25,26 @@ interface MediaDao {
     suspend fun getById(mediaId: String): MediaEntity? // Trae un medio específico por su ID, sin importar si está marcado como eliminado o no
 
     @Query("""
+    SELECT * FROM media_items
+    WHERE mediaId = :mediaId
+      AND ownerUserId = :userId
+    LIMIT 1
+""")
+    suspend fun getByIdForUser(
+        mediaId: String,
+        userId: String
+    ): MediaEntity? //getById pero segun user
+
+    @Query("""
+    SELECT * FROM media_items
+    WHERE localUri = :localUri
+    LIMIT 1
+""")
+    suspend fun getAnyByLocalUri(
+        localUri: String
+    ): MediaEntity?
+
+    @Query("""
         SELECT * FROM media_items
         WHERE displayName = :displayName
         AND isDeleted = 0
@@ -107,7 +127,7 @@ interface MediaDao {
 
         """) suspend fun  getAllMediaForSync(
         userId: String
-    ):List<MediaEntity>
+    ):List<MediaEntity>  // sincroninzacion completa (activos + eliminados)
 
     @Query("""
     UPDATE media_items
@@ -118,5 +138,62 @@ interface MediaDao {
         mediaId: String,
         contentHash: String
     ) // metodo para actualizar el hash sin actualizar el resto de las columnas de la tabla
+
+    @Query("""
+    SELECT *
+    FROM media_items
+    WHERE ownerUserId = :userId
+      AND isDeleted = 0
+    ORDER BY createdAt DESC
+""")
+    suspend fun getMediaForUpload(
+        userId: String
+    ): List<MediaEntity> // sync de archivos que existen en el recycler
+
+    @Query("""
+    UPDATE media_items
+    SET displayName = :newName,
+        updatedAt = :updatedAt
+    WHERE mediaId = :mediaId
+      AND ownerUserId = :userId
+      AND isDeleted = 0
+""")
+    suspend fun updateDisplayName( // para actualizar nombre al editar
+        mediaId: String,
+        newName: String,
+        updatedAt: Long,
+        userId: String
+    )
+
+    @Query("""
+    UPDATE media_items
+    SET localUri = :localUri,
+        mediaType = :mediaType,
+        contentHash = :contentHash,
+        updatedAt = :updatedAt
+    WHERE mediaId = :mediaId
+      AND ownerUserId = :userId
+      AND isDeleted = 0
+""")
+    suspend fun updateMediaContent( // para actualizar contenido al reemplazar archivo
+        mediaId: String,
+        localUri: String,
+        mediaType: String,
+        contentHash: String,
+        updatedAt: Long,
+        userId: String
+    )
+
+    @Query("""
+    SELECT * FROM media_items
+    WHERE displayName = :displayName
+      AND ownerUserId = :userId
+      AND isDeleted = 0
+    LIMIT 1
+""")
+    suspend fun getActiveByDisplayNameForUser(
+        displayName: String,
+        userId: String
+    ): MediaEntity?
 
 }

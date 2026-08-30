@@ -6,6 +6,7 @@ import android.util.Log
 import com.comunic.ItemKey
 import com.comunic.ItemLista
 import com.comunic.data.db.AppDatabase
+import com.comunic.session.SessionManager
 import java.io.File
 
 // ===============================
@@ -92,7 +93,7 @@ import java.io.File
         val TAG = "RESOLVE_KEY"
         val db = AppDatabase.getDatabase(context)
 
-        Log.d(TAG, "resolve start itemKey='$itemKey'")
+      // Log.d(TAG, "resolve start itemKey='$itemKey'")
 
         return when {
 
@@ -100,17 +101,24 @@ import java.io.File
 
                 val value = itemKey.removePrefix(ItemKey.MED_PREFIX).trim()
 
-                Log.d(TAG, "MEDIA itemKey='$itemKey' value='$value'")
+              //  Log.d(TAG, "MEDIA itemKey='$itemKey' value='$value'")
 
                 // 1) Intentar formato nuevo: MED:mediaId
-                val mediaById = db.mediaDao().getById(value)
+              //  val mediaById = db.mediaDao().getById(value)
+
+                val userId = SessionManager(context).getCurrentUserId()
+                val mediaById =
+                    db.mediaDao().getByIdForUser(
+                        mediaId = value,
+                        userId = userId
+                    )
 
                 if (mediaById != null && !mediaById.isDeleted) {
 
-                    Log.d(
-                        TAG,
-                        "MEDIA resolved by UUID displayName='${mediaById.displayName}' uri='${mediaById.localUri}'"
-                    )
+//                    Log.d(
+//                        TAG,
+//                        "MEDIA resolved by UUID displayName='${mediaById.displayName}' uri='${mediaById.localUri}'"
+//                    )
 
                     return ItemLista(
                         id = itemKey,
@@ -122,16 +130,21 @@ import java.io.File
                 }
 
                 // 2) Fallback formato viejo: MED:nombre
-                Log.d(TAG, "MEDIA not found by UUID, trying legacy name")
+              //  Log.d(TAG, "MEDIA not found by UUID, trying legacy name")
 
-                val mediaByName = db.mediaDao().getActiveByDisplayName(value)
+                //val mediaByName = db.mediaDao().getActiveByDisplayName(value)
+                val mediaByName =
+                    db.mediaDao().getActiveByDisplayNameForUser(
+                        displayName = value,
+                        userId = userId
+                    )
 
                 if (mediaByName != null) {
 
-                    Log.d(
-                        TAG,
-                        "MEDIA resolved by displayName displayName='${mediaByName.displayName}' uri='${mediaByName.localUri}'"
-                    )
+                  //  Log.d(
+//                        TAG,
+//                        "MEDIA resolved by displayName displayName='${mediaByName.displayName}' uri='${mediaByName.localUri}'"
+//                    )
 
                     return ItemLista(
                         id = itemKey,
@@ -145,10 +158,10 @@ import java.io.File
                 // 3) Último fallback: buscar archivo por nombre como antes
                 val file = findMediaFileByBaseName(context, value)
 
-                Log.d(
-                    TAG,
-                    "MEDIA fallback file search value='$value' file=${file?.absolutePath} exists=${file?.exists()}"
-                )
+//                Log.d(
+//                    TAG,
+//                    "MEDIA fallback file search value='$value' file=${file?.absolutePath} exists=${file?.exists()}"
+//                )
 
                 if (file == null) {
                     return null
@@ -175,7 +188,7 @@ import java.io.File
 
                 val id = ItemKey.pictoId(itemKey)
 
-                Log.d(TAG, "PICTO itemKey='$itemKey' id='$id'")
+                //Log.d(TAG, "PICTO itemKey='$itemKey' id='$id'")
 
                 val row = db.pictogramDao().getPictoUiEnabledById(id)
 

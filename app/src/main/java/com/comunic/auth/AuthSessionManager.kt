@@ -117,6 +117,26 @@ Orquesta el login
             }
         }
 
+        suspend fun verifyPasswordResetCode(
+            code: String
+        ): String {
+            return withContext(Dispatchers.IO) {
+                authRepository.verifyPasswordResetCode(code)
+            }
+        }
+
+        suspend fun confirmPasswordReset(
+            code: String,
+            newPassword: String
+        ) {
+            withContext(Dispatchers.IO) {
+                authRepository.confirmPasswordReset(
+                    code,
+                    newPassword
+                )
+            }
+        }
+
         fun restoreFirebaseSessionIfExists(): String? {
             val uid =
                 authRepository.getCurrentUid()

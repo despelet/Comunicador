@@ -30,7 +30,7 @@ composeBom = "2024.06.00"
 constraintlayout = "2.1.4"
 appcompat = "1.7.0"
 material = "1.12.0"
-materialVersion = "1.11.0"
+#materialVersion = "1.11.0"
 okhttp = "4.12.0"
 picasso = "2.71828"
 picassoTransformations = "2.4.0"
@@ -89,7 +89,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
-material-v1110 = { module = "com.google.android.material:material", version.ref = "materialVersion" }
+#material-v1110 = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
 picasso-transformations = { module = "jp.wasabeef:picasso-transformations", version.ref = "picassoTransformations" }

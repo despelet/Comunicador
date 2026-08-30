@@ -38,5 +38,7 @@
 
     <color name="color_warning">#E6A500</color>
 
+    <color name="color_error">#D32F2F</color>
+
     <!--    <color name="color7">#B096BD</color>-->
 </resources>

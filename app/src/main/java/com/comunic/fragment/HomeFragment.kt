@@ -77,6 +77,8 @@ import com.comunic.data.entity.CategoryEntity
 import com.comunic.data.entity.CategoryItemEntity
 import com.comunic.data.entity.MediaEntity
 import com.comunic.data.mappers.resolveItemKeyToItemLista
+import com.comunic.export.exportlista.ExportCategoryItem
+import com.comunic.export.exportlista.ExportMediaMetadata
 import com.comunic.fragment.Recientes.Companion
 import com.comunic.interfaces.DrawerMenuConfig
 import com.google.android.material.button.MaterialButton
@@ -87,6 +89,7 @@ import com.comunic.session.SessionManager
 import com.comunic.utils.FileHash
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
+import com.google.gson.Gson
 import kotlinx.coroutines.CompletableDeferred
 import org.json.JSONObject
 import java.util.UUID
@@ -276,20 +279,20 @@ class HomeFragment : Fragment(),
             }
 
             // LOGS (ya sin suspend)
-            Log.d("TOP6_DEBUG", "===== BUCKET RAW =====")
+           // Log.d("TOP6_DEBUG", "===== BUCKET RAW =====")
             topBucket.forEach {
                 val n = rawToNorm[it.nombreArchivo] ?: it.nombreArchivo
-                Log.d("TOP6_DEBUG", "bucket -> raw=${it.nombreArchivo} norm=$n usos=${it.cantidadDeUsos} last=${it.ultimaFechaUso}")
+              //  Log.d("TOP6_DEBUG", "bucket -> raw=${it.nombreArchivo} norm=$n usos=${it.cantidadDeUsos} last=${it.ultimaFechaUso}")
             }
 
-            Log.d("TOP6_DEBUG", "===== GLOBAL RAW =====")
+          //  Log.d("TOP6_DEBUG", "===== GLOBAL RAW =====")
             topGlobal.take(10).forEach {
                 val n = rawToNorm[it.nombreArchivo] ?: it.nombreArchivo
-                Log.d("TOP6_DEBUG", "global -> raw=${it.nombreArchivo} norm=$n usos=${it.cantidadDeUsos} last=${it.ultimaFechaUso}")
+               // Log.d("TOP6_DEBUG", "global -> raw=${it.nombreArchivo} norm=$n usos=${it.cantidadDeUsos} last=${it.ultimaFechaUso}")
             }
 
-            Log.d("TOP6_DEBUG", "===== CANDIDATOS NORMALIZADOS =====")
-            candidatos.forEach { Log.d("TOP6_DEBUG", "candidate -> $it") }
+          //  Log.d("TOP6_DEBUG", "===== CANDIDATOS NORMALIZADOS =====")
+           // candidatos.forEach { Log.d("TOP6_DEBUG", "candidate -> $it") }
 
             val topFinalKeys = candidatos
                 .sortedWith(
@@ -300,9 +303,9 @@ class HomeFragment : Fragment(),
                 )
                 .take(6)
 
-            Log.d("TOP6_DEBUG", "===== TOP FINAL KEYS =====")
+          //  Log.d("TOP6_DEBUG", "===== TOP FINAL KEYS =====")
             topFinalKeys.forEachIndexed { index, key ->
-                Log.d("TOP6_DEBUG", "#${index + 1} -> $key | bucket=${bucketCount[key]} global=${globalCount[key]}")
+            //    Log.d("TOP6_DEBUG", "#${index + 1} -> $key | bucket=${bucketCount[key]} global=${globalCount[key]}")
             }
 
             val mediaItemsTop = withContext(Dispatchers.IO) {
@@ -323,9 +326,9 @@ class HomeFragment : Fragment(),
                 }
             }
 
-            Log.d("TOP6_DEBUG", "===== ITEMS MOSTRADOS EN HOME =====")
+        //    Log.d("TOP6_DEBUG", "===== ITEMS MOSTRADOS EN HOME =====")
             mediaItemsTop.forEachIndexed { i, item ->
-                Log.d("TOP6_DEBUG", "#${i + 1} UI -> id=${item.id} nombre=${item.nombre} esImagen=${item.esImagen}")
+         //       Log.d("TOP6_DEBUG", "#${i + 1} UI -> id=${item.id} nombre=${item.nombre} esImagen=${item.esImagen}")
             }
 
             val adapter = MediaAdapter(
@@ -1450,8 +1453,10 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
         val btnExportarListas =      dialogView.findViewById<MaterialButton>(R.id.btnExportarListas)
         val btnSeleccionarTodas = dialogView.findViewById<MaterialButton>(R.id.btnSeleccionarTodas)
         val btnDeseleccionarTodas = dialogView.findViewById<MaterialButton>(R.id.btnDeseleccionarTodas)
+        val btnCancelarListas = dialogView.findViewById<MaterialButton>(R.id.btnCancelarListas)
+        val userId = SessionManager(requireContext()).getCurrentUserId()
 
-        viewLifecycleOwner.lifecycleScope.launch { val categorias = db.categoryDao().getUserActive()
+        viewLifecycleOwner.lifecycleScope.launch { val categorias = db.categoryDao().getUserActiveForUser(userId)
             val cantidades = categorias.associate { categoria ->
                 val userId =
                     SessionManager(requireContext())
@@ -1533,6 +1538,9 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
             }
         }
         dialog.show()
+        btnCancelarListas.setOnClickListener {
+            dialog.dismiss()
+        }
     }
 
     fun mostrarResumenSeleccion(
@@ -1848,124 +1856,506 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
     }
 
     override fun importarElementosDesdeZip(uri: Uri) {
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
 
             try {
-                // Abrir el archivo ZIP
-                val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return@launch
-                val zipInputStream = ZipInputStream(BufferedInputStream(inputStream))
 
-                val mediaDir = File(
-                    requireContext().filesDir,
-                    "media"
-                ) // Carpeta "media" en el almacenamiento interno
+                val context = requireContext()
+                val db = AppDatabase.getDatabase(context)
+
+                val userId =
+                    SessionManager(context)
+                        .getCurrentUserId()
+
+                val mediaDir =
+                    File(context.filesDir, "media")
+
                 if (!mediaDir.exists()) {
-                    mediaDir.mkdirs() // Crear la carpeta si no existe
+                    mediaDir.mkdirs()
                 }
 
-                var entry: ZipEntry?
-                while (zipInputStream.nextEntry.also { entry = it } != null) {
-                    val extension = entry!!.name.substringAfterLast(".", "")
-                        .lowercase(Locale.ROOT) // valido extension de archivo
-                    val esImagen = when (extension) {
-                        in listOf("jpg", "jpeg", "png", "gif", "bmp", "webp") -> true
-                        in listOf("mp4", "mkv", "avi", "mov", "webm") -> false
-                        else -> {
-                            withContext(Dispatchers.Main) {
-                                mostrarSnackbar(
-                                    "Archivo no soportado: $extension",
-                                    false
-                                )
-                            }
+                /*
+                 * ============================================================
+                 * FASE 1 — LEER METADATA
+                 * ============================================================
+                 */
+
+                data class MetadataItem(
+                    val mediaId: String,
+                    val displayName: String,
+                    val mediaType: String
+                )
+
+                val metadataItems =
+                    mutableMapOf<String, MetadataItem>()
+
+                val inputStream =
+                    context.contentResolver
+                        .openInputStream(uri)
+                        ?: throw Exception("No se pudo abrir el ZIP")
+
+                ZipInputStream(
+                    BufferedInputStream(inputStream)
+                ).use { zip ->
+
+                    var entry: ZipEntry?
+
+                    while (
+                        zip.nextEntry.also { entry = it } != null
+                    ) {
+
+                        if (entry!!.isDirectory) {
                             continue
                         }
-                    }
 
-                    val nombreSinExtension = entry!!.name.substringBeforeLast(".")
-                    val nombreFinal = "$nombreSinExtension.${if (esImagen) "jpg" else "mp4"}" // le doy la extension final, el nombre es el q levanta sin la extension
-
-                    val archivoDestino = File(mediaDir, nombreFinal)
-
-                    if (archivoDestino.exists()) { // para evitar sobreescribir archivos
-                        withContext(Dispatchers.Main) {
-                            mostrarSnackbar(
-                                "Ya existe un archivo llamado $nombreSinExtension",
-                                false
+                        if (
+                            entry!!.name.equals(
+                                "metadata.json",
+                                ignoreCase = true
                             )
+                        ) {
+
+                            val json =
+                                buildString {
+
+                                    val buffer =
+                                        ByteArray(1024)
+
+                                    var len: Int
+
+                                    while (
+                                        zip.read(buffer)
+                                            .also { len = it } > 0
+                                    ) {
+                                        append(
+                                            String(
+                                                buffer,
+                                                0,
+                                                len
+                                            )
+                                        )
+                                    }
+                                }
+
+                            val metadata =
+                                Gson().fromJson(
+                                    json,
+                                    ExportMediaMetadata::class.java
+                                )
+
+                            if (metadata.version != 2) {
+                                throw Exception(
+                                    "Versión de ZIP no compatible: ${metadata.version}"
+                                )
+                            }
+
+                            metadata.items.forEach { item ->
+
+                                metadataItems[item.mediaId] =
+                                    MetadataItem(
+                                        mediaId = item.mediaId,
+                                        displayName = item.displayName,
+                                        mediaType = item.mediaType
+                                    )
+                            }
+
+                            break
                         }
-                        continue
+
+                        zip.closeEntry()
                     }
-                    // extraigo zip y lo guardo en la carpeta media (archivoDestino me lleva a mediaDir)
-                    val outputStream = FileOutputStream(archivoDestino)
-                    zipInputStream.copyTo(outputStream)
-                    zipInputStream.closeEntry()
-                    outputStream.close()
-
-                    val uriGuardado = Uri.fromFile(archivoDestino)
-
-                    //                val item = ItemLista(
-                    //                    id = ItemKey.media(nombreSinExtension),
-                    //                    nombre = nombreSinExtension,
-                    //                    uri = uriGuardado,
-                    //                    esImagen = esImagen,
-                    //                    timestamp = System.currentTimeMillis()
-                    //                )
-
-                    val now =  System.currentTimeMillis()
-
-                    val media = MediaEntity(
-                        mediaId = UUID.randomUUID().toString(),
-                        displayName = nombreSinExtension,
-                        localUri = uriGuardado.toString(),
-                        mediaType =
-                        if (esImagen) "image" else "video",
-                        createdAt = now,
-                        updatedAt = now,
-                        isDeleted = false,
-                        ownerUserId =
-                        SessionManager(requireContext())
-                            .getCurrentUserId()
-                    )
-
-                    db.mediaDao().upsert(media)
-
-                    val item = ItemLista(
-                        id = ItemKey.media(media.mediaId),
-                        nombre = media.displayName,
-                        uri = uriGuardado,
-                        esImagen = esImagen,
-                        timestamp = media.createdAt
-                    )
-
-                    listaDeArchivos.add(item) // agrego archivos a la lista actual
-                    saveMediaData(
-                        nombreSinExtension,
-                        uriGuardado,
-                        esImagen
-                    ) // guardo en el almacenamiento persistente (sharedPreferences)
                 }
 
-                zipInputStream.close()
-                mediaAdapter.notifyDataSetChanged()
-                mostrarSnackbar(
-                    "Importación exitosa",
-                    true
-                )
+                /*
+                 * ============================================================
+                 * FASE 2 — PROCESAR ARCHIVOS
+                 * ============================================================
+                 */
+
+                val itemsImportados =
+                    mutableListOf<ItemLista>()
+
+                val inputStreamArchivos =
+                    context.contentResolver
+                        .openInputStream(uri)
+                        ?: throw Exception("No se pudo abrir el ZIP")
+
+                ZipInputStream(
+                    BufferedInputStream(inputStreamArchivos)
+                ).use { zip ->
+
+                    var entry: ZipEntry?
+
+                    while (
+                        zip.nextEntry.also { entry = it } != null
+                    ) {
+
+                        if (entry!!.isDirectory) {
+                            continue
+                        }
+
+                        val entryName =
+                            entry!!.name
+
+                        /*
+                         * No procesar metadata.json como archivo multimedia.
+                         */
+                        if (
+                            entryName.equals(
+                                "metadata.json",
+                                ignoreCase = true
+                            )
+                        ) {
+                            zip.closeEntry()
+                            continue
+                        }
+
+                        /*
+                         * Esperamos archivos dentro de:
+                         *
+                         * media/MED_UUID.ext
+                         */
+                        val fileName =
+                            entryName.substringAfterLast("/")
+
+                        if (
+                            !fileName.startsWith("MED_")
+                        ) {
+                            zip.closeEntry()
+                            continue
+                        }
+
+                        val fileNameWithoutExtension =
+                            fileName.substringBeforeLast(".")
+
+                        val mediaId =
+                            fileNameWithoutExtension
+                                .removePrefix("MED_")
+
+                        /*
+                         * Validar que el UUID sea realmente un UUID.
+                         */
+                        val itemKey =
+                            ItemKey.media(mediaId)
+
+                        if (
+                            !ItemKey.isMediaUuid(itemKey)
+                        ) {
+
+                            Log.e(
+                                "IMPORT_MEDIA",
+                                "UUID inválido en ZIP: $mediaId"
+                            )
+
+                            zip.closeEntry()
+                            continue
+                        }
+
+                        /*
+                         * Buscar información del elemento
+                         * en metadata.json.
+                         */
+                        val metadataItem =
+                            metadataItems[mediaId]
+
+                        if (metadataItem == null) {
+
+                            Log.e(
+                                "IMPORT_MEDIA",
+                                "No existe metadata para mediaId=$mediaId"
+                            )
+
+                            zip.closeEntry()
+                            continue
+                        }
+
+                        val extension =
+                            fileName
+                                .substringAfterLast(
+                                    ".",
+                                    ""
+                                )
+                                .lowercase(Locale.ROOT)
+
+                        val extensionFinal =
+                            when (metadataItem.mediaType) {
+
+                                "image" -> "jpg"
+
+                                "video" -> "mp4"
+
+                                else -> {
+                                    Log.e(
+                                        "IMPORT_MEDIA",
+                                        "Tipo multimedia desconocido: ${metadataItem.mediaType}"
+                                    )
+
+                                    zip.closeEntry()
+                                    continue
+                                }
+                            }
+
+                        /*
+                         * Nombre físico local.
+                         *
+                         * El nombre del archivo no es la identidad.
+                         * La identidad es mediaId.
+                         */
+                        val nombreArchivo =
+                            "${metadataItem.displayName}.$extensionFinal"
+
+                        var archivoDestino =
+                            File(
+                                mediaDir,
+                                nombreArchivo
+                            )
+
+                        /*
+                         * Evitar conflicto de nombre físico.
+                         *
+                         * Esto NO modifica el UUID.
+                         */
+                        if (archivoDestino.exists()) {
+
+                            var contador = 1
+
+                            while (archivoDestino.exists()) {
+
+                                archivoDestino =
+                                    File(
+                                        mediaDir,
+                                        "${metadataItem.displayName} ($contador).$extensionFinal"
+                                    )
+
+                                contador++
+                            }
+                        }
+
+                        /*
+                         * Extraer temporalmente el archivo.
+                         */
+                        val tempFile =
+                            File(
+                                mediaDir,
+                                ".import_${mediaId}_temp.$extension"
+                            )
+
+                        FileOutputStream(tempFile).use { output ->
+
+                            zip.copyTo(output)
+                        }
+
+                        zip.closeEntry()
+
+                        val tempUri =
+                            Uri.fromFile(tempFile)
+
+                        val importedHash =
+                            FileHash.sha256(tempUri)
+
+                        /*
+                         * ====================================================
+                         * BUSCAR MEDIA EXISTENTE POR UUID
+                         * ====================================================
+                         */
+
+                        val mediaExistente =
+                            db.mediaDao()
+                                .getByIdForUser( // es segun user
+                                    mediaId = mediaId,
+                                    userId = userId
+                                )
+
+                        if (mediaExistente != null) {
+
+                            /*
+                             * El UUID ya existe.
+                             *
+                             * Verificamos si el contenido es el mismo.
+                             */
+
+                            if (
+                                mediaExistente.contentHash.isNotBlank() &&
+                                mediaExistente.contentHash == importedHash
+                            ) {
+
+                                /*
+                                 * Es exactamente el mismo elemento.
+                                 *
+                                 * No creamos otro MediaEntity.
+                                 */
+
+                                tempFile.delete()
+
+                                Log.d(
+                                    "IMPORT_MEDIA",
+                                    "Media existente reutilizado: $mediaId"
+                                )
+
+                                val item =
+                                    ItemLista(
+                                        id = ItemKey.media(mediaId),
+                                        nombre = mediaExistente.displayName,
+                                        uri = Uri.parse(
+                                            mediaExistente.localUri
+                                        ),
+                                        esImagen =
+                                        mediaExistente.mediaType == "image",
+                                        timestamp =
+                                        mediaExistente.createdAt
+                                    )
+
+                                if (listaDeArchivos.none { it.id == item.id }) {
+                                    itemsImportados.add(item)
+                                }
+
+                                continue
+
+                            } else {
+
+                                /*
+                                 * Mismo UUID pero contenido diferente.
+                                 *
+                                 * Por ahora NO sobrescribimos.
+                                 */
+                                tempFile.delete()
+
+                                Log.e(
+                                    "IMPORT_MEDIA",
+                                    "CONFLICTO: mismo UUID pero contenido diferente: $mediaId"
+                                )
+
+                                withContext(Dispatchers.Main) {
+
+                                    mostrarSnackbar(
+                                        "El elemento \"${metadataItem.displayName}\" ya existe con contenido diferente",
+                                        false
+                                    )
+                                }
+
+                                continue
+                            }
+                        }
+
+                        /*
+                         * ====================================================
+                         * CREAR NUEVO MEDIAENTITY
+                         * ====================================================
+                         *
+                         * IMPORTANTE:
+                         *
+                         * NO usamos UUID.randomUUID().
+                         *
+                         * Conservamos el UUID original.
+                         */
+
+                        if (
+                            archivoDestino.exists()
+                        ) {
+                            archivoDestino.delete()
+                        }
+
+                        tempFile.renameTo(
+                            archivoDestino
+                        )
+
+                        val uriGuardado =
+                            Uri.fromFile(
+                                archivoDestino
+                            )
+
+                        val now =
+                            System.currentTimeMillis()
+
+                        val media =
+                            MediaEntity(
+                                mediaId = mediaId,
+                                displayName =
+                                metadataItem.displayName,
+                                localUri =
+                                uriGuardado.toString(),
+                                mediaType =
+                                metadataItem.mediaType,
+                                createdAt = now,
+                                updatedAt = now,
+                                isDeleted = false,
+                                ownerUserId = userId,
+                                contentHash = importedHash
+                            )
+
+                        db.mediaDao()
+                            .upsert(media)
+
+                        /*
+                         * Crear ItemLista usando el UUID original.
+                         */
+                        val item =
+                            ItemLista(
+                                id = ItemKey.media(
+                                    media.mediaId
+                                ),
+                                nombre =
+                                media.displayName,
+                                uri =
+                                uriGuardado,
+                                esImagen =
+                                media.mediaType == "image",
+                                timestamp =
+                                media.createdAt
+                            )
+
+                        if (listaDeArchivos.none { it.id == item.id }) {
+                            itemsImportados.add(item)
+                        }
+                        Log.d(
+                            "IMPORT_MEDIA",
+                            "Media importado correctamente: " +
+                                    "UUID=${media.mediaId}, " +
+                                    "displayName=${media.displayName}"
+                        )
+                    }
+                }
+
+                /*
+                 * ============================================================
+                 * ACTUALIZAR UI
+                 * ============================================================
+                 */
+
+                withContext(Dispatchers.Main) {
+
+                    listaDeArchivos.addAll(
+                        itemsImportados
+                    )
+
+                    mediaAdapter.notifyDataSetChanged()
+
+                    mostrarSnackbar(
+                        "Importación exitosa",
+                        true
+                    )
+                }
+
             } catch (e: Exception) {
+
                 e.printStackTrace()
-                mostrarSnackbar(
-                    "Error al importar ZIP",
-                    false
-                )
+
+                withContext(Dispatchers.Main) {
+
+                    mostrarSnackbar(
+                        "Error al importar ZIP",
+                        false
+                    )
+                }
             }
         }
     }
 
     private fun importarListaDesdeZip(uri: Uri) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val userId =
-                SessionManager(requireContext())
-                    .getCurrentUserId()
+            val userId=SessionManager(requireContext()) .getCurrentUserId()
+
             try {
 
                 val inputStream =
@@ -1984,11 +2374,9 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                     val categoryId: String
                 )
 
-                val categoriasMap =
-                    mutableMapOf<String, CategoriaImportada>()
-
-                val itemsImportados =
-                    mutableListOf<ItemLista>()
+                val categoriasMap = mutableMapOf<String, CategoriaImportada>()
+                val itemsImportados = mutableListOf<ItemLista>()
+                val metadataItems = mutableMapOf<String, ExportCategoryItem>()
 
                 var entry: ZipEntry?
 
@@ -2018,43 +2406,50 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
 
                         val obj = JSONObject(json)
 
+                        val version =
+                            obj.optInt("version", 1)
+
+                        if (version >= 2) {
+                            val itemsJson = obj.optJSONArray("items")
+                            if (itemsJson != null) {
+                                for (i in 0 until itemsJson.length()) {
+                                    val itemObj = itemsJson.getJSONObject(i)
+                                    val itemKey = itemObj.optString("itemKey")
+
+                                    if (
+                                        itemKey.isNotBlank()
+                                    ) {
+                                        val exportItem =
+                                            ExportCategoryItem(
+                                                itemKey = itemKey,
+                                                orderIndex =
+                                                itemObj.optInt(
+                                                    "orderIndex",
+                                                    i
+                                                ),
+                                                displayName =
+                                                itemObj.optString(
+                                                    "displayName",
+                                                    null
+                                                ),
+                                                mediaType =
+                                                itemObj.optString(
+                                                    "mediaType",
+                                                    null
+                                                )
+                                            )
+
+                                        metadataItems[itemKey] =
+                                            exportItem
+                                    }
+                                }
+                            }
+                        }
+
                         val nombreOriginal = obj.optString("name", "Lista importada")
 
                         var nombreFinal = nombreOriginal
                         var reemplazar = false
-
-                        /*withContext(Dispatchers.Main) {
-                            val deferred = CompletableDeferred<Unit>()
-
-                            val input =TextInputEditText(requireContext())
-                            input.setText(nombreOriginal)
-                            AlertDialog.Builder(
-                                requireContext(),
-                                R.style.ThemeOverlay_Comunic_AlertDialog
-                            )
-                                .setTitle("Importar lista")
-                                .setMessage("Nombre de la lista")
-                                .setView(input)
-                                .setPositiveButton("Continuar") { _, _ ->
-                                    nombreFinal =
-                                        input.text
-                                            ?.toString()
-                                            ?.trim()
-                                            .orEmpty()
-                                    deferred.complete(Unit)  }
-
-                                .setNegativeButton("Cancelar") { _, _ -> deferred.complete(Unit)  }
-
-                                .setOnCancelListener { deferred.complete(Unit)}
-
-                                .show()
-
-                            deferred.await()
-                        }
-
-                        if (nombreFinal.isBlank()) {
-                            continue
-                        }*/
 
                         var cancelado = false
 
@@ -2113,9 +2508,9 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                         if (nombreFinal.isBlank()) {
                             continue
                         }
-                        val userId =
-                            SessionManager(requireContext())
-                                .getCurrentUserId()
+//                        val userId =
+//                            SessionManager(requireContext())
+//                                .getCurrentUserId()
 
                         val existing =
                             db.categoryDao()
@@ -2143,39 +2538,18 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                                 )
                                     .setView(dialogView)
                                     .create()
+                                val txtTitulo = dialogView.findViewById<TextView>(R.id.txtTitulo)
+                                val btn1 = dialogView.findViewById<MaterialButton>(R.id.btnAccion1)
+                                val btn2 = dialogView.findViewById<MaterialButton>(R.id.btnAccion2)
+                                val btn3 = dialogView.findViewById<MaterialButton>(R.id.btnAccion3)
+                                val btn4 = dialogView.findViewById<MaterialButton>(R.id.btnAccion4)
+                                val btnCancelar = dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
 
-                                val txtTitulo =
-                                    dialogView.findViewById<TextView>(R.id.txtTitulo)
-
-                                val btn1 =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnAccion1)
-
-                                val btn2 =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnAccion2)
-
-                                val btn3 =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnAccion3)
-
-                                val btn4 =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnAccion4)
-
-                                val btnCancelar =
-                                    dialogView.findViewById<MaterialButton>(R.id.btnCancelar)
-
-                                txtTitulo.text =
-                                    "La lista \"$nombreFinal\" ya existe"
-
-                                btn1.text =
-                                    "REEMPLAZAR LISTA EXISTENTE"
-
-                                btn2.text =
-                                    "CONSERVAR AMBAS"
-
-                                btn3.text =
-                                    "RENOMBRAR NUEVA LISTA"
-
+                                txtTitulo.text = "La lista \"$nombreFinal\" ya existe"
+                                btn1.text = "REEMPLAZAR LISTA EXISTENTE"
+                                btn2.text = "CONSERVAR AMBAS"
+                                btn3.text = "RENOMBRAR NUEVA LISTA"
                                 btn4.visibility = View.GONE
-
                                 btn1.setOnClickListener {
 
                                     deferred.complete(
@@ -2308,11 +2682,9 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                                     )
                             }
                         }
-
                         val now = System.currentTimeMillis()
                         val nuevaCategoriaId = "user_" + UUID.randomUUID()
                         val order = db.categoryDao().getMaxCategoryOrderIndex() + 1
-
                         db.categoryDao().upsert(
                             CategoryEntity(
                                 categoryId = nuevaCategoriaId,
@@ -2336,179 +2708,200 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                         continue
                     }
 
-                    // =========================
-                    // ARCHIVOS
-                    // =========================
+// =========================
+// ARCHIVOS
+// =========================
 
                     val folderName = entryName.substringBefore("/")
                     val categoria = categoriasMap[folderName] ?: continue
-                    val extension = entryName.substringAfterLast(".", "").lowercase(Locale.ROOT)
-                    val esImagen = when (extension) {
-                        in listOf("jpg", "jpeg", "png", "webp", "gif", "bmp") -> true
-                        in listOf("mp4", "mkv", "avi", "mov", "webm") -> false
-                        else -> continue
-                    }
+
+
+                    if (!entryName.contains("/media/")) continue
+
                     val fileName = entryName.substringAfterLast("/")
-                    var nombreSinExtension =  fileName.substringBeforeLast(".")
 
-                    nombreSinExtension =
-                        nombreSinExtension
-                            .removePrefix("MED_")
-                            .removePrefix("MED:")
-                    val extensionFinal = if (esImagen) "jpg" else "mp4"
+                    if (!fileName.startsWith("MED_")) continue
 
-                    val nombreFinal = "$nombreSinExtension.$extensionFinal"
+                    val fileNameWithoutExtension = fileName.substringBeforeLast(".")
+                    val mediaId = fileNameWithoutExtension.removePrefix("MED_")
+                    val itemKey = ItemKey.media(mediaId)
 
-                    val archivoDestino = File(mediaDir, nombreFinal)
+                    if (!ItemKey.isMediaUuid(itemKey)) {
+                        Log.e("IMPORT_LIST_MEDIA", "UUID inválido en ZIP: $mediaId")
+                        zipInputStream.closeEntry()
+                        continue
+                    }
 
-//                    if (archivoDestino.exists()) {
-//
-//                        val itemExistente = ItemLista(
-//                            id = ItemKey.media(nombreSinExtension),
-//                            nombre = nombreSinExtension,
-//                            uri = Uri.fromFile(archivoDestino),
-//                            esImagen = esImagen,
-//                            timestamp = archivoDestino.lastModified()
-//                        )
-                    if (archivoDestino.exists()) {
+                    val metadataItem = metadataItems[itemKey]
 
-                        val uriExistente =  Uri.fromFile(archivoDestino)
+                    if (metadataItem == null) {
+                        Log.e("IMPORT_LIST_MEDIA", "No existe metadata para itemKey=$itemKey")
+                        zipInputStream.closeEntry()
+                        continue
+                    }
 
-                        var mediaExistente =db.mediaDao() .getActiveByDisplayName(  nombreSinExtension )
-                        if (mediaExistente == null) {
+                    val displayName =
+                        metadataItem.displayName
+                            ?: fileNameWithoutExtension.removePrefix("MED_")
 
-                            val now =  System.currentTimeMillis()
+                    val extension = fileName.substringAfterLast(".", "").lowercase(Locale.ROOT)
 
-                            mediaExistente = MediaEntity(
-                                mediaId = UUID.randomUUID().toString(),
-                                displayName = nombreSinExtension,
-                                localUri = uriExistente.toString(),
-                                mediaType =if (esImagen) "image" else "video",
-                                createdAt =archivoDestino.lastModified()  .takeIf { it > 0L } ?: now,
-                                updatedAt = now,
-                                isDeleted = false,
-                                ownerUserId =
-                                SessionManager(requireContext())
-                                    .getCurrentUserId()
-                            )
-
-                            db.mediaDao().upsert( mediaExistente )
-                        }
-
-                        val itemExistente = ItemLista(
-                            id = ItemKey.media(
-                                mediaExistente.mediaId
-                            ),
-                            nombre =mediaExistente.displayName,
-                            uri = uriExistente,
-                            esImagen = esImagen,
-                            timestamp = mediaExistente.createdAt
-                        )
-
-                        val now = System.currentTimeMillis()
-                        val nextOrder =
-                            db.categoryDao() .getMaxOrderIndex( categoria.categoryId , userId) + 1
-
-                        if (ItemKey.isMedia(itemExistente.id) && !ItemKey.isMediaUuid(itemExistente.id)) {
-                            Log.e(
-                                "ITEM_KEY_VALIDATION",
-                                "Intento de importar MED legacy existente: ${itemExistente.id}"
-                            )
+                    val mediaType = metadataItem.mediaType ?: when (extension) {
+                        "jpg", "jpeg", "png", "webp", "gif", "bmp" -> "image"
+                        "mp4", "mkv", "avi", "mov", "webm" -> "video"
+                        else -> {
+                            Log.e("IMPORT_LIST_MEDIA", "Tipo de archivo desconocido: $fileName")
+                            zipInputStream.closeEntry()
                             continue
                         }
-                        db.categoryDao().insertCategoryItem(
-                            CategoryItemEntity(
-                                placementId =UUID.randomUUID().toString(),
-                                categoryId =  categoria.categoryId,
-                                itemKey = itemExistente.id,
-                                orderIndex = nextOrder,
-                                createdAt = now,
-                                updatedAt = now,
-                                ownerUserId =
-                                SessionManager(requireContext())
-                                    .getCurrentUserId()
+                    }
+
+// Buscar el elemento por UUID + usuario actual
+                    val mediaExistente = db.mediaDao().getByIdForUser(
+                        mediaId = mediaId,
+                        userId = userId
+                    )
+
+// Extraer temporalmente para calcular el hash
+                    val tempFile = File(
+                        mediaDir,
+                        ".import_list_${mediaId}_temp.$extension"
+                    )
+
+                    FileOutputStream(tempFile).use { output ->
+                        zipInputStream.copyTo(output)
+                    }
+
+                    zipInputStream.closeEntry()
+
+                    val importedHash = FileHash.sha256(tempFile)
+
+// ============================================================
+// EL ELEMENTO YA EXISTE PARA ESTE USUARIO
+// ============================================================
+
+                    if (mediaExistente != null) {
+
+                        if (
+                            mediaExistente.contentHash.isNotBlank() &&
+                            mediaExistente.contentHash == importedHash
+                        ) {
+                            tempFile.delete()
+
+                            val item = ItemLista(
+                                id = itemKey,
+                                nombre = mediaExistente.displayName,
+                                uri = Uri.parse(mediaExistente.localUri),
+                                esImagen = mediaExistente.mediaType == "image",
+                                timestamp = mediaExistente.createdAt
                             )
+
+                            if (itemsImportados.none { it.id == item.id }) {
+                                itemsImportados.add(item)
+                            }
+
+                            val exportItem = metadataItem
+                            val orderIndex = exportItem.orderIndex
+
+                            db.categoryDao().insertCategoryItem(
+                                CategoryItemEntity(
+                                    placementId = UUID.randomUUID().toString(),
+                                    categoryId = categoria.categoryId,
+                                    itemKey = itemKey,
+                                    orderIndex = orderIndex,
+                                    createdAt = System.currentTimeMillis(),
+                                    updatedAt = System.currentTimeMillis(),
+                                    ownerUserId = userId
+                                )
+                            )
+
+                            continue
+                        }
+
+                        tempFile.delete()
+
+                        Log.e(
+                            "IMPORT_LIST_MEDIA",
+                            "CONFLICTO: mismo UUID pero contenido diferente: $mediaId"
                         )
+
+                        withContext(Dispatchers.Main) {
+                            mostrarSnackbar(
+                                "El elemento \"$displayName\" ya existe con contenido diferente",
+                                false
+                            )
+                        }
 
                         continue
                     }
 
-                    val outputStream = FileOutputStream(archivoDestino)
+// ============================================================
+// CREAR NUEVO MEDIAENTITY
+// ============================================================
 
-                    zipInputStream.copyTo(outputStream)
+                    var archivoDestino = File(
+                        mediaDir,
+                        "$displayName.$extension"
+                    )
 
-                    outputStream.close()
-                    zipInputStream.closeEntry()
+                    if (archivoDestino.exists()) {
+                        var contador = 1
+
+                        while (archivoDestino.exists()) {
+                            archivoDestino = File(
+                                mediaDir,
+                                "$displayName ($contador).$extension"
+                            )
+                            contador++
+                        }
+                    }
+
+                    tempFile.renameTo(archivoDestino)
 
                     val uriGuardado = Uri.fromFile(archivoDestino)
-
-//                    val item = ItemLista(
-//                        id = ItemKey.media(nombreSinExtension),
-//                        nombre = nombreSinExtension,
-//                        uri = uriGuardado,
-//                        esImagen = esImagen,
-//                        timestamp = System.currentTimeMillis()
-//                    )
                     val now = System.currentTimeMillis()
 
                     val media = MediaEntity(
-                        mediaId = UUID.randomUUID().toString(),
-                        displayName = nombreSinExtension,
+                        mediaId = mediaId,
+                        displayName = displayName,
                         localUri = uriGuardado.toString(),
-                        mediaType =
-                        if (esImagen) "image" else "video",
+                        mediaType = mediaType,
                         createdAt = now,
                         updatedAt = now,
                         isDeleted = false,
-                        ownerUserId =
-                        SessionManager(requireContext())
-                            .getCurrentUserId()
+                        ownerUserId = userId,
+                        contentHash = importedHash
                     )
 
                     db.mediaDao().upsert(media)
 
                     val item = ItemLista(
-                        id = ItemKey.media(
-                            media.mediaId
-                        ),
-                        nombre =
-                        media.displayName,
+                        id = ItemKey.media(media.mediaId),
+                        nombre = media.displayName,
                         uri = uriGuardado,
-                        esImagen = esImagen,
-                        timestamp =
-                        media.createdAt
+                        esImagen = media.mediaType == "image",
+                        timestamp = media.createdAt
                     )
 
-                    itemsImportados.add(item)
+                    if (itemsImportados.none { it.id == item.id }) {
+                        itemsImportados.add(item)
+                    }
 
                     saveMediaData(
-                        nombreSinExtension,
+                        displayName,
                         uriGuardado,
-                        esImagen
+                        mediaType == "image"
                     )
-
-                    val nextOrder =
-                        db.categoryDao()
-                            .getMaxOrderIndex(categoria.categoryId, userId) + 1
-                    if (ItemKey.isMedia(item.id) && !ItemKey.isMediaUuid(item.id)) {
-                        Log.e(
-                            "ITEM_KEY_VALIDATION",
-                            "Intento de importar MED legacy nuevo: ${item.id}"
-                        )
-                        continue
-                    }
 
                     db.categoryDao().insertCategoryItem(
                         CategoryItemEntity(
                             placementId = UUID.randomUUID().toString(),
                             categoryId = categoria.categoryId,
-                            itemKey = item.id,
-                            orderIndex = nextOrder,
+                            itemKey = itemKey,
+                            orderIndex = metadataItem.orderIndex,
                             createdAt = now,
                             updatedAt = now,
-                            ownerUserId =
-                            SessionManager(requireContext())
-                                .getCurrentUserId()
+                            ownerUserId = userId
                         )
                     )
                 }
@@ -2516,8 +2909,11 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                 zipInputStream.close()
 
                 withContext(Dispatchers.Main) {
+
                     listaDeArchivos.addAll(itemsImportados)
+
                     mediaAdapter.notifyDataSetChanged()
+
                     mostrarSnackbar(
                         "Importación exitosa",
                         true
@@ -2525,8 +2921,11 @@ private fun eliminarElementosSeleccionados(lista: List<ItemLista>) {
                 }
 
             } catch (e: Exception) {
+
                 e.printStackTrace()
+
                 withContext(Dispatchers.Main) {
+
                     mostrarSnackbar(
                         "Error al importar Listas",
                         false

@@ -13,6 +13,7 @@ class MediaRepository(
 ) {
 
     suspend fun ensureLocalMediaIndexed() {
+
         val mediaDir = File(context.filesDir, "media")
 
         if (!mediaDir.exists()) {
@@ -22,32 +23,41 @@ class MediaRepository(
 
         mediaDir.listFiles()?.forEach { file ->
 
-            val esImagen = file.extension.equals("jpg", ignoreCase = true)
-            val esVideo = file.extension.equals("mp4", ignoreCase = true)
+            val esImagen =
+                file.extension.equals("jpg", ignoreCase = true)
+
+            val esVideo =
+                file.extension.equals("mp4", ignoreCase = true)
 
             if (!esImagen && !esVideo) {
                 return@forEach
             }
 
-            val displayName = file.nameWithoutExtension.trim()
+            val displayName =
+                file.nameWithoutExtension.trim()
 
             if (displayName.isBlank()) {
                 return@forEach
             }
 
-//            val existente = db.mediaDao()
-//                .getActiveByDisplayName(displayName)
-//            val existente = db.mediaDao()
-//                .getAnyByDisplayName(displayName)
-//
-//            if (existente != null) {
-//                return@forEach
-//            }
+            // -------------------------------------------------
+            // IDENTIFICAR EL ARCHIVO POR SU URI, NO POR EL NOMBRE
+            // -------------------------------------------------
+            //
+            // El nombre visible puede cambiar mediante edición.
+            // La URI identifica el archivo físico que ya está
+            // registrado en Room.
+            //
+            val localUri =
+                Uri.fromFile(file).toString()
 
-            val existente = db.mediaDao().getAnyByDisplayName(displayName)
+            val existente =
+                db.mediaDao().getAnyByLocalUri(localUri)
 
             if (existente != null) {
 
+                // Si el registro existe pero todavía no tiene
+                // hash, lo calculamos una sola vez.
                 if (existente.contentHash.isBlank()) {
 
                     db.mediaDao().updateContentHash(
@@ -59,14 +69,26 @@ class MediaRepository(
                 return@forEach
             }
 
-            val now = System.currentTimeMillis()
+            // -------------------------------------------------
+            // ARCHIVO NUEVO
+            // -------------------------------------------------
+
+            val now =
+                System.currentTimeMillis()
 
             val media = MediaEntity(
                 mediaId = UUID.randomUUID().toString(),
                 displayName = displayName,
-                localUri = Uri.fromFile(file).toString(),
-                mediaType = if (esImagen) "image" else "video",
-                createdAt = file.lastModified().takeIf { it > 0L } ?: now,
+                localUri = localUri,
+                mediaType = if (esImagen) {
+                    "image"
+                } else {
+                    "video"
+                },
+                createdAt =
+                file.lastModified()
+                    .takeIf { it > 0L }
+                    ?: now,
                 updatedAt = now,
                 isDeleted = false
             )
